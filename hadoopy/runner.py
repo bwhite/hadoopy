@@ -30,8 +30,12 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True, combine=Fa
     # Add mapper/reducer
     cmd += ['-mapper',
             '"%s"'%(map)]
-    cmd += ['-reducer', 
-            '"%s"'%(reduce)]
+    if reduce:
+        cmd += ['-reducer', 
+                '"%s"'%(reduce)]
+    else:
+        cmd += ['-reducer', 
+                'NONE']
     # Add files
     if isinstance(files, str):
         files = [files, script_path]
