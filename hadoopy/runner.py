@@ -8,7 +8,7 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True, combine=Fa
     """Run Hadoop given the parameters
 
     Keyword Arguments:
-    in_name -- Input path
+    in_name -- Input path (string or list)
     out_name -- Output path
     script_path -- Path to the script (e.g., script.py)
     map -- If True, the mapper is "script.py map".  If string, the mapper is the value of map
@@ -26,7 +26,12 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True, combine=Fa
         reduce = ' '.join((script_name, 'reduce'))
     if combine == True:
         map = '%s | sort | %s'%(map, reduce)
-    cmd = ('%s -input %s -output %s'%(hadoop_cmd, in_name, out_name)).split()
+    cmd = ('%s -output %s'%(hadoop_cmd, out_name)).split()
+    # Add inputs
+    if isinstance(in_name, str):
+        in_name = [in_name]
+    for f in in_name:
+        cmd += ['-input', f]        
     # Add mapper/reducer
     cmd += ['-mapper',
             '"%s"'%(map)]
