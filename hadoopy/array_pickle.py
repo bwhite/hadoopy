@@ -20,7 +20,10 @@ def loads2d64(vecs64):
     # Fast check for the common case
     if l == 1:
         return (vecs64[:-8],)
-    sz = (len(vecs64) - 8) / l
+    try:
+        sz = (len(vecs64) - 8) / l
+    except ZeroDivisionError:
+        return ()
     return (vecs64[sz*i:sz*(i+1)] for i in range(l))
 
 def len2d64(vecs64):
@@ -37,7 +40,7 @@ if __name__ == '__main__':
     st = time.time()
     all_correct = True
     for y in range(r):
-        for n in range(1, 3):
+        for n in range(0, 3):
             a = [np.array(np.random.random(l), dtype=np.float32) for x in range(n)]
             b = [base64.b64encode(x.tostring()) for x in a]
             c = [np.fromstring(base64.b64decode(x), dtype=np.float32) for x in loads2d64(dumps2d64(b))]
