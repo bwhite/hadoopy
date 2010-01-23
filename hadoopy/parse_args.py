@@ -1,5 +1,6 @@
 import sys
 
+
 def parse_args(mapper, reducer=None, combiner=None, separator='\t'):
     if len(sys.argv) < 2:
         return 1

@@ -1,7 +1,13 @@
 import sys
 
+
+def _err(x):
+    sys.stderr.write(x)
+
+
 def counter(group, counter, amount=1):
-    sys.stderr.write("reporter:counter:%s,%s,%s\n"%(group, counter, str(amount)))
+    _err("reporter:counter:%s,%s,%s\n" % (group, counter, str(amount)))
+
 
 def status(msg):
-    sys.stderr.write(''.join(("reporter:status:", msg)))
+    _err(''.join(("reporter:status:", msg)))

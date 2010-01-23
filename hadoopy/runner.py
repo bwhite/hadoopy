@@ -1,17 +1,21 @@
 import subprocess
 import re
 
+
 def script_name_from_path(script_path):
     return re.search(r'([^/]+$)', script_path).group(1)
 
-def run_hadoop(in_name, out_name, script_path, map=True, reduce=True, combine=False, files=[], jobconfs=[], cmdenvs=[], hadoop_cmd="hadoop jar /usr/lib/hadoop/contrib/streaming/hadoop-0.18.3-6cloudera0.3.0-streaming.jar"):
+def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
+               combine=False, files=[], jobconfs=[], cmdenvs=[],
+               hadoop_cmd='hadoop jar /usr/lib/hadoop/contrib/streaming/' \
+                   'hadoop-0.18.3-6cloudera0.3.0-streaming.jar'):
     """Run Hadoop given the parameters
 
     Keyword Arguments:
     in_name -- Input path (string or list)
     out_name -- Output path
     script_path -- Path to the script (e.g., script.py)
-    map -- If True, the mapper is "script.py map".  If string, the mapper is the value of map
+    map -- If True, the mapper is "script.py map".If string, the mapper is the value of map
     reduce -- If True, the reducer is "script.py reduce".  If string, the reducer is the value of reduce
     combiner -- If True, (assumes there is a map and reduce), uses "script.py map | sort | script.py reduce" as the mapper
     files - Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory (path errors!).
