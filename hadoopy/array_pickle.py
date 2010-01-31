@@ -19,7 +19,7 @@ def dumps2d64(vecs):
     """Takes in a list of equal length string encodings of array data.  It
     concatenates them all together and puts the length at the end in the form
     of a base64 encoded unsigned int."""
-    vecs_len = np.array(len(vecs), dtype=np.uint).tostring()
+    vecs_len = np.array(len(vecs), dtype=np.uint32).tostring()
     return ''.join(vecs) + base64.b64encode(vecs_len)
 
 
@@ -40,7 +40,7 @@ def len2d64(vecs64):
     # Fast check for the common case
     if len64 == 'AQAAAA==':
         return 1
-    return int(np.fromstring(base64.b64decode(len64), dtype=np.uint)[0])
+    return int(np.fromstring(base64.b64decode(len64), dtype=np.uint32)[0])
 
 if __name__ == '__main__':
     l = 5
