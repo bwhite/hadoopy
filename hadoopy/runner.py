@@ -5,10 +5,14 @@ import re
 def script_name_from_path(script_path):
     return re.search(r'([^/]+$)', script_path).group(1)
 
+def find_hstreaming():
+    p = subprocess.Popen('find / -name hadoop*streaming.jar'.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return p.communicate()[0].split('\n')[0]
+
 def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
                combine=False, files=[], jobconfs=[], cmdenvs=[],
-               hadoop_cmd='hadoop jar /usr/lib/hadoop/contrib/streaming/' \
-                   'hadoop-0.18.3-6cloudera0.3.0-streaming.jar'):
+               copy_script=True,
+               hstreaming=None):
     """Run Hadoop given the parameters
 
     Keyword Arguments:
@@ -21,8 +25,12 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     files - Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory (path errors!).
     jobconfs - Extra jobconf parameters (e.g., mapred.reduce.tasks=1) (string or list)
     cmdenvs - Extra cmdenv parameters (string or list)
-    hadoop_cmd - The full hadoop streaming command to call (TODO This should be automatically detected)
+    hstreaming - The full hadoop streaming path to call (TODO This should be automatically detected)
     """
+    try:
+        hadoop_cmd = 'hadoop jar ' + hstreaming
+    except TypeError:
+        hadoop_cmd = 'hadoop jar ' + find_hstreaming()
     script_name = script_name_from_path(script_path)
     if map == True:
         map = ' '.join((script_name, 'map'))
@@ -47,8 +55,8 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
                 'NONE']
     # Add files
     if isinstance(files, str):
-        files = [files, script_path]
-    else:
+        files = [files]
+    if copy_script:
         files.append(script_path)
     for f in files:
         cmd += ['-file', f]

@@ -1,2 +1,2 @@
-To make an egg do
-python setup.py bdist_egg
+Install
+python setup.py install

@@ -1,9 +1,5 @@
-from setuptools import setup, find_packages
-
+from distutils.core import setup
 setup(name='hadoopy',
-    version='.06',
-    install_requires=['numpy',],
-    zip_safe = True,
-    packages = find_packages()
-
-)
+      version='.06',
+      packages=['hadoopy', 'hadoopy.readers']
+      )
