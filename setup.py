@@ -1,5 +1,5 @@
 from distutils.core import setup
 setup(name='hadoopy',
-      version='.06',
+      version='.07',
       packages=['hadoopy', 'hadoopy.readers']
       )
