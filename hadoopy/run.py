@@ -14,7 +14,7 @@ def _key_values(separator='\t'):
 
 
 def _groupby_key_values(separator='\t'):
-    return itertools.groupby(_key_values(separator), operator.itemgetter(0))
+    return ((x, (z[1] for z in y)) for x, y in itertools.groupby(_key_values(separator), operator.itemgetter(0)))
 
 
 def _offset_values():
@@ -25,15 +25,15 @@ def _offset_values():
         line_count += 1
 
 
-def _handle_map(mapper):
-    for out in mapper(_offset_values()):
-        _print_out(out, separator)
+def _handle_map(mapper, separator):
+    for key, value in _offset_values():
+        _print_out(mapper(key, value), separator)
     return 0
 
 
-def _handle_reduce(reducer):
-    for out in reducer(_groupby_key_values(separator)):
-        _print_out(out, separator)
+def _handle_reduce(reducer, separator):
+    for key, values in _groupby_key_values(separator):
+        _print_out(reducer(key, values), separator)
     return 0
 
 
@@ -42,9 +42,9 @@ def run(mapper, reducer=None, combiner=None, separator='\t'):
         return 1
     method = sys.argv[1]
     if method == 'map':
-        return _handle_map(mapper)
+        return _handle_map(mapper, separator)
     elif method == 'reduce':
-        return _handle_reduce(reducer)
+        return _handle_reduce(reducer, separator)
     elif method == 'combine':
-        return _handle_reduce(combiner)
+        return _handle_reduce(combiner, separator)
     return 1
