@@ -1,4 +1,6 @@
 import sys
+import itertools
+import operator
 
 
 def _print_out(out, separator):
