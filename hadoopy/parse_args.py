@@ -15,11 +15,11 @@ def parse_args(mapper, reducer=None, combiner=None, separator='\t'):
             _print_out(out, separator)
         return 0
     elif method == 'reduce':
-        for key, val in reducer():
+        for out in reducer():
             _print_out(out, separator)
         return 0
     elif method == 'combine':
-        for key, val in combiner():
+        for out in combiner():
             _print_out(out, separator)
         return 0
     return 1
