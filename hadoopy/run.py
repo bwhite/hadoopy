@@ -27,13 +27,15 @@ def _offset_values():
 
 def _handle_map(mapper, separator):
     for key, value in _offset_values():
-        _print_out(mapper(key, value), separator)
+        for out in mapper(key, value):
+            _print_out(out, separator)
     return 0
 
 
 def _handle_reduce(reducer, separator):
     for key, values in _groupby_key_values(separator):
-        _print_out(reducer(key, values), separator)
+        for out in reducer(key, values):
+            _print_out(out, separator)
     return 0
 
 
