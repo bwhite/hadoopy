@@ -11,7 +11,7 @@ def find_hstreaming():
 
 def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
                combine=False, files=[], jobconfs=[], cmdenvs=[],
-               copy_script=True,
+               copy_script=True, in_map_reduce=False,
                hstreaming=None):
     """Run Hadoop given the parameters
 
@@ -36,8 +36,10 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
         map = ' '.join((script_name, 'map'))
     if reduce == True:
         reduce = ' '.join((script_name, 'reduce'))
+    if in_map_reduce:
+        map = '%s | sort | %s' % (map, reduce)
     if combine == True:
-        map = '%s | sort | %s'%(map, reduce)
+        combine = ' '.join((script_name, 'combine'))
     cmd = ('%s -output %s'%(hadoop_cmd, out_name)).split()
     # Add inputs
     if isinstance(in_name, str):
@@ -53,6 +55,9 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     else:
         cmd += ['-reducer', 
                 'NONE']
+    if combine:
+        cmd += ['-combiner', 
+                '"%s"'%(combine)]
     # Add files
     if isinstance(files, str):
         files = [files]
