@@ -11,6 +11,7 @@ def find_hstreaming():
 
 def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
                combine=False, files=[], jobconfs=[], cmdenvs=[],
+               compress_input=False, compress_output=False,
                copy_script=True, in_map_reduce=False,
                hstreaming=None):
     """Run Hadoop given the parameters
@@ -68,6 +69,11 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     # Add jobconfs
     if isinstance(jobconfs, str):
         jobconfs = [jobconfs]
+    if compress_input:
+        jobconfs.append('stream.recordreader.compression=gzip')
+    if compress_output:
+        jobconfs.append('mapred.output.compress=true')
+        jobconfs.append('mapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec')
     for jobconf in jobconfs:
         cmd += ['-jobconf', jobconf]
     # Add cmdenv
