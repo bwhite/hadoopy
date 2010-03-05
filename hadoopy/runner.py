@@ -13,7 +13,7 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
                combine=False, files=[], jobconfs=[], cmdenvs=[],
                compress_input=False, compress_output=False,
                copy_script=True, in_map_reduce=False,
-               hstreaming=None):
+               hstreaming=None, name=None):
     """Run Hadoop given the parameters
 
     Keyword Arguments:
@@ -69,6 +69,10 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     # Add jobconfs
     if isinstance(jobconfs, str):
         jobconfs = [jobconfs]
+    if name == NONE:
+        jobconfs.append('mapred.job.name="%s"' % (script_name))
+    else:
+        jobconfs.append('mapred.job.name="%s"' % (str(name)))
     if compress_input:
         jobconfs.append('stream.recordreader.compression=gzip')
     if compress_output:
