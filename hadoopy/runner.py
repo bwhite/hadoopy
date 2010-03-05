@@ -70,9 +70,9 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     if isinstance(jobconfs, str):
         jobconfs = [jobconfs]
     if name == None:
-        jobconfs.append('mapred.job.name="%s"' % (script_name))
+        jobconfs.append('mapred.job.name=%s' % (script_name))
     else:
-        jobconfs.append('mapred.job.name="%s"' % (str(name)))
+        jobconfs.append('mapred.job.name=%s' % (str(name)))
     if compress_input:
         jobconfs.append('stream.recordreader.compression=gzip')
     if compress_output:
