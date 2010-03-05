@@ -43,7 +43,14 @@ def _handle_reduce(reducer, separator):
     return 0
 
 
-def run(mapper, reducer=None, combiner=None, separator='\t'):
+def _handle_final(func, separator):
+    for out in func():
+        if out:
+            _print_out(out, separator)
+    return 0
+
+
+def run(mapper=None, reducer=None, combiner=None, separator='\t'):
     if len(sys.argv) < 2:
         return 1
     method = sys.argv[1]
@@ -53,4 +60,21 @@ def run(mapper, reducer=None, combiner=None, separator='\t'):
         return _handle_reduce(reducer, separator)
     elif method == 'combine':
         return _handle_reduce(combiner, separator)
+    return 1
+
+
+def final(mapper=None, reducer=None, combiner=None, separator='\t'):
+    """Used to call provided functions when there is no more input.
+    This is used for patterns such as in-map-combiner where you need
+    a stable destructor to call at the end to flush the buffered data.
+    """
+    if len(sys.argv) < 2:
+        return 1
+    method = sys.argv[1]
+    if method == 'map':
+        return _handle_final(mapper, separator)
+    elif method == 'reduce':
+        return _handle_final(reducer, separator)
+    elif method == 'combine':
+        return _handle_final(combiner, separator)
     return 1
