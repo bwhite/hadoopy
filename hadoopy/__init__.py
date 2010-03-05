@@ -5,5 +5,6 @@ import reporter
 import readers
 import runner
 from run import run
+from run import final
 from reporter import status
 from reporter import counter
