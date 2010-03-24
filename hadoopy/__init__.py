@@ -5,7 +5,7 @@ import reporter
 import readers
 import runner
 from run import run
-from run import final
-from run import initial
+from run import configure
+from run import close
 from reporter import status
 from reporter import counter
