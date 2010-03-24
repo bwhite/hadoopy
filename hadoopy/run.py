@@ -63,7 +63,20 @@ def run(mapper=None, reducer=None, combiner=None, separator='\t'):
     return 1
 
 
-def final(mapper=None, reducer=None, combiner=None, separator='\t'):
+def configure(mapper=None, reducer=None, combiner=None):
+    """Used to call the proper function depending on arguments"""
+    # TODO Should throw exception
+    if len(sys.argv) < 2:
+        return
+    method = sys.argv[1]
+    if method == 'map':
+        return mapper()
+    elif method == 'reduce':
+        return reducer()
+    elif method == 'combine':
+        return combiner()
+
+def close(mapper=None, reducer=None, combiner=None, separator='\t'):
     """Used to call provided functions when there is no more input.
     This is used for patterns such as in-map-combiner where you need
     a stable destructor to call at the end to flush the buffered data.
@@ -78,16 +91,3 @@ def final(mapper=None, reducer=None, combiner=None, separator='\t'):
     elif method == 'combine':
         return _handle_final(combiner, separator)
     return 1
-
-def initial(mapper=None, reducer=None, combiner=None):
-    """Used to call the proper function depending on arguments"""
-    # TODO Should throw exception
-    if len(sys.argv) < 2:
-        return
-    method = sys.argv[1]
-    if method == 'map':
-        return mapper()
-    elif method == 'reduce':
-        return reducer()
-    elif method == 'combine':
-        return combiner()
