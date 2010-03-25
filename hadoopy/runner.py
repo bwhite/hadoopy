@@ -63,6 +63,7 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     if isinstance(files, str):
         files = [files]
     if copy_script:
+        files = list(files)
         files.append(script_path)
     for f in files:
         cmd += ['-file', f]
@@ -70,6 +71,7 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     if isinstance(jobconfs, str):
         jobconfs = [jobconfs]
     if name == None:
+        jobconfs = list(jobconfs)
         jobconfs.append('mapred.job.name=%s' % (script_name))
     else:
         jobconfs.append('mapred.job.name=%s' % (str(name)))
