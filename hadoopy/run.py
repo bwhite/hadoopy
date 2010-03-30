@@ -38,6 +38,8 @@ def _final(func, sep):
 def _configure_call_close(attr):
     def factory(f):
         def inner(func, sep):
+            if isinstance(func, type):
+                func = func()
             try:
                 func.configure()
             except AttributeError:
