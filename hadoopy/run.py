@@ -55,7 +55,7 @@ def _configure_call_close(attr):
     return factory
 
 
-@_configure_and_close('map')
+@_configure_call_close('map')
 def _map(func, sep):
     for key, value in _offset_values():
         for out in func(key, value):
@@ -64,7 +64,7 @@ def _map(func, sep):
     return 0
 
 
-@_configure_and_close('reduce')
+@_configure_call_close('reduce')
 def _reduce(func, sep):
     for key, values in _groupby_key_values(sep):
         for out in func(key, values):
