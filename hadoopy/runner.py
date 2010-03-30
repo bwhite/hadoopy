@@ -2,12 +2,14 @@ import subprocess
 import re
 
 
-def script_name_from_path(script_path):
+def _script_name_from_path(script_path):
     return re.search(r'([^/]+$)', script_path).group(1)
 
-def find_hstreaming():
+
+def _find_hstreaming():
     p = subprocess.Popen('find / -name hadoop*streaming.jar'.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return p.communicate()[0].split('\n')[0]
+
 
 def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
                combine=False, files=[], jobconfs=[], cmdenvs=[],
@@ -26,13 +28,13 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     files - Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory (path errors!).
     jobconfs - Extra jobconf parameters (e.g., mapred.reduce.tasks=1) (string or list)
     cmdenvs - Extra cmdenv parameters (string or list)
-    hstreaming - The full hadoop streaming path to call (TODO This should be automatically detected)
+    hstreaming - The full hadoop streaming path to call
     """
     try:
         hadoop_cmd = 'hadoop jar ' + hstreaming
     except TypeError:
-        hadoop_cmd = 'hadoop jar ' + find_hstreaming()
-    script_name = script_name_from_path(script_path)
+        hadoop_cmd = 'hadoop jar ' + _find_hstreaming()
+    script_name = _script_name_from_path(script_path)
     if map == True:
         map = ' '.join((script_name, 'map'))
     if reduce == True:
