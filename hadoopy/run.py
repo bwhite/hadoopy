@@ -3,21 +3,21 @@ from operator import itemgetter
 from itertools import groupby
 
 
-def _print_out(out, separator):
+def _print_out(out, sep):
     if isinstance(out, tuple):
-        print(separator.join(str(x) for x in out))
+        print(sep.join(str(x) for x in out))
     else:
         print(str(out))
 
 
-def _key_values(separator='\t'):
+def _key_values(sep='\t'):
     for line in sys.stdin:
-        yield line.rstrip().split(separator, 1)
+        yield line.rstrip().split(sep, 1)
 
 
-def _groupby_key_values(separator='\t'):
+def _groupby_key_values(sep='\t'):
     return ((x, (z[1] for z in y))
-            for x, y in groupby(_key_values(separator), itemgetter(0)))
+            for x, y in groupby(_key_values(sep), itemgetter(0)))
 
 
 def _offset_values():
@@ -28,59 +28,56 @@ def _offset_values():
         line_count += 1
 
 
-def _handle_final(func, separator):
+def _final(func, sep):
     for out in func():
         if out:
-            _print_out(out, separator)
+            _print_out(out, sep)
     return 0
 
 
-def configure_call_close(attr):
+def _configure_call_close(attr):
     def factory(f):
-        def inner(func, separator):
+        def inner(func, sep):
             try:
                 func.configure()
             except AttributeError:
                 pass
             try:
-                return f(getattr(func, attr), separator)
+                return f(getattr(func, attr), sep)
             except AttributeError:
-                return f(func, separator)
+                return f(func, sep)
             finally:
                 try:
-                    _handle_final(func.close, separator)
+                    _final(func.close, sep)
                 except AttributeError:
                     pass
         return inner
     return factory
 
 
-@configure_and_close('map')
-def _handle_map(func, separator):
+@_configure_and_close('map')
+def _map(func, sep):
     for key, value in _offset_values():
         for out in func(key, value):
             if out:
-                _print_out(out, separator)
+                _print_out(out, sep)
     return 0
 
 
-@configure_and_close('reduce')
-def _handle_reduce(func, separator):
-    for key, values in _groupby_key_values(separator):
+@_configure_and_close('reduce')
+def _reduce(func, sep):
+    for key, values in _groupby_key_values(sep):
         for out in func(key, values):
             if out:
-                _print_out(out, separator)
+                _print_out(out, sep)
     return 0
 
 
-def run(mapper=None, reducer=None, combiner=None, separator='\t'):
-    if len(sys.argv) < 2:
+def run(mapper=None, reducer=None, combiner=None, sep='\t'):
+    funcs = {'map': lambda: _map(mapper, sep),
+             'reduce': lambda: _reduce(reducer, sep),
+             'combine': lambda: _reduce(combiner, sep)}
+    try:
+        return funcs[sys.argv[1]]()
+    except (IndexError, KeyError):
         return 1
-    method = sys.argv[1]
-    if method == 'map':
-        return _handle_map(mapper, separator)
-    elif method == 'reduce':
-        return _handle_reduce(reducer, separator)
-    elif method == 'combine':
-        return _handle_reduce(combiner, separator)
-    return 1
