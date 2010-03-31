@@ -1,23 +1,17 @@
 import sys
 from operator import itemgetter
 from itertools import groupby
+import typedbytes
 
 
-def _print_out(out, sep):
-    if isinstance(out, tuple):
-        print(sep.join(str(x) for x in out))
-    else:
-        print(str(out))
+def _key_values():
+    for x in typedbytes.PairedInput(sys.stdin):
+        yield x
 
 
-def _key_values(sep='\t'):
-    for line in sys.stdin:
-        yield line.rstrip().split(sep, 1)
-
-
-def _groupby_key_values(sep='\t'):
+def _groupby_key_values():
     return ((x, (z[1] for z in y))
-            for x, y in groupby(_key_values(sep), itemgetter(0)))
+            for x, y in groupby(_key_values(), itemgetter(0)))    
 
 
 def _offset_values():
@@ -28,10 +22,14 @@ def _offset_values():
         line_count += 1
 
 
+def _print_out(iter):
+    out = StringIO.StringIO('w')
+    typedbytes.PairedOutput(out)
+    out.seek(0)
+    print(out.read())
+
 def _final(func, sep):
-    for out in func():
-        if out:
-            _print_out(out, sep)
+    _print_out(func())
     return 0
 
 
@@ -64,19 +62,15 @@ def _configure_call_close(attr):
 
 @_configure_call_close('map')
 def _map(func, sep):
-    for key, value in _offset_values():
-        for out in func(key, value):
-            if out:
-                _print_out(out, sep)
+    for key, value in _key_values():
+        _print_out(func(key, value))
     return 0
 
 
 @_configure_call_close('reduce')
 def _reduce(func, sep):
-    for key, values in _groupby_key_values(sep):
-        for out in func(key, values):
-            if out:
-                _print_out(out, sep)
+    for key, values in _groupby_key_values():
+        _print_out(func(key, values))
     return 0
 
 
