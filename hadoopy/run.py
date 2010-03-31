@@ -38,6 +38,8 @@ def _final(func, sep):
 def _configure_call_close(attr):
     def factory(f):
         def inner(func, sep):
+            if func == None:
+                return 1
             if isinstance(func, type):
                 func = func()
             try:
@@ -45,9 +47,12 @@ def _configure_call_close(attr):
             except AttributeError:
                 pass
             try:
-                return f(getattr(func, attr), sep)
-            except AttributeError:
-                return f(func, sep)
+                try:
+                    return f(getattr(func, attr), sep)
+                except AttributeError:
+                    return f(func, sep)
+            except ValueError: # func not generator, its ok
+                return 0
             finally:
                 try:
                     _final(func.close, sep)
