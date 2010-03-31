@@ -2,6 +2,7 @@ import sys
 from operator import itemgetter
 from itertools import groupby
 import typedbytes
+import StringIO
 
 
 def _key_values():
@@ -24,7 +25,7 @@ def _offset_values():
 
 def _print_out(iter):
     out = StringIO.StringIO('w')
-    typedbytes.PairedOutput(out)
+    typedbytes.PairedOutput(out).writes(iter)
     out.seek(0)
     print(out.read())
 
@@ -62,7 +63,7 @@ def _configure_call_close(attr):
 
 @_configure_call_close('map')
 def _map(func, sep):
-    for key, value in _key_values():
+    for key, value in _offset_values():
         _print_out(func(key, value))
     return 0
 
