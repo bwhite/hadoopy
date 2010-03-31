@@ -88,3 +88,7 @@ def run(mapper=None, reducer=None, combiner=None, sep='\t'):
         return funcs[sys.argv[1]]()
     except (IndexError, KeyError):
         return 1
+
+def print_doc_quit(doc):
+    print(doc)
+    sys.exit(1)
