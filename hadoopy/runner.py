@@ -15,20 +15,24 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
                combine=False, files=[], jobconfs=[], cmdenvs=[],
                compress_input=False, compress_output=False,
                copy_script=True, in_map_reduce=False,
-               hstreaming=None, name=None):
+               hstreaming=None, name=None, use_typedbytes=True,
+               use_seqoutput=True, use_autoinput=True):
     """Run Hadoop given the parameters
 
     Keyword Arguments:
     in_name -- Input path (string or list)
     out_name -- Output path
     script_path -- Path to the script (e.g., script.py)
-    map -- If True, the mapper is "script.py map".If string, the mapper is the value of map
-    reduce -- If True, the reducer is "script.py reduce".  If string, the reducer is the value of reduce
-    combiner -- If True, (assumes there is a map and reduce), uses "script.py map | sort | script.py reduce" as the mapper
+    map -- If True, the mapper is "script.py map".If string, the mapper is the value
+    reduce -- If True, the reducer is "script.py reduce".  If string, the reducer is the value
+    combiner -- If True, the reducer is "script.py combine". If string, the cominer is the value
     files - Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory (path errors!).
     jobconfs - Extra jobconf parameters (e.g., mapred.reduce.tasks=1) (string or list)
     cmdenvs - Extra cmdenv parameters (string or list)
-    hstreaming - The full hadoop streaming path to call
+    hstreaming - The full hadoop streaming path to cal
+    use_typedbytes - If True, use typedbytes IO. (default True)
+    use_seqoutput - True (default), output sequence file. If False, output is text.
+    use_autoinput - If True, sets the input format to auto.
     """
     try:
         hadoop_cmd = 'hadoop jar ' + hstreaming
@@ -89,6 +93,15 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
         cmdenvs = [cmdenvs]
     for cmdenv in cmdenvs:
         cmd += ['-cmdenv', cmdenv]
+    # Add IO
+    if use_typedbytes:
+        cmd += ['-io', 'typedbytes']
+    # Add InputFormat
+    if use_autoinput:
+        cmd += ['-inputformat', 'AutoInputFormat']
+    # Add Outputformat
+    if use_seqoutput:
+        cmd += ['-outputformat', 'org.apache.hadoop.mapred.SequenceFileOutputFormat']
     # Run command and wait till it has completed
-    print(cmd)
+    print('HadooPY: Running[%s]' % (' '.join(cmd)))
     subprocess.Popen(cmd).wait()
