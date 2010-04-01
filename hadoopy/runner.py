@@ -15,7 +15,7 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
                combine=False, files=[], jobconfs=[], cmdenvs=[],
                compress_input=False, compress_output=False,
                copy_script=True, in_map_reduce=False,
-               hstreaming=None, name=None, use_typedbytes=True,
+               hstreaming=None, name=None, use_typedbytes=True, frozen_path=None,
                use_seqoutput=True, use_autoinput=True):
     """Run Hadoop given the parameters
 
@@ -26,10 +26,12 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     map -- If True, the mapper is "script.py map".If string, the mapper is the value
     reduce -- If True, the reducer is "script.py reduce".  If string, the reducer is the value
     combiner -- If True, the reducer is "script.py combine". If string, the cominer is the value
+    copy_script -- If True, the script is added to the files list.
     files - Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory (path errors!).
     jobconfs - Extra jobconf parameters (e.g., mapred.reduce.tasks=1) (string or list)
     cmdenvs - Extra cmdenv parameters (string or list)
     hstreaming - The full hadoop streaming path to cal
+    frozen_path - If True, copy_script is overriden to false and the value of frozen_path is added to files.
     use_typedbytes - If True, use typedbytes IO. (default True)
     use_seqoutput - True (default), output sequence file. If False, output is text.
     use_autoinput - If True, sets the input format to auto.
@@ -68,9 +70,13 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     # Add files
     if isinstance(files, str):
         files = [files]
-    if copy_script:
+    if copy_script and frozen_path == None:
         files = list(files)
         files.append(script_path)
+    if frozen_path:
+        files = list(files)
+        files.append(frozen_path)
+        
     for f in files:
         cmd += ['-file', f]
     # Add jobconfs

@@ -1,7 +1,7 @@
 import sys
 import os
 from operator import itemgetter
-from itertools import groupby
+from itertools import groupby, ifilter
 import typedbytes
 
 
@@ -46,8 +46,12 @@ def _read_in_reduce():
     return _key_values_text()
 
 
+def _filter_none(iter):
+    return ifilter(lambda x: x != None, iter)
+
+
 def _print_out_text(iter, sep='\t'):
-    for out in iter:
+    for out in _filter_none(iter):
         if isinstance(out, tuple):
             print(sep.join(str(x) for x in out))
         else:
@@ -55,7 +59,7 @@ def _print_out_text(iter, sep='\t'):
 
 
 def _print_out_tb(iter):
-    typedbytes.PairedOutput(sys.stdout).writes(iter)
+    typedbytes.PairedOutput(sys.stdout).writes(_filter_none(iter))
 
 
 def _print_out(iter):
@@ -111,14 +115,17 @@ def _reduce(func):
     return 0
 
 
-def run(mapper=None, reducer=None, combiner=None):
+def run(mapper=None, reducer=None, combiner=None, **kw):
     funcs = {'map': lambda: _map(mapper),
              'reduce': lambda: _reduce(reducer),
              'combine': lambda: _reduce(combiner)}
     try:
-        return funcs[sys.argv[1]]()
+        ret = funcs[sys.argv[1]]()
     except (IndexError, KeyError):
-        return 1
+        ret = 1
+    if ret and 'doc' in kw:
+        print_doc_quit(kw['doc'])
+    return ret
 
 
 def print_doc_quit(doc):

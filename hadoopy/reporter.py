@@ -10,4 +10,4 @@ def counter(group, counter, amount=1):
 
 
 def status(msg):
-    _err(''.join(("reporter:status:", msg)))
+    _err(''.join(("reporter:status:", str(msg))))
