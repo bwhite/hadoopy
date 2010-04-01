@@ -8,6 +8,6 @@ def hdfs_cat_tb(path):
     typedbytes in a sequence file and optionally compressed. Note that this
     will load all of the file(s) into memory.  Wildcards are acceptable.
     The output format is an iterator of key, value pairs."""
-    p = subprocess.Popen(['hadoop', 'jar', _fine_hstreaming(), path],
+    p = subprocess.Popen(['hadoop', 'jar', _find_hstreaming(), path],
                          stdout=subprocess.PIPE)
     return typedbytes.PairedInput(p.communicate()[0]).reads()
