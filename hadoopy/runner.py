@@ -96,12 +96,12 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     # Add IO
     if use_typedbytes:
         cmd += ['-io', 'typedbytes']
-    # Add InputFormat
-    if use_autoinput:
-        cmd += ['-inputformat', 'AutoInputFormat']
     # Add Outputformat
     if use_seqoutput:
         cmd += ['-outputformat', 'org.apache.hadoop.mapred.SequenceFileOutputFormat']
+    # Add InputFormat
+    if use_autoinput:
+        cmd += ['-inputformat', 'AutoInputFormat']
     # Run command and wait till it has completed
     print('HadooPY: Running[%s]' % (' '.join(cmd)))
     subprocess.Popen(cmd).wait()
