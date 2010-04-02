@@ -1,7 +1,7 @@
 import sys
 import os
 from operator import itemgetter
-from itertools import groupby, ifilter
+from itertools import groupby
 import typedbytes
 
 
@@ -46,12 +46,8 @@ def _read_in_reduce():
     return _key_values_text()
 
 
-def _filter_none(iter):
-    return ifilter(lambda x: x != None, iter)
-
-
 def _print_out_text(iter, sep='\t'):
-    for out in _filter_none(iter):
+    for out in iter:
         if isinstance(out, tuple):
             print(sep.join(str(x) for x in out))
         else:
@@ -59,14 +55,12 @@ def _print_out_text(iter, sep='\t'):
 
 
 def _print_out_tb(iter):
-    typedbytes.PairedOutput(sys.stdout).writes(_filter_none(iter))
+    typedbytes.PairedOutput(sys.stdout).writes(iter)
 
 
 def _print_out(iter):
-    if _is_io_typedbytes():
-        _print_out_tb(iter)
-    else:
-        _print_out_text(iter)
+    if iter:
+        _print_out_tb(iter) if _is_io_typedbytes() else _print_out_text(iter)
 
 
 def _final(func):
