@@ -1,4 +1,4 @@
-import runner
+from runner import run_hadoop
 from hdfs import hdfs_cat_tb
 from hdfs import hdfs_ls
 from freeze import freeze
