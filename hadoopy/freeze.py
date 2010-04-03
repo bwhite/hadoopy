@@ -10,6 +10,10 @@ import os
 import shutil
 import subprocess
 
+def _wrap_string(s):
+    if isinstance(s, str):
+        return (s,)
+    return s
 
 def freeze(script, shared_libs=(), modules=(), remove_dir=False,
            target_dir='frozen', exclude_modules=('tcl', 'tk', 'Tkinter'),
@@ -31,6 +35,9 @@ def freeze(script, shared_libs=(), modules=(), remove_dir=False,
             shutil.rmtree(target_dir)
         except OSError:
             pass
+    shared_libs = _wrap_string(shared_libs)
+    modules = _wrap_string(modules)
+    exclude_modules = _wrap_string(exclude_modules)
     # Run freeze for each script
     if exclude_modules:
         cmd += ' --exclude-modules=%s' % (','.join(exclude_modules))
@@ -39,6 +46,7 @@ def freeze(script, shared_libs=(), modules=(), remove_dir=False,
     if modules:
         cmd += ' --include-modules=%s' % (','.join(modules))
     cmd += ' %s' % (script)
+    print('HadooPY Freeze:[%s]' % (cmd))
     subprocess.check_call(cmd.split())
     # Copy all of the extra shared libraries
     for shared_lib in shared_libs:
