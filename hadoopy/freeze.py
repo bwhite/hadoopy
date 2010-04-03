@@ -12,8 +12,8 @@ import subprocess
 
 def _wrap_string(s):
     if isinstance(s, str):
-        return (s,)
-    return s
+        return [s]
+    return list(s)
 
 def freeze(script, shared_libs=(), modules=(), remove_dir=False,
            target_dir='frozen', exclude_modules=('tcl', 'tk', 'Tkinter'),
@@ -38,6 +38,8 @@ def freeze(script, shared_libs=(), modules=(), remove_dir=False,
     shared_libs = _wrap_string(shared_libs)
     modules = _wrap_string(modules)
     exclude_modules = _wrap_string(exclude_modules)
+    # Force utf8 encoding in modules
+    modules += ['encodings.utf_8']    
     # Run freeze for each script
     if exclude_modules:
         cmd += ' --exclude-modules=%s' % (','.join(exclude_modules))
