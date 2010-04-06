@@ -2,6 +2,7 @@ import subprocess
 import typedbytes
 import tempfile
 import re
+import multiprocessing
 
 from hadoopy.runner import _find_hstreaming
 
@@ -26,11 +27,20 @@ def hdfs_ls(path):
     out = [x.split(' ')[-1] for x in out.split('\n') if x and not found_line(x)]
     return out
 
-def hdfs_cat_tb(path):
+
+def _hdfs_cat_tb(args):
+    path, hstreaming, fn = args
+    with open(fn, 'wb') as fp:
+        subprocess.Popen(['hadoop', 'jar', hstreaming, 'dumptb', path],
+                         stdout=fp, stderr=subprocess.PIPE).wait()
+
+
+def hdfs_cat_tb(path, procs=10):
     """Read typedbytes sequence files on HDFS (with optional compression).
 
     Args:
       path: A string (potentially with wildcards).
+      procs: Number of processes to use.
 
     Returns:
       An iterator of key, value pairs.
@@ -38,9 +48,11 @@ def hdfs_cat_tb(path):
     Raises:
       IOError: An error occurred listing the directory (e.g., not available).
     """
-    fp = tempfile.TemporaryFile()
-    for x in hdfs_ls(path):
-        subprocess.Popen(['hadoop', 'jar', _find_hstreaming(), 'dumptb', x],
-                         stdout=fp, stderr=subprocess.PIPE).wait()
-    fp.seek(0)
-    return typedbytes.PairedInput(fp).reads()
+    hstreaming = _find_hstreaming()
+    p = multiprocessing.Pool(procs)
+    paths = hdfs_ls(path)
+    fps = [tempfile.NamedTemporaryFile() for x in paths]
+    p.map(_hdfs_cat_tb, [(path, hstreaming, fp.name) for path, fp in zip(paths, fps)])
+    for y in fps:
+        for z in typedbytes.PairedInput(y).reads():
+            yield z

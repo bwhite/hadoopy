@@ -14,7 +14,7 @@ def _find_hstreaming():
 def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
                combine=False, files=[], jobconfs=[], cmdenvs=[],
                compress_input=False, compress_output=False,
-               copy_script=True, in_map_reduce=False,
+               copy_script=True, in_map_reduce=False, disable_log=False,
                hstreaming=None, name=None, use_typedbytes=True, frozen_path=None,
                use_seqoutput=True, use_autoinput=True):
     """Run Hadoop given the parameters
@@ -31,6 +31,7 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     jobconfs - Extra jobconf parameters (e.g., mapred.reduce.tasks=1) (string or list)
     cmdenvs - Extra cmdenv parameters (string or list)
     hstreaming - The full hadoop streaming path to cal
+    disable_log - If True, sets hadoop.job.history.user.location=None.
     frozen_path - If True, copy_script is overriden to false and the value of frozen_path is added to files.
     use_typedbytes - If True, use typedbytes IO. (default True)
     use_seqoutput - True (default), output sequence file. If False, output is text.
@@ -92,6 +93,8 @@ def run_hadoop(in_name, out_name, script_path, map=True, reduce=True,
     if compress_output:
         jobconfs.append('mapred.output.compress=true')
         jobconfs.append('mapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec')
+    if disable_log:
+        jobconfs += ['hadoop.job.history.user.location=None']
     for jobconf in jobconfs:
         cmd += ['-jobconf', jobconf]
     # Add cmdenv
