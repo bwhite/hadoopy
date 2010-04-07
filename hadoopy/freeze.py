@@ -1,6 +1,24 @@
 #!/usr/bin/env python
 """Makes hadoop scripts into unix executables (using cxfreeze)
 The output directory can then be included in the job as a 'file' include
+
+Example:
+This will run 'myhadoopscript.py' on a hadoop cluster that doesn't have python
+installed (in this example we don't require any special shared libraries).
+freeze(script='myhadoopscript.py')
+run_hadoop(in_name=input_path,
+    out_name=output_path,
+    script_path='myhadoopscript.py',
+    frozen_path='frozen')
+
+If you get errors when running on the target cluster, do the following.
+1. If it is a libc error like /lib/libc.so.6: version GLIBC_2.7 not found
+    then you will have to build this on a machine with <= version of the
+    target libc version. (this is the worst problem to have)
+2. If you get an error that a .so file is not found, then include it's path
+    in shared_libs.
+3. If a module is missing, then include it in modules.
+4. Google it
 """
 
 __authors__ = ['"Brandyn White" <bwhite@dappervision.com>']
@@ -18,7 +36,8 @@ def _wrap_string(s):
 def freeze(script, shared_libs=(), modules=(), remove_dir=False,
            target_dir='frozen', exclude_modules=('tcl', 'tk', 'Tkinter'),
            cmd='cxfreeze'):
-    """Freeze a script and perform operations on the output dir
+    """Wraps cxfreeze and provides an easy to use interface (see module doc).
+
     Args:
         script: Path to python script to be frozen.
         shared_libs: A sequence of additional shared library paths to include.
@@ -29,6 +48,13 @@ def freeze(script, shared_libs=(), modules=(), remove_dir=False,
         exclude_modules: A sequence of modules to ignore
             (default is (tcl, tk, Tkinter))
         cmd: Path to cxfreeze (default is cxfreeze)
+    
+    Returns:
+        The cxfreeze command called.
+
+    Raises:
+        subprocess.CalledProcessError: Cxfreeze error.
+        OSError: Cxfreeze not found.
     """
     if remove_dir:
         try:
@@ -39,7 +65,7 @@ def freeze(script, shared_libs=(), modules=(), remove_dir=False,
     modules = _wrap_string(modules)
     exclude_modules = _wrap_string(exclude_modules)
     # Force utf8 encoding in modules
-    modules += ['encodings.utf_8']    
+    modules += ['encodings.utf_8']
     # Run freeze for each script
     if exclude_modules:
         cmd += ' --exclude-modules=%s' % (','.join(exclude_modules))
@@ -48,10 +74,9 @@ def freeze(script, shared_libs=(), modules=(), remove_dir=False,
     if modules:
         cmd += ' --include-modules=%s' % (','.join(modules))
     cmd += ' %s' % (script)
-    print('HadooPY Freeze:[%s]' % (cmd))
     subprocess.check_call(cmd.split())
     # Copy all of the extra shared libraries
     for shared_lib in shared_libs:
-        print(shared_lib)
         shutil.copy(shared_lib, ''.join((target_dir, '/',
                                          os.path.basename(shared_lib))))
+    return cmd
