@@ -5,7 +5,7 @@ The output directory can then be included in the job as a 'file' include
 Example:
 This will run 'myhadoopscript.py' on a hadoop cluster that doesn't have python
 installed (in this example we don't require any special shared libraries).
-freeze(script='myhadoopscript.py')
+freeze(script_path='myhadoopscript.py')
 run_hadoop(in_name=input_path,
     out_name=output_path,
     script_path='myhadoopscript.py',
@@ -33,13 +33,13 @@ def _wrap_string(s):
         return [s]
     return list(s)
 
-def freeze(script, shared_libs=(), modules=(), remove_dir=False,
+def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
            target_dir='frozen', exclude_modules=('tcl', 'tk', 'Tkinter'),
-           cmd='cxfreeze'):
+           cmd='cxfreeze', pretend=False):
     """Wraps cxfreeze and provides an easy to use interface (see module doc).
 
     Args:
-        script: Path to python script to be frozen.
+        script_path: Path to python script to be frozen.
         shared_libs: A sequence of additional shared library paths to include.
         modules: Additional modules to include.
         remove_dir: Will rm -r the target_dir when true (be careful)!
@@ -48,15 +48,16 @@ def freeze(script, shared_libs=(), modules=(), remove_dir=False,
         exclude_modules: A sequence of modules to ignore
             (default is (tcl, tk, Tkinter))
         cmd: Path to cxfreeze (default is cxfreeze)
+        pretend: If true, only build the command and return.
     
     Returns:
-        The cxfreeze command called.
+        The cxfreeze command called (string).
 
     Raises:
         subprocess.CalledProcessError: Cxfreeze error.
         OSError: Cxfreeze not found.
     """
-    if remove_dir:
+    if remove_dir and not pretend:
         try:
             shutil.rmtree(target_dir)
         except OSError:
@@ -73,10 +74,12 @@ def freeze(script, shared_libs=(), modules=(), remove_dir=False,
         cmd += ' --target-dir=%s' % (target_dir)
     if modules:
         cmd += ' --include-modules=%s' % (','.join(modules))
-    cmd += ' %s' % (script)
-    subprocess.check_call(cmd.split())
-    # Copy all of the extra shared libraries
-    for shared_lib in shared_libs:
-        shutil.copy(shared_lib, ''.join((target_dir, '/',
-                                         os.path.basename(shared_lib))))
+    cmd += ' %s' % (script_path)
+    if not pretend:
+        print('HadooPY: Running[%s]' % (cmd))
+        subprocess.check_call(cmd.split())
+        # Copy all of the extra shared libraries
+        for shared_lib in shared_libs:
+            shutil.copy(shared_lib, ''.join((target_dir, '/',
+                                             os.path.basename(shared_lib))))
     return cmd

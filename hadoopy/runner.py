@@ -15,7 +15,7 @@ def run_hadoop(in_name, out_name, script_path, mapper=True, reducer=True,
                combiner=False, files=(), jobconfs=(), cmdenvs=(),
                compress_output=False, copy_script=True, hstreaming=None,
                name=None, frozen_path=None, use_typedbytes=True,
-               use_seqoutput=True, use_autoinput=True):
+               use_seqoutput=True, use_autoinput=True, pretend=False):
     """Run Hadoop given the parameters
 
     Args:
@@ -40,6 +40,14 @@ def run_hadoop(in_name, out_name, script_path, mapper=True, reducer=True,
         use_typedbytes: If True (default), use typedbytes IO.
         use_seqoutput: True (default), output sequence file. If False, output is text.
         use_autoinput: If True (default), sets the input format to auto.
+        pretend: If true, only build the command and return.
+
+    Returns:
+        The hadoop command called.
+
+    Raises:
+        subprocess.CalledProcessError: Hadoop error.
+        OSError: Hadoop streaming not found.
     """
     try:
         hadoop_cmd = 'hadoop jar ' + hstreaming
@@ -113,5 +121,7 @@ def run_hadoop(in_name, out_name, script_path, mapper=True, reducer=True,
     if use_autoinput:
         cmd += ['-inputformat', 'AutoInputFormat']
     # Run command and wait till it has completed
-    print('HadooPY: Running[%s]' % (' '.join(cmd)))
-    subprocess.Popen(cmd).wait()
+    if not pretend:
+        print('HadooPY: Running[%s]' % (' '.join(cmd)))
+        subprocess.check_call(cmd)
+    return ' '.join(cmd)
