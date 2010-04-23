@@ -14,7 +14,7 @@ def _key_values_tb():
     return typedbytes.PairedInput(sys.stdin).reads()
 
 
-def _groupby_key_values(kv):
+def _groupby_kv(kv):
     return ((x, (z[1] for z in y))
             for x, y in groupby(kv, itemgetter(0)))
 
@@ -94,7 +94,7 @@ def _map(func):
 
 
 def _reduce(func):
-    return process_inout(func, _groupby_key_values(_read_in_reduce()), _print_out, 'reduce')
+    return process_inout(func, _groupby_kv(_read_in_reduce()), _print_out, 'reduce')
 
 
 def run(mapper=None, reducer=None, combiner=None, **kw):

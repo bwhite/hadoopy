@@ -1,5 +1,5 @@
 import unittest
-from hadoopy.main import process_inout
+from hadoopy.main import process_inout, _groupby_kv
 
 class Test(unittest.TestCase):
     
@@ -7,6 +7,7 @@ class Test(unittest.TestCase):
         super(Test, self).__init__(*args, **kw)
         self.call_map = self._call('map')
         self.call_reduce = self._call('reduce')
+        self.groupby_kv = _groupby_kv
 
     def _call(self, attr):
         def call_func(func, test_input):
