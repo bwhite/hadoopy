@@ -48,11 +48,15 @@ def hdfs_cat_tb(path, procs=10):
     Raises:
         IOError: An error occurred listing the directory (e.g., not available).
     """
+    max_files = 100
     hstreaming = _find_hstreaming()
-    p = multiprocessing.Pool(procs)
-    paths = hdfs_ls(path)
-    fps = [tempfile.NamedTemporaryFile() for x in paths]
-    p.map(_hdfs_cat_tb, [(path, hstreaming, fp.name) for path, fp in zip(paths, fps)])
-    for y in fps:
-        for z in typedbytes.PairedInput(y).reads():
-            yield z
+    all_paths = hdfs_ls(path)
+    p = multiprocessing.Pool(min((procs, max_files, len(all_paths))))
+    while all_paths:
+        paths = all_paths[:max_files]
+        del all_paths[:max_files]
+        fps = [tempfile.NamedTemporaryFile() for x in paths]
+        p.map(_hdfs_cat_tb, [(path, hstreaming, fp.name) for path, fp in zip(paths, fps)])
+        for y in fps:
+            for z in typedbytes.PairedInput(y).reads():
+                yield z
