@@ -11,13 +11,13 @@ def hdfs_ls(path):
     """List files on HDFS.
 
     Args:
-      path: A string (potentially with wildcards).
+        path: A string (potentially with wildcards).
 
     Returns:
-      A list of strings representing HDFS paths.
+        A list of strings representing HDFS paths.
 
     Raises:
-      IOError: An error occurred listing the directory (e.g., not available).
+        IOError: An error occurred listing the directory (e.g., not available).
     """
     out, err = subprocess.Popen(['hadoop', 'fs', '-ls', path],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
@@ -39,14 +39,14 @@ def hdfs_cat_tb(path, procs=10):
     """Read typedbytes sequence files on HDFS (with optional compression).
 
     Args:
-      path: A string (potentially with wildcards).
-      procs: Number of processes to use.
+        path: A string (potentially with wildcards).
+        procs: Number of processes to use.
 
     Returns:
-      An iterator of key, value pairs.
+        An iterator of key, value pairs.
 
     Raises:
-      IOError: An error occurred listing the directory (e.g., not available).
+        IOError: An error occurred listing the directory (e.g., not available).
     """
     max_files = 100
     hstreaming = _find_hstreaming()
