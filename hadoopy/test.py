@@ -1,5 +1,5 @@
 import unittest
-from hadoopy.main import _configure_call_close
+from hadoopy.main import process_inout
 
 class Test(unittest.TestCase):
     
@@ -10,8 +10,9 @@ class Test(unittest.TestCase):
 
     def _call(self, attr):
         def call_func(func, test_input):
-            @_configure_call_close(attr)
-            def _in(func):
-                return sum([list(func(*x)) for x in test_input], [])
-            return _in(func)
+            out = []
+            def out_func(out_iter):
+                out.extend(out_iter)
+            process_inout(func, test_input, out_func, attr)
+            return out
         return call_func

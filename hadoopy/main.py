@@ -59,54 +59,42 @@ def _print_out_tb(iter):
 
 
 def _print_out(iter):
-    if iter:
-        _print_out_tb(iter) if _is_io_typedbytes() else _print_out_text(iter)
+    _print_out_tb(iter) if _is_io_typedbytes() else _print_out_text(iter)
 
 
-def _final(func):
-    _print_out(func())
+def process_inout(work_func, in_iter, out_func, attr):
+    if work_func == None:
+        return 1
+    if isinstance(work_func, type):
+        work_func = work_func()
+    try:
+        work_func.configure()
+    except AttributeError:
+        pass
+    try:
+        call_work_func = getattr(work_func, attr)
+    except AttributeError:
+        call_work_func = work_func
+    for x in in_iter:
+        work_iter = call_work_func(*x)
+        if work_iter != None:
+            out_func(work_iter)
+    try:
+        work_iter = work_func.close()
+    except AttributeError:
+        pass
+    else:
+        if work_iter != None:
+            out_func(work_iter)
     return 0
 
 
-def _configure_call_close(attr):
-    def factory(f):
-        def inner(func):
-            if func == None:
-                return 1
-            if isinstance(func, type):
-                func = func()
-            try:
-                func.configure()
-            except AttributeError:
-                pass
-            try:
-                try:
-                    return f(getattr(func, attr))
-                except AttributeError:
-                    return f(func)
-            except ValueError:  # func not generator, its ok
-                return 0
-            finally:
-                try:
-                    _final(func.close)
-                except AttributeError:
-                    pass
-        return inner
-    return factory
-
-
-@_configure_call_close('map')
 def _map(func):
-    for key, value in _read_in_map():
-        _print_out(func(key, value))
-    return 0
+    return process_inout(func, _read_in_map(), _print_out, 'map')
 
 
-@_configure_call_close('reduce')
 def _reduce(func):
-    for key, values in _groupby_key_values(_read_in_reduce()):
-        _print_out(func(key, values))
-    return 0
+    return process_inout(func, _groupby_key_values(_read_in_reduce()), _print_out, 'reduce')
 
 
 def run(mapper=None, reducer=None, combiner=None, **kw):
