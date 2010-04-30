@@ -34,6 +34,7 @@ def run_hadoop(in_name, out_name, script_path, mapper=True, reducer=True,
             NOTE: Hadoop copies the files into working directory (path errors!).
         jobconfs: Extra jobconf parameters (string or list)
         cmdenvs: Extra cmdenv parameters (string or list)
+        compress_output: If True, compress the output with gzip.
         hstreaming: The full hadoop streaming path to call.
         frozen_path: If True, copy_script is overriden to false, the .py
             extension is removed from script_path, and the value of frozen_path
