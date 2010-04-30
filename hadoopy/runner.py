@@ -12,7 +12,7 @@ def _find_hstreaming():
 
 
 def run_hadoop(in_name, out_name, script_path, mapper=True, reducer=True,
-               combiner=False, files=(), jobconfs=(), cmdenvs=(),
+               combiner=False, partitioner=False, files=(), jobconfs=(), cmdenvs=(),
                compress_output=False, copy_script=True, hstreaming=None,
                name=None, frozen_path=None, use_typedbytes=True,
                use_seqoutput=True, use_autoinput=True, pretend=False):
@@ -28,6 +28,7 @@ def run_hadoop(in_name, out_name, script_path, mapper=True, reducer=True,
             If string, the reducer is the value
         combiner: If True, the reducer is "script.py combine" (default False).
             If string, the combiner is the value
+        partitioner: If True, the partitioner is the value.
         copy_script: If True, the script is added to the files list.
         files: Extra files (other than the script) (string or list).
             NOTE: Hadoop copies the files into working directory (path errors!).
@@ -71,16 +72,19 @@ def run_hadoop(in_name, out_name, script_path, mapper=True, reducer=True,
         cmd += ['-input', f]        
     # Add mapper/reducer
     cmd += ['-mapper',
-            '"%s"'%(mapper)]
+            '"%s"' % (mapper)]
     if reducer:
         cmd += ['-reducer', 
-                '"%s"'%(reducer)]
+                '"%s"' % (reducer)]
     else:
         cmd += ['-reducer', 
                 'NONE']
     if combiner:
         cmd += ['-combiner', 
-                '"%s"'%(combiner)]
+                '"%s"' % (combiner)]
+    if partitioner:
+        cmd += ['-partitioner', 
+                '"%s"' % (partitioner)]
     # Add files
     if isinstance(files, str):
         files = [files]
