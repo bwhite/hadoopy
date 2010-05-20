@@ -35,7 +35,7 @@ def _wrap_string(s):
 
 def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
            target_dir='frozen', exclude_modules=('tcl', 'tk', 'Tkinter'),
-           freeze_cmd='cxfreeze', pretend=False):
+           freeze_cmd='cxfreeze', pretend=False, **kw):
     """Wraps cxfreeze and provides an easy to use interface (see module doc).
 
     Args:

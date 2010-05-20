@@ -15,7 +15,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
            combiner=False, partitioner=False, files=(), jobconfs=(), cmdenvs=(),
            compress_output=False, copy_script=True, hstreaming=None,
            name=None, use_typedbytes=True,
-           use_seqoutput=True, use_autoinput=True, pretend=False):
+           use_seqoutput=True, use_autoinput=True, pretend=False, **kw):
     """Run Hadoop given the parameters
 
     Args:
