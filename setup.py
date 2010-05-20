@@ -1,5 +1,5 @@
 from distutils.core import setup
 setup(name='hadoopy',
-      version='.08',
+      version='.09',
       packages=['hadoopy']
       )
