@@ -1,9 +1,5 @@
-from runner import launch
-from hdfs import cat
-from hdfs import ls
-from main import run
-from main import print_doc_quit
-from freeze import freeze
-from reporter import status
-from reporter import counter
+from runner import launch, launch_frozen
+from hdfs import cat, ls
+from main import run, print_doc_quit
+from reporter import status, counter
 from test import Test

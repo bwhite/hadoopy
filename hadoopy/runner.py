@@ -1,6 +1,6 @@
 import subprocess
 import re
-
+import hadoopy.freeze
 
 def _script_name_from_path(script_path):
     return re.search(r'([^/]+$)', script_path).group(1)
@@ -9,12 +9,12 @@ def _script_name_from_path(script_path):
 def _find_hstreaming():
     p = subprocess.Popen('find / -name hadoop*streaming.jar'.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return p.communicate()[0].split('\n')[0]
-
+    
 
 def launch(in_name, out_name, script_path, mapper=True, reducer=True,
            combiner=False, partitioner=False, files=(), jobconfs=(), cmdenvs=(),
            compress_output=False, copy_script=True, hstreaming=None,
-           name=None, frozen_path=None, use_typedbytes=True,
+           name=None, use_typedbytes=True,
            use_seqoutput=True, use_autoinput=True, pretend=False):
     """Run Hadoop given the parameters
 
@@ -36,9 +36,6 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         cmdenvs: Extra cmdenv parameters (string or list)
         compress_output: If True, compress the output with gzip.
         hstreaming: The full hadoop streaming path to call.
-        frozen_path: If True, copy_script is overriden to false, the .py
-            extension is removed from script_path, and the value of frozen_path
-            is added to files.
         use_typedbytes: If True (default), use typedbytes IO.
         use_seqoutput: True (default), output sequence file. If False, output is text.
         use_autoinput: If True (default), sets the input format to auto.
@@ -56,9 +53,6 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     except TypeError:
         hadoop_cmd = 'hadoop jar ' + _find_hstreaming()
     script_name = _script_name_from_path(script_path)
-    # Remove .py extension if frozen
-    if frozen_path and script_name.endswith('.py'):
-        script_name = script_name[:-3]
     if mapper == True:
         mapper = ' '.join((script_name, 'map'))
     if reducer == True:
@@ -89,12 +83,9 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     # Add files
     if isinstance(files, str):
         files = [files]
-    if copy_script and frozen_path == None:
+    if copy_script:
         files = list(files)
         files.append(script_path)
-    if frozen_path:
-        files = list(files)
-        files.append(frozen_path)
         
     for f in files:
         cmd += ['-file', f]
@@ -130,3 +121,39 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         print('HadooPY: Running[%s]' % (' '.join(cmd)))
         subprocess.check_call(cmd)
     return ' '.join(cmd)
+
+
+def launch_frozen(in_name, out_name, script_path, **kw):
+    """Freezes a script and then launches it.
+
+    Consult hadoopy.freeze.freeze and hadoopy.launch for optional kw args.
+
+    Args:
+        in_name: Input path (string or list)
+        out_name: Output path
+        script_path: Path to the script (e.g., script.py)
+
+    Returns:
+        A tuple of the freeze and hadoop commands.
+
+    Raises:
+        subprocess.CalledProcessError: Hadoop or Cxfreeze error.
+        OSError: Hadoop streaming or Cxfreeze not found.
+    """
+    freeze_cmd = hadoopy.freeze.freeze(script_path, **kw)
+    # Remove extension
+    if script_path.endswith('.py'):
+        script_path = script_path[:-3]
+    try:
+        files = kw['files']
+    except KeyError:
+        files = []
+    else:
+        if isinstance(files, str):
+            files = [files]
+    files.append(frozen_path)
+    # Do not copy script
+    kw['copy_script'] = False
+    kw['files'] = files
+    launch_cmd = launch(in_name, out_name, script_path, **kw)
+    return freeze_cmd, launch_cmd
