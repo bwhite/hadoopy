@@ -8,6 +8,11 @@ class Test(unittest.TestCase):
         self.call_map = self._call('map')
         self.call_reduce = self._call('reduce')
         self.groupby_kv = _groupby_kv
+    
+    def sort_kv(self, kv):
+        kv = list(kv)
+        kv.sort(lambda x, y: cmp(x[0], y[0]))
+        return kv
 
     def _call(self, attr):
         def call_func(func, test_input):

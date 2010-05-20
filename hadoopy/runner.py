@@ -11,11 +11,11 @@ def _find_hstreaming():
     return p.communicate()[0].split('\n')[0]
 
 
-def run_hadoop(in_name, out_name, script_path, mapper=True, reducer=True,
-               combiner=False, partitioner=False, files=(), jobconfs=(), cmdenvs=(),
-               compress_output=False, copy_script=True, hstreaming=None,
-               name=None, frozen_path=None, use_typedbytes=True,
-               use_seqoutput=True, use_autoinput=True, pretend=False):
+def launch(in_name, out_name, script_path, mapper=True, reducer=True,
+           combiner=False, partitioner=False, files=(), jobconfs=(), cmdenvs=(),
+           compress_output=False, copy_script=True, hstreaming=None,
+           name=None, frozen_path=None, use_typedbytes=True,
+           use_seqoutput=True, use_autoinput=True, pretend=False):
     """Run Hadoop given the parameters
 
     Args:

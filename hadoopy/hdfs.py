@@ -7,7 +7,7 @@ import multiprocessing
 from hadoopy.runner import _find_hstreaming
 
 
-def hdfs_ls(path):
+def ls(path):
     """List files on HDFS.
 
     Args:
@@ -35,7 +35,7 @@ def _hdfs_cat_tb(args):
                          stdout=fp, stderr=subprocess.PIPE).wait()
 
 
-def hdfs_cat_tb(path, procs=10):
+def cat(path, procs=10):
     """Read typedbytes sequence files on HDFS (with optional compression).
 
     Args:
@@ -50,7 +50,7 @@ def hdfs_cat_tb(path, procs=10):
     """
     max_files = 100
     hstreaming = _find_hstreaming()
-    all_paths = hdfs_ls(path)
+    all_paths = ls(path)
     p = multiprocessing.Pool(min((procs, max_files, len(all_paths))))
     while all_paths:
         paths = all_paths[:max_files]
