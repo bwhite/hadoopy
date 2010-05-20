@@ -151,7 +151,11 @@ def launch_frozen(in_name, out_name, script_path, **kw):
     else:
         if isinstance(files, str):
             files = [files]
-    files.append(frozen_path)
+    try:
+        target_dir = kw['target_dir']
+    except KeyError:
+        target_dir = 'frozen'
+    files.append(target_dir)
     # Do not copy script
     kw['copy_script'] = False
     kw['files'] = files
