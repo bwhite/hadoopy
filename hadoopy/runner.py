@@ -1,13 +1,28 @@
 import subprocess
 import re
+import os
+
 import hadoopy.freeze
+
 
 def _script_name_from_path(script_path):
     return re.search(r'([^/]+$)', script_path).group(1)
 
 
 def _find_hstreaming():
-    p = subprocess.Popen('find / -name hadoop*streaming.jar'.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    """Finds the whole path to the hadoop streaming jar.
+
+    If the environmental var HADOOP_HOME is specified, then start the search from there.
+
+    Returns:
+        Full path to the hadoop streaming jar if found, else return an empty string.
+    """
+    try:
+        search_root = os.environ['HADOOP_HOME']
+    except KeyError:
+        search_root = '/'
+    cmd = 'find %s -name hadoop*streaming.jar1' % (search_root)
+    p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return p.communicate()[0].split('\n')[0]
     
 
