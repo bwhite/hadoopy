@@ -6,10 +6,10 @@ import unittest
 import hadoopy
 
 
-class TestWordcount(unittest.TestCase):
+class TestWordcountHadoop(unittest.TestCase):
 
     def __init__(self, *args, **kw):
-        super(TestWordcount, self).__init__(*args, **kw)
+        super(TestWordcountHadoop, self).__init__(*args, **kw)
         self.data_path = 'hadoopy-test-data/%f/' % (time.time())
     
     def _run(self, fn):
