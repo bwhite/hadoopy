@@ -35,7 +35,7 @@ def _wrap_string(s):
 
 def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
            target_dir='frozen', exclude_modules=('tcl', 'tk', 'Tkinter'),
-           freeze_cmd='cxfreeze', pretend=False, **kw):
+           freeze_cmd='cxfreeze', pretend=False, verbose=False, **kw):
     """Wraps cxfreeze and provides an easy to use interface (see module doc).
 
     Args:
@@ -49,6 +49,7 @@ def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
             (default is (tcl, tk, Tkinter))
         freeze_cmd: Path to cxfreeze (default is cxfreeze)
         pretend: If true, only build the command and return.
+        verbose: If true, output to stdout all command results.
     
     Returns:
         The cxfreeze command called (string).
@@ -76,8 +77,12 @@ def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
         freeze_cmd += ' --include-modules=%s' % (','.join(modules))
     freeze_cmd += ' %s' % (script_path)
     if not pretend:
-        print('HadooPY: Running[%s]' % (freeze_cmd))
-        subprocess.check_call(freeze_cmd.split())
+        if verbose:
+            print('HadooPY: Running[%s]' % (freeze_cmd))
+            stdout = None
+        else:
+            stdout = subprocess.PIPE
+        subprocess.check_call(freeze_cmd.split(), stdout=stdout, stderr=stdout)
         # Copy all of the extra shared libraries
         for shared_lib in shared_libs:
             shutil.copy(shared_lib, ''.join((target_dir, '/',
