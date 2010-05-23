@@ -13,8 +13,7 @@ def _find_hstreaming():
 
 def launch(in_name, out_name, script_path, mapper=True, reducer=True,
            combiner=False, partitioner=False, files=(), jobconfs=(), cmdenvs=(),
-           compress_output=False, copy_script=True, hstreaming=None,
-           name=None, use_typedbytes=True,
+           copy_script=True, hstreaming=None, name=None, use_typedbytes=True,
            use_seqoutput=True, use_autoinput=True, pretend=False, **kw):
     """Run Hadoop given the parameters
 
@@ -34,7 +33,6 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
             NOTE: Hadoop copies the files into working directory (path errors!).
         jobconfs: Extra jobconf parameters (string or list)
         cmdenvs: Extra cmdenv parameters (string or list)
-        compress_output: If True, compress the output with gzip.
         hstreaming: The full hadoop streaming path to call.
         use_typedbytes: If True (default), use typedbytes IO.
         use_seqoutput: True (default), output sequence file. If False, output is text.
@@ -97,9 +95,6 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         jobconfs.append('mapred.job.name=%s' % (script_name))
     else:
         jobconfs.append('mapred.job.name=%s' % (str(name)))
-    if compress_output:
-        jobconfs.append('mapred.output.compress=true')
-        jobconfs.append('mapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec')
     for jobconf in jobconfs:
         cmd += ['-jobconf', jobconf]
     # Add cmdenv
