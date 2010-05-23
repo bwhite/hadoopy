@@ -5,10 +5,6 @@ import os
 import hadoopy.freeze
 
 
-def _script_name_from_path(script_path):
-    return re.search(r'([^/]+$)', script_path).group(1)
-
-
 def _find_hstreaming():
     """Finds the whole path to the hadoop streaming jar.
 
@@ -65,7 +61,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         hadoop_cmd = 'hadoop jar ' + hstreaming
     except TypeError:
         hadoop_cmd = 'hadoop jar ' + _find_hstreaming()
-    script_name = _script_name_from_path(script_path)
+    script_name =  os.path.basename(script_path)
     if mapper == True:
         mapper = ' '.join((script_name, 'map'))
     if reducer == True:
@@ -98,8 +94,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         files = [files]
     if copy_script:
         files = list(files)
-        files.append(script_path)
-        
+        files.append(script_path)        
     for f in files:
         cmd += ['-file', f]
     # Add jobconfs
