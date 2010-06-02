@@ -1,4 +1,4 @@
-B1;2305;0c#!/usr/bin/env python
+#!/usr/bin/env python
 # (C) Copyright 2010 Brandyn A. White
 #
 # This program is free software: you can redistribute it and/or modify
