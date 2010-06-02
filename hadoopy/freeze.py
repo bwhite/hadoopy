@@ -36,17 +36,19 @@ If you get errors when running on the target cluster, do the following.
 4. Google it
 """
 
-__author__ =  'Brandyn A. White <bwhite@cs.umd.edu>'
+__author__ = 'Brandyn A. White <bwhite@cs.umd.edu>'
 __licence__ = 'GPL V3'
 
 import os
 import shutil
 import subprocess
 
+
 def _wrap_string(s):
     if isinstance(s, str):
         return [s]
     return list(s)
+
 
 def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
            target_dir='frozen', exclude_modules=('tcl', 'tk', 'Tkinter'),
@@ -65,7 +67,7 @@ def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
         freeze_cmd: Path to cxfreeze (default is cxfreeze)
         pretend: If true, only build the command and return.
         verbose: If true, output to stdout all command results.
-    
+
     Returns:
         The cxfreeze command called (string).
 

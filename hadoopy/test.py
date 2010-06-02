@@ -14,14 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ =  'Brandyn A. White <bwhite@cs.umd.edu>'
+__author__ = 'Brandyn A. White <bwhite@cs.umd.edu>'
 __licence__ = 'GPL V3'
 
 import unittest
 from hadoopy.main import process_inout, _groupby_kv
 
-class Test(unittest.TestCase):
-    
+
+class Test(unittest.TestCase):    
     def __init__(self, *args, **kw):
         super(Test, self).__init__(*args, **kw)
         self.call_map = self._call('map')
@@ -36,6 +36,7 @@ class Test(unittest.TestCase):
     def _call(self, attr):
         def call_func(func, test_input):
             out = []
+
             def out_func(out_iter):
                 out.extend(out_iter)
             process_inout(func, test_input, out_func, attr)
