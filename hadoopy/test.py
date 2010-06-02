@@ -33,6 +33,9 @@ class Test(unittest.TestCase):
         kv.sort(lambda x, y: cmp(x[0], y[0]))
         return kv
 
+    def shuffle_kv(self, kv):
+        return self.groupby_kv(self.sort_kv(kv))
+
     def _call(self, attr):
         def call_func(func, test_input):
             out = []
