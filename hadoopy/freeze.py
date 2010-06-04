@@ -37,7 +37,7 @@ If you get errors when running on the target cluster, do the following.
 """
 
 __author__ = 'Brandyn A. White <bwhite@cs.umd.edu>'
-__licence__ = 'GPL V3'
+__license__ = 'GPL V3'
 
 import os
 import shutil
