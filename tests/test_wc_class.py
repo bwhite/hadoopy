@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ =  'Brandyn A. White <bwhite@cs.umd.edu>'
-__licence__ = 'GPL V3'
+__license__ = 'GPL V3'
 
 import unittest
 import hadoopy
