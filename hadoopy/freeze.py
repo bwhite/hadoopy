@@ -1,4 +1,19 @@
 #!/usr/bin/env python
+# (C) Copyright 2010 Brandyn A. White
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 """Makes hadoop scripts into unix executables (using cxfreeze)
 The output directory can then be included in the job as a 'file' include
 
@@ -21,17 +36,19 @@ If you get errors when running on the target cluster, do the following.
 4. Google it
 """
 
-__authors__ = ['"Brandyn White" <bwhite@dappervision.com>']
-
+__author__ = 'Brandyn A. White <bwhite@cs.umd.edu>'
+__license__ = 'GPL V3'
 
 import os
 import shutil
 import subprocess
 
+
 def _wrap_string(s):
     if isinstance(s, str):
         return [s]
     return list(s)
+
 
 def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
            target_dir='frozen', exclude_modules=('tcl', 'tk', 'Tkinter'),
@@ -50,7 +67,7 @@ def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
         freeze_cmd: Path to cxfreeze (default is cxfreeze)
         pretend: If true, only build the command and return.
         verbose: If true, output to stdout all command results.
-    
+
     Returns:
         The cxfreeze command called (string).
 
