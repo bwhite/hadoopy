@@ -17,7 +17,7 @@ def _find_hstreaming():
         search_root = os.environ['HADOOP_HOME']
     except KeyError:
         search_root = '/'
-    cmd = 'find %s -name hadoop*streaming.jar' % (search_root)
+    cmd = 'find %s -name hadoop*streaming*.jar' % (search_root)
     p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return p.communicate()[0].split('\n')[0]
     
