@@ -113,7 +113,17 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         files = [files]
     if copy_script:
         files = list(files)
-        files.append(script_path)        
+        files.append(script_path)
+    # BUG: CDH3 doesn't copy directories properly this enumerates them
+    new_files = []
+    for f in files:
+        if os.path.isdir(f):
+            new_files += ['%s/%s' % (f, x) for x in os.listdir(f)]
+        else:
+            new_files.append(f)
+    files = new_files
+    del new_files
+    # END BUG
     for f in files:
         cmd += ['-file', f]
     # Add jobconfs
