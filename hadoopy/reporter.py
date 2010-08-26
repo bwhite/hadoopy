@@ -29,4 +29,4 @@ def counter(group, counter, amount=1, err=_err):
 
 
 def status(msg, err=_err):
-    err(''.join(("reporter:status:", str(msg))))
+    err("reporter:status:%s\n" % str(msg))
