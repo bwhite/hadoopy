@@ -96,10 +96,9 @@ def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
     if not pretend:
         if verbose:
             print('HadooPY: Running[%s]' % (freeze_cmd))
-            stdout = None
         else:
-            stdout = subprocess.PIPE
-        subprocess.check_call(freeze_cmd.split(), stdout=stdout, stderr=stdout)
+            freeze_cmd += ' -s'
+        subprocess.check_call(freeze_cmd.split())
         # Copy all of the extra shared libraries
         for shared_lib in shared_libs:
             shutil.copy(shared_lib, ''.join((target_dir, '/',
