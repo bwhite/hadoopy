@@ -120,9 +120,9 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
     funcs = {'map': lambda: _map(mapper),
              'reduce': lambda: _reduce(reducer),
              'combine': lambda: _reduce(combiner)}
-    try:
+    if len(sys.argv) >= 2:
         ret = funcs[sys.argv[1]]()
-    except (IndexError, KeyError):
+    else:
         ret = 1
     if ret and 'doc' in kw:
         print_doc_quit(kw['doc'])
