@@ -36,24 +36,37 @@ import typedbytes
 
 
 # These are converted such that they are called for each key/value pair
-def _one_key_values_text(sep='\t'):
-    return sys.stdin.readline().rstrip().split(sep, 1)
+def _one_key_values_text():
+    return sys.stdin.readline()[:-1].split('\t', 1)
 
 def _one_key_values_tb():
     # TODO
     return typedbytes.PairedInput(sys.stdin).reads()
 
 
+_key_values_text_group
+def _key_values_text_group():
+    
+    
+
 #def _groupby_kv(kv):
 #    return ((x, (z[1] for z in y))
 #            for x, y in groupby(kv, itemgetter(0)))
 
 
-def _offset_values_text():
-    line_count = 0
-    for line in sys.stdin:
-        yield line_count, line[:-1]
-        line_count += len(line)
+#def _offset_values_text():
+#    line_count = 0
+#    for line in sys.stdin:
+#        yield line_count, line[:-1]
+#        line_count += len(line)
+
+_line_count = 0
+def _one_offset_values_text():
+    global _line_count
+    out_count = _line_count
+    line = sys.stdin.readline()
+    _line_count += len(line)
+    return out_count, line[:-1]
 
 
 def _is_io_typedbytes():
@@ -66,18 +79,19 @@ def _is_io_typedbytes():
 
 def _read_in_map():
     if _is_io_typedbytes():
-        return _key_values_tb()
-    return _offset_values_text()
+        return _one_key_value_tb
+    return _one_offset_value_text
 
 
 def _read_in_reduce():
     """
     Returns:
-        Iterator of key/value pairs
+        Function that can be called to receive grouped input.  Function returns
+        None when there is no more input.
     """
     if _is_io_typedbytes():
-        return _key_values_tb()
-    return _key_values_text()
+        return _key_values_tb_group
+    return _key_values_text_group
 
 
 def _print_out_text(iter, sep='\t'):
@@ -93,10 +107,15 @@ def _print_out_tb(iter):
 
 
 def _print_out(iter):
+    """Given an iterator, output the paired values
+
+    Args:
+        iter: Iterator of (key, value)
+    """
     _print_out_tb(iter) if _is_io_typedbytes() else _print_out_text(iter)
 
 
-def process_inout(work_func, in_iter, out_func, attr):
+def process_inout(work_func, in_func, out_func, attr):
     if work_func == None:
         return 1
     if isinstance(work_func, type):
@@ -109,7 +128,10 @@ def process_inout(work_func, in_iter, out_func, attr):
         call_work_func = getattr(work_func, attr)
     except AttributeError:
         call_work_func = work_func
-    for x in in_iter:
+    while 1:
+        x = in_func()
+        if x == None:
+            break
         work_iter = call_work_func(*x)
         if work_iter != None:
             out_func(work_iter)
@@ -132,11 +154,16 @@ def _reduce(func):
 
 
 def run(mapper=None, reducer=None, combiner=None, **kw):
-    funcs = {'map': lambda: _map(mapper),
-             'reduce': lambda: _reduce(reducer),
-             'combine': lambda: _reduce(combiner)}
     if len(sys.argv) >= 2:
-        ret = funcs[sys.argv[1]]()
+        val = sys.argv[1]
+        if val == 'map':
+            _map(mapper)
+        elif val == 'reduce':
+            _reduce(reducer)
+        elif val == 'combine':
+            _reduce(reducer)
+        else:
+            print_doc_quit(kw['doc'])
     else:
         ret = 1
     if ret and 'doc' in kw:
