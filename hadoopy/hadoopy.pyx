@@ -23,50 +23,134 @@ from operator import itemgetter
 from itertools import groupby
 import typedbytes
 
+cdef extern from "stdlib.h":
+    void free(void *ptr)
 
-#def _key_values_text(sep='\t'):
-#    for line in sys.stdin:
-#        yield line.rstrip().split(sep, 1)
+cdef extern from "stdio.h":
+    ssize_t getdelim(char **lineptr, size_t *n, int delim, void *stream)
+    void *stdin
 
-
-#def _key_values_tb():
-#    return typedbytes.PairedInput(sys.stdin).reads()
-
-
-
-
-# These are converted such that they are called for each key/value pair
-def _one_key_values_text():
-    return sys.stdin.readline()[:-1].split('\t', 1)
-
-def _one_key_values_tb():
-    # TODO
-    return typedbytes.PairedInput(sys.stdin).reads()
+cdef extern from "Python.h":
+    object PyString_FromStringAndSize(char *s, Py_ssize_t len)
 
 
-_key_values_text_group
-def _key_values_text_group():
-    
-    
+cdef __one_key_value_text():
+    cdef ssize_t sz
+    cdef char *lineptr = NULL
+    cdef size_t n = 0
+    sz = getdelim(&lineptr, &n, ord('\t'), stdin)
+    if sz == -1:
+        raise StopIteration
+    k = PyString_FromStringAndSize(lineptr, sz - 1)
+    sz = getdelim(&lineptr, &n, ord('\n'), stdin)
+    if sz == -1:
+        raise StopIteration
+    v = PyString_FromStringAndSize(lineptr, sz - 1)
+    return k, v
 
-#def _groupby_kv(kv):
-#    return ((x, (z[1] for z in y))
-#            for x, y in groupby(kv, itemgetter(0)))
+def _one_key_value_text():
+    return __one_key_value_text()
+
+#def _one_key_value_text_slow():
+#    return sys.stdin.readline().x[:-1].split('\t', 1)
+
+def _one_key_value_tb():
+    return typedbytes.PairedInput(sys.stdin).read()
+
+class KeyValueStream(object):
+    def __init__(self, key_value_func):
+        self._key_value_fun = key_value_func
+        self._prev = None
+        self._done = False
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if self._prev:
+            prev = self._prev
+            self._prev = None
+            return prev
+        if self._done:
+            raise StopIteration
+        try:
+            return self._key_value_fun()
+        except StopIteration, e:
+            self._done = True
+            raise e
+
+    def put(self, value):
+        self._prev = value
 
 
-#def _offset_values_text():
-#    line_count = 0
-#    for line in sys.stdin:
-#        yield line_count, line[:-1]
-#        line_count += len(line)
+class GroupedValues(object):
+    def __init__(self, group_key, key_value_iter):
+        self._key_value_iter = key_value_iter
+        self._group_key = group_key
+        self._done = False
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if self._done:
+            raise StopIteration
+        try:
+            k, v = self._key_value_iter.next()
+        except StopIteration, e:
+            self._done = True
+            raise e
+        # If we get to the end, put the value back
+        if k != self._group_key:
+            self._done = True
+            self._key_value_iter.put((k, v))
+            raise StopIteration
+        return v
+
+
+class GroupedKeyValues(object):
+    def __init__(self, key_value_iter):
+        self._key_value_iter = key_value_iter
+        self._prev = None
+        self._done = False
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if self._done:
+            raise StopIteration
+        # Exhaust prev
+        if self._prev:
+            for x in self._prev:
+                pass
+        try:
+            k, v = self._key_value_iter.next()
+        except StopIteration, e:
+            self._done = True
+            raise e
+        self._key_value_iter.put((k, v))
+        self._prev = GroupedValues(k, self._key_value_iter)
+        return k, self._prev
+
 
 _line_count = 0
-def _one_offset_values_text():
+cdef __one_offset_value_text():
     global _line_count
+    cdef ssize_t sz
+    cdef char *lineptr = NULL
+    cdef size_t n = 0
+    sz = getdelim(&lineptr, &n, ord('\n'), stdin)
+    if sz == -1:
+        raise StopIteration
+    line = PyString_FromStringAndSize(lineptr, sz - 1)
     out_count = _line_count
-    line = sys.stdin.readline()
-    _line_count += len(line)
-    return out_count, line[:-1]
+    _line_count += sz
+    return out_count, line
+
+
+def _one_offset_value_text():
+    return __one_offset_value_text()
 
 
 def _is_io_typedbytes():
@@ -79,8 +163,8 @@ def _is_io_typedbytes():
 
 def _read_in_map():
     if _is_io_typedbytes():
-        return _one_key_value_tb
-    return _one_offset_value_text
+        return KeyValueStream(_one_key_value_tb)
+    return KeyValueStream(_one_offset_value_text)
 
 
 def _read_in_reduce():
@@ -90,14 +174,14 @@ def _read_in_reduce():
         None when there is no more input.
     """
     if _is_io_typedbytes():
-        return _key_values_tb_group
-    return _key_values_text_group
+        return GroupedKeyValues(KeyValueStream(_one_key_value_tb))
+    return GroupedKeyValues(KeyValueStream(_one_key_value_text))
 
 
 def _print_out_text(iter, sep='\t'):
     for out in iter:
         if isinstance(out, tuple):
-            print(sep.join(str(x) for x in out))
+            print(sep.join([str(x) for x in out]))
         else:
             print(str(out))
 
@@ -115,7 +199,7 @@ def _print_out(iter):
     _print_out_tb(iter) if _is_io_typedbytes() else _print_out_text(iter)
 
 
-def process_inout(work_func, in_func, out_func, attr):
+def process_inout(work_func, in_iter, out_func, attr):
     if work_func == None:
         return 1
     if isinstance(work_func, type):
@@ -128,10 +212,7 @@ def process_inout(work_func, in_func, out_func, attr):
         call_work_func = getattr(work_func, attr)
     except AttributeError:
         call_work_func = work_func
-    while 1:
-        x = in_func()
-        if x == None:
-            break
+    for x in in_iter:
         work_iter = call_work_func(*x)
         if work_iter != None:
             out_func(work_iter)
@@ -145,23 +226,15 @@ def process_inout(work_func, in_func, out_func, attr):
     return 0
 
 
-def _map(func):
-    return process_inout(func, _read_in_map(), _print_out, 'map')
-
-
-def _reduce(func):
-    return process_inout(func, _groupby_kv(_read_in_reduce()), _print_out, 'reduce')
-
-
 def run(mapper=None, reducer=None, combiner=None, **kw):
     if len(sys.argv) >= 2:
         val = sys.argv[1]
         if val == 'map':
-            _map(mapper)
+            ret = process_inout(mapper, _read_in_map(), _print_out, 'map')
         elif val == 'reduce':
-            _reduce(reducer)
+            ret = process_inout(reducer, _read_in_reduce(), _print_out, 'reduce')
         elif val == 'combine':
-            _reduce(reducer)
+            ret = process_inout(reducer, _read_in_reduce(), _print_out, 'reduce')
         else:
             print_doc_quit(kw['doc'])
     else:
