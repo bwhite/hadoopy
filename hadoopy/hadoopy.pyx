@@ -23,6 +23,7 @@ from operator import itemgetter
 from itertools import groupby
 import typedbytes
 import types
+import cPickle as pickle
 
 cdef extern from "stdlib.h":
     void *malloc(size_t size)
@@ -457,6 +458,34 @@ def write_map(val):
     _write_map(val)
 
 
+cdef _read_pickle():
+    """Read a python pickle
+
+    Code: 100 (custom)
+    Format: <32-bit signed integer> <as many bytes as indicated by the integer>
+
+    Returns:
+        Python object
+    """
+    return pickle.loads(_read_bytes())
+
+
+cdef _write_pickle(val):
+    """Write a python pickle
+
+    Code: 100 (custom)
+    Format: <32-bit signed integer> <as many bytes as indicated by the integer>
+
+    Args:
+        val: Python object
+    """
+    _write_bytes(pickle.dumps(val, -1))
+
+
+def write_pickle(val):
+    _write_pickle(val)
+
+
 # 0: _write_bytes unused
 # 1: _write_byte unused
 # 5: _write_float unused
@@ -473,10 +502,14 @@ _out_types = {types.BooleanType: (2, write_bool),
 
 def _write_tb_code(val):
     cdef int type_code
-    type_code, func = _out_types[type(val)]
-    if type_code == 3 and (val < -2147483648 or val > 2147483647):
+    try:
+        type_code, func = _out_types[type(val)]
+    except KeyError:
+        type_code, func = 100, write_pickle
+    if type_code == 3 and (val < -2147483648 or 2147483647 < val):
         type_code = 4
-    # TODO Handle the case where something is bigger than 64 bits
+    if type_code == 4 and (val < -9223372036854775808L or 9223372036854775807L < val):
+        type_code, func = 100, write_pickle
     fwrite(&type_code, 1, 1, stdout)  # = 1
     func(val)
 
@@ -505,6 +538,8 @@ def _read_tb_code():
         return _read_list()
     elif type_code == 10:
         return _read_map()
+    elif type_code == 100:
+        return _read_pickle()
     elif type_code == 255:
         raise StopIteration
     elif type_code < 0:

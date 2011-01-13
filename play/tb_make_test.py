@@ -1,6 +1,11 @@
+# -*- coding: utf-8 -*-
 import typedbytes
 import random
 import sys
+
+uni_test = ('ᚠᛇᚻ᛫ᛒᛦᚦ᛫ᚠᚱᚩᚠᚢᚱ᛫ᚠᛁᚱᚪ᛫ᚷᛖᚻᚹᛦᛚᚳᚢᛗᛋᚳᛖᚪᛚ᛫ᚦᛖᚪᚻ᛫ᛗᚪᚾᚾᚪ᛫ᚷᛖᚻᚹᛦᛚᚳ᛫ᛗᛁᚳᛚᚢᚾ᛫ᚻᛦᛏ᛫ᛞ'
+            'ᚫᛚᚪᚾᚷᛁᚠ᛫ᚻᛖ᛫ᚹᛁᛚᛖ᛫ᚠᚩᚱ᛫ᛞᚱᛁᚻᛏᚾᛖ᛫ᛞᚩᛗᛖᛋ᛫ᚻᛚᛇᛏᚪᚾ᛬An preost wes on leoden,'
+            'Laȝamon was ihoten He wes Leovenaðes sone -- liðe him be Drihten. ').decode('utf-8')
 
 
 def grabbag(a):
@@ -32,6 +37,10 @@ def rand_bytes(sz):
     return ''.join(chr(random.randint(0, 255)) for x in range(sz))
 
 
+def rand_string(sz):
+    return ''.join(random.choice(uni_test) for x in range(sz))
+
+
 def rand_byte():
     return random.randint(-128, 127)
 
@@ -45,8 +54,9 @@ def rand_int():
 
 
 def rand_long():
-    lower = -9223372036854775808L
-    upper = 9223372036854775807L
+    # [-2**128, 2**128 - 1]
+    lower = -340282366920938463463374607431768211456L
+    upper = 340282366920938463463374607431768211455L
     return random.randint(lower, upper)
 
 
@@ -56,6 +66,7 @@ def rand_bool():
 
 def rand_list(sz, immutable=False):
     f = [lambda : rand_bytes(sz / 2),
+         lambda : rand_string(sz / 2),
          rand_float, rand_int, rand_long, rand_bool,
          lambda : rand_tuple(sz / 2, immutable)]
     if not immutable:
@@ -99,7 +110,6 @@ with open('bytes_1k_10k.tb', 'wb') as fp:
         a.write_bytes(rand_bytes(1000))
         a.write_bytes(rand_bytes(1000))
 
-
 with open('bool_100k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
     for x in range(100000):
@@ -115,20 +125,20 @@ with open('byte_100k.tb', 'wb') as fp:
 with open('string_10_10k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
     for x in range(10000):
-        a.write_string(rand_bytes(10))
-        a.write_string(rand_bytes(10))
+        a.write_unicode(rand_string(10))
+        a.write_unicode(rand_string(10))
 
 with open('string_100_10k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
     for x in range(10000):
-        a.write_string(rand_bytes(100))
-        a.write_string(rand_bytes(100))
+        a.write_unicode(rand_string(100))
+        a.write_unicode(rand_string(100))
 
 with open('string_1k_10k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
     for x in range(10000):
-        a.write_string(rand_bytes(1000))
-        a.write_string(rand_bytes(1000))
+        a.write_unicode(rand_string(1000))
+        a.write_unicode(rand_string(1000))
 
 with open('float_100k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
