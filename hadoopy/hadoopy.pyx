@@ -72,9 +72,17 @@ cdef _write_int(val):
     Args:
         val: Python int
     """
-    cdef int cval = val
+    cdef int cval
+    try:
+        cval = val
+    except OverflowError:
+        return _write_long(val)
     cval = htobe32(cval)
     fwrite(&cval, 4, 1, stdout)  # = 1
+
+
+def write_int(val):
+    _write_int(val)
 
 
 cdef _read_long():
@@ -103,6 +111,10 @@ cdef _write_long(val):
     cdef long cval = val
     cval = htobe64(cval)
     fwrite(&cval, 8, 1, stdout)  # = 1
+
+
+def write_long(val):
+    _write_long(val)
 
 
 cdef _read_float():
@@ -134,6 +146,10 @@ cdef _write_float(val):
     fwrite(&cvalo, 4, 1, stdout)  # = 1
 
 
+def write_float(val):
+    _write_float(val)
+
+
 cdef _read_double():
     """Read double
 
@@ -163,6 +179,10 @@ cdef _write_double(val):
     fwrite(&cvalo, 8, 1, stdout)  # = 1
 
 
+def write_double(val):
+    _write_double(val)
+
+
 cdef _read_byte():
     """Read byte
 
@@ -190,6 +210,10 @@ cdef _write_byte(val):
     fwrite(&cval, 1, 1, stdout)  # = 1
 
 
+def write_byte(val):
+    _write_byte(val)
+    
+
 cdef _read_bool():
     """Read integer
 
@@ -213,6 +237,10 @@ cdef _write_bool(val):
     """
     cdef signed char cval = val
     fwrite(&cval, 1, 1, stdout)  # = 1
+
+
+def write_bool(val):
+    _write_byte(val)
 
 
 cdef _read_bytes():
@@ -247,6 +275,38 @@ cdef _write_bytes(val):
     fwrite(bytes, sz, 1, stdout)  # = 1
 
 
+def write_bytes(val):
+    _write_bytes(val)
+
+
+cdef _read_string():
+    """Read string
+
+    Code: 7
+    Format: <32-bit signed integer> <as many UTF-8 bytes as indicated by the integer>
+
+    Returns:
+        Python string
+    """
+    return _read_bytes()
+
+
+cdef _write_string(val):
+    """Write string
+
+    Code: 7
+    Format: <32-bit signed integer> <as many UTF-8 bytes as indicated by the integer>
+
+    Args:
+        val: Python string
+    """
+    _write_bytes(val)
+
+
+def write_string(val):
+    _write_string(val)
+
+
 cdef _read_unicode():
     """Read unicode
 
@@ -266,9 +326,13 @@ cdef _write_unicode(val):
     Format: <32-bit signed integer> <as many UTF-8 bytes as indicated by the integer>
 
     Args:
-        val: Python string (str or unicode)
+        val: Python string
     """
     _write_bytes(val)
+
+
+def write_unicode(val):
+    _write_unicode(val)
 
 
 cdef _read_vector():
@@ -300,6 +364,10 @@ cdef _write_vector(val):
     fwrite(&sz, 4, 1, stdout)  # = 1
     for x in val:
         _write_tb_code(x)
+
+
+def write_vector(val):
+    _write_vector(val)
 
 
 cdef _read_list():
@@ -335,7 +403,11 @@ cdef _write_list(val):
     fwrite(&code, 1, 1, stdout)  # = 1
 
 
-cdef _read_dict():
+def write_list(val):
+    _write_list(val)
+
+
+cdef _read_map():
     """Read fixed length pairs of typedbytes (interpreted as a dict/map)
 
     Code: 10
@@ -352,7 +424,7 @@ cdef _read_dict():
     return out
 
 
-cdef _write_dict(val):
+cdef _write_map(val):
     """Write fixed length pairs of typedbytes (interpreted as a dict/map)
 
     Code: 10
@@ -367,14 +439,17 @@ cdef _write_dict(val):
         _write_tb_code(x)
         _write_tb_code(y)
 
+def write_map(val):
+    _write_map(val)
 
-_out_types = {types.StringType: 0,
-              # 1: _write_byte unused
-              types.BooleanType: 2,
+# 0: _write_bytes unused
+# 1: _write_byte unused
+# 5: _write_float unused
+_out_types = {types.BooleanType: 2,
               types.IntType: 3,
               types.LongType: 4,
-              # 5: _write_float unused
               types.FloatType: 6,
+              types.StringType: 7,
               types.UnicodeType: 7,
               types.TupleType: 8,
               types.ListType: 9,
@@ -387,12 +462,16 @@ def _write_tb_code(val):
     fwrite(&type_code, 1, 1, stdout)  # = 1
     if type_code == 0:
         _write_bytes(val)
+    elif type_code == 1:
+        _write_byte(val)
     elif type_code == 2:
         _write_bool(val)
     elif type_code == 3:
         _write_int(val)
     elif type_code == 4:
         _write_long(val)
+    elif type_code == 5:
+        _write_float(val)
     elif type_code == 6:
         _write_double(val)
     elif type_code == 7:
@@ -402,7 +481,7 @@ def _write_tb_code(val):
     elif type_code == 9:
         _write_list(val)
     elif type_code == 10:
-        _write_dict(val)
+        _write_map(val)
     else:
         raise IndexError('Bad index %d ' % type_code)
 
@@ -430,7 +509,7 @@ def _read_tb_code():
     elif type_code == 9:
         return _read_list()
     elif type_code == 10:
-        return _read_dict()
+        return _read_map()
     elif type_code == 255:
         raise StopIteration
     elif type_code < 0:
@@ -445,7 +524,8 @@ cdef __read_key_value_tb():
     return k, v
 
 
-cdef __write_key_value_tb(k, v):
+cdef __write_key_value_tb(kv):
+    k, v = kv
     _write_tb_code(k)
     _write_tb_code(v)
     
@@ -454,8 +534,8 @@ def read_tb():
     return __read_key_value_tb()
 
 
-def write_tb(k, v):
-    __write_key_value_tb(k, v)
+def write_tb(kv):
+    __write_key_value_tb(kv)
 
 # End TB
 
