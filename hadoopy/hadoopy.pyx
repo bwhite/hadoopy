@@ -63,6 +63,20 @@ cdef _read_int():
     return int(be32toh(val))
 
 
+cdef _raw_write_int(val):
+    """Write integer (used for sizes)
+
+    Args:
+        val: Python int
+
+    Raises:
+        OverflowError: If val overflows an int
+    """
+    cdef int cval = val
+    cval = htobe32(cval)
+    fwrite(&cval, 4, 1, stdout)  # = 1
+
+
 cdef _write_int(val):
     """Write integer
 
@@ -269,9 +283,9 @@ cdef _write_bytes(val):
         val: Python string (str or unicode)
     """
     cdef char *bytes
-    cdef Py_ssize_t sz  # Assumed to be 4 bytes
+    cdef Py_ssize_t sz
     PyString_AsStringAndSize(val, &bytes, &sz)  # != -1
-    fwrite(&sz, 4, 1, stdout)  # = 1
+    _raw_write_int(sz)
     fwrite(bytes, sz, 1, stdout)  # = 1
 
 
@@ -361,7 +375,7 @@ cdef _write_vector(val):
         val: Python tuple with nested values
     """
     cdef int sz = len(val)
-    fwrite(&sz, 4, 1, stdout)  # = 1
+    _raw_write_int(sz)
     for x in val:
         _write_tb_code(x)
 
@@ -433,57 +447,38 @@ cdef _write_map(val):
     Args:
         val: Python dict with nested values
     """
-    cdef int sz = len(val)
-    fwrite(&sz, 4, 1, stdout)  # = 1
+    _raw_write_int(len(val))
     for x, y in val.iteritems():
         _write_tb_code(x)
         _write_tb_code(y)
 
+
 def write_map(val):
     _write_map(val)
+
 
 # 0: _write_bytes unused
 # 1: _write_byte unused
 # 5: _write_float unused
-_out_types = {types.BooleanType: 2,
-              types.IntType: 3,
-              types.LongType: 4,
-              types.FloatType: 6,
-              types.StringType: 7,
-              types.UnicodeType: 7,
-              types.TupleType: 8,
-              types.ListType: 9,
-              types.DictType: 10}
+_out_types = {types.BooleanType: (2, write_bool),
+              types.IntType: (3, write_int),
+              types.LongType: (4, write_long),
+              types.FloatType: (6, write_double),
+              types.StringType: (7, write_string),
+              types.UnicodeType: (7, write_unicode),
+              types.TupleType: (8, write_vector),
+              types.ListType: (9, write_list),
+              types.DictType: (10, write_map)}
 
 
 def _write_tb_code(val):
     cdef int type_code
-    type_code = _out_types[type(val)]
+    type_code, func = _out_types[type(val)]
+    if type_code == 3 and (val < -2147483648 or val > 2147483647):
+        type_code = 4
+    # TODO Handle the case where something is bigger than 64 bits
     fwrite(&type_code, 1, 1, stdout)  # = 1
-    if type_code == 0:
-        _write_bytes(val)
-    elif type_code == 1:
-        _write_byte(val)
-    elif type_code == 2:
-        _write_bool(val)
-    elif type_code == 3:
-        _write_int(val)
-    elif type_code == 4:
-        _write_long(val)
-    elif type_code == 5:
-        _write_float(val)
-    elif type_code == 6:
-        _write_double(val)
-    elif type_code == 7:
-        _write_unicode(val)
-    elif type_code == 8:
-        _write_vector(val)
-    elif type_code == 9:
-        _write_list(val)
-    elif type_code == 10:
-        _write_map(val)
-    else:
-        raise IndexError('Bad index %d ' % type_code)
+    func(val)
 
 
 def _read_tb_code():
