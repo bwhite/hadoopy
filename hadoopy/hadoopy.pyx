@@ -24,15 +24,220 @@ from itertools import groupby
 import typedbytes
 
 cdef extern from "stdlib.h":
+    void *malloc(size_t size)
     void free(void *ptr)
 
 cdef extern from "stdio.h":
     ssize_t getdelim(char **lineptr, size_t *n, int delim, void *stream)
     void *stdin
+    int getchar()
+    size_t fread(void *ptr, size_t size, size_t nmemb, void *stream)
+
+cdef extern from "endian.h":
+    int be32toh(int val)
+    long be64toh(long val)
+           
 
 cdef extern from "Python.h":
     object PyString_FromStringAndSize(char *s, Py_ssize_t len)
 
+# Begin TB
+cdef _read_int():
+    """Read integer
+
+    Code: 3
+    Format: <32-bit signed integer>
+
+    Returns:
+        Signed int
+    """
+    cdef int val
+    fread(&val, 4, 1, stdin)  # = 1
+    return int(be32toh(val))
+    #return (sz[0] << 24) + (sz[1] << 16) + (sz[2] << 8) + sz[3]
+
+
+cdef _read_long():
+    """Read integer
+
+    Code: 4
+    Format: <64-bit signed integer>
+
+    Returns:
+        Signed long
+    """
+    cdef long val
+    fread(&val, 8, 1, stdin)  # = 1
+    return int(be64toh(val))
+
+cdef _read_float():
+    """Read float
+
+    Code: 5
+    Format: <32-bit IEEE floating point number>
+
+    Returns:
+        Signed int
+    """
+    cdef int val
+    fread(&val, 4, 1, stdin)  # = 1
+    val = be32toh(val)
+    return float((<float*>&val)[0])
+
+
+cdef _read_double():
+    """Read double
+
+    Code: 6
+    Format: <64-bit IEEE floating point number>
+
+    Returns:
+        Signed long
+    """
+    cdef long val
+    fread(&val, 8, 1, stdin)  # = 1
+    val = be64toh(val)
+    return float((<double*>&val)[0])
+
+
+cdef _read_byte():
+    """Read integer
+
+    Code: 1
+    Format: <signed byte>
+
+    Returns:
+        Signed int
+    """
+    cdef signed char val
+    fread(&val, 1, 1, stdin) # = 1
+    return int(val)
+
+
+cdef _read_bool():
+    """Read integer
+
+    Code: 2
+    Format: <signed byte (0 = false and 1 = true)>
+
+    Returns:
+        Bool
+    """
+    return bool(_read_byte())
+
+
+cdef _read_bytes():
+    """Read raw bytes
+
+    Code: 0
+    Format: <32-bit signed integer> <as many bytes as indicated by the integer>
+
+    Returns:
+        Python string of bytes
+    """
+    sz = _read_int()
+    print(sz)
+    cdef char *bytes = <char*>malloc(sz)
+    fread(bytes, sz, 1, stdin) # = 1
+    out = PyString_FromStringAndSize(bytes, sz)
+    free(bytes)
+    return out
+
+
+cdef _read_vector():
+    """Read fixed length vector of typedbytes
+
+    Code: 8
+    Format: <32-bit signed integer> <as many typed bytes sequences as indicated by the integer>
+
+    Returns:
+        Python tuple with nested values
+    """
+    sz = _read_int()
+    out = []
+    for x in range(sz):
+        out.append(_read_tb_code())
+    return tuple(out)
+
+
+cdef _read_list():
+    """Read variable length list of typedbytes
+
+    Code: 9
+    Format: <variable number of typed bytes sequences> <255 written as an unsigned byte>
+
+    Returns:
+        Python list of nested values
+    """
+    out = []
+    while True:
+        try:
+            out.append(_read_tb_code())
+        except StopIteration:
+            break
+    return out
+
+
+cdef _read_dict():
+    """Read fixed length pairs of typedbytes (interpreted as a dict/map)
+
+    Code: 10
+    Format: <32-bit signed integer> <as many (key-value) pairs of typed bytes sequences as indicated by the integer>
+
+    Returns:
+        Python dict with nested values
+    """
+    sz = _read_int()
+    out = []
+    for x in range(sz):
+        kv = _read_tb_code(), _read_tb_code()
+        out.append(kv)
+    return dict(out)
+
+
+# TODO Make this a function pointer array
+#_tb_codes = (_read_bytes,)
+#             _read_byte, _read_bool, _read_int, _read_long, _read_float,
+#     _read_double, _read_string, _read_vector, _read_list, _read_dict)
+def _read_tb_code():
+    cdef unsigned char type_code = getchar()
+    if type_code == 0:
+        return _read_bytes()
+    elif type_code == 1:
+        return _read_byte()
+    elif type_code == 2:
+        return _read_bool()
+    elif type_code == 3:
+        return _read_int()
+    elif type_code == 4:
+        return _read_long()
+    elif type_code == 5:
+        return _read_float()
+    elif type_code == 6:
+        return _read_double()
+    elif type_code == 7:
+        return _read_bytes()
+    elif type_code == 8:
+        return _read_vector()
+    elif type_code == 9:
+        return _read_list()
+    elif type_code == 10:
+        return _read_dict()
+    elif type_code == 255:
+        raise StopIteration
+    else:
+        raise IndexError('Bad index %d ' % type_code)
+
+cdef __one_key_value_tb():
+    k = _read_tb_code()
+    print(k)
+    v = _read_tb_code()
+    return k, v
+
+def read_tb():
+    return __one_key_value_tb()
+
+# End TB
 
 cdef __one_key_value_text():
     cdef ssize_t sz
@@ -42,10 +247,12 @@ cdef __one_key_value_text():
     if sz == -1:
         raise StopIteration
     k = PyString_FromStringAndSize(lineptr, sz - 1)
+    free(lineptr)
     sz = getdelim(&lineptr, &n, ord('\n'), stdin)
     if sz == -1:
         raise StopIteration
     v = PyString_FromStringAndSize(lineptr, sz - 1)
+    free(lineptr)
     return k, v
 
 def _one_key_value_text():
@@ -141,9 +348,11 @@ cdef __one_offset_value_text():
     cdef char *lineptr = NULL
     cdef size_t n = 0
     sz = getdelim(&lineptr, &n, ord('\n'), stdin)
+    free(lineptr)
     if sz == -1:
         raise StopIteration
     line = PyString_FromStringAndSize(lineptr, sz - 1)
+    free(lineptr)
     out_count = _line_count
     _line_count += sz
     return out_count, line
