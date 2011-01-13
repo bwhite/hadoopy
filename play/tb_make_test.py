@@ -32,6 +32,10 @@ def rand_bytes(sz):
     return ''.join(chr(random.randint(0, 255)) for x in range(sz))
 
 
+def rand_byte():
+    return random.randint(-128, 127)
+
+
 def rand_float():
     return random.random()
 
@@ -51,7 +55,7 @@ def rand_bool():
 
 
 def rand_list(sz, immutable=False):
-    f = [lambda : rand_bytes(random.randint(0, 255)),
+    f = [lambda : rand_bytes(sz / 2),
          rand_float, rand_int, rand_long, rand_bool,
          lambda : rand_tuple(sz / 2, immutable)]
     if not immutable:
@@ -61,86 +65,109 @@ def rand_list(sz, immutable=False):
 
 
 def rand_tuple(sz, immutable=False):
-    return tuple(rand_list(sz / 2, immutable))
+    return tuple(rand_list(sz, immutable))
 
 
 def rand_dict(sz):
-    zip(rand_list(sz / 2, True), rand_list(sz / 2))
+    return dict(zip(rand_list(sz, True), rand_list(sz)))
 
 
-with open('grabbag_single.tb', 'wb') as fp:
+with open('gb_single.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
     grabbag(a)
 
-with open('grabback_10k.tb', 'wb') as fp:
+with open('gb_100k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
-    for x in range(10000):
+    for x in range(100000):
         grabbag(a)
 
-with open('bytes_10k.tb', 'wb') as fp:
+with open('bytes_10_10k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
     for x in range(10000):
-        a.write_bytes(rand_bytes(x))
-        a.write_bytes(rand_bytes(x))
+        a.write_bytes(rand_bytes(10))
+        a.write_bytes(rand_bytes(10))
 
-with open('bool_10k.tb', 'wb') as fp:
+with open('bytes_100_10k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
     for x in range(10000):
-        a.write_bool(rand_bool(x))
-        a.write_bool(rand_bool(x))
+        a.write_bytes(rand_bytes(100))
+        a.write_bytes(rand_bytes(100))
 
-with open('byte_10k.tb', 'wb') as fp:
+with open('bytes_1k_10k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
     for x in range(10000):
-        a.write_byte(ord(rand_bytes(1)))
-        a.write_byte(ord(rand_bytes(1)))
+        a.write_bytes(rand_bytes(1000))
+        a.write_bytes(rand_bytes(1000))
 
-with open('string_10k.tb', 'wb') as fp:
-    a = typedbytes.Output(fp)
-    for x in range(10000):
-        a.write_string(rand_bytes(x))
-        a.write_string(rand_bytes(x))
 
-with open('float_10k.tb', 'wb') as fp:
+with open('bool_100k.tb', 'wb') as fp:
+    a = typedbytes.Output(fp)
+    for x in range(100000):
+        a.write_bool(rand_bool())
+        a.write_bool(rand_bool())
+
+with open('byte_100k.tb', 'wb') as fp:
+    a = typedbytes.Output(fp)
+    for x in range(100000):
+        a.write_byte(rand_byte())
+        a.write_byte(rand_byte())
+
+with open('string_10_10k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
     for x in range(10000):
+        a.write_string(rand_bytes(10))
+        a.write_string(rand_bytes(10))
+
+with open('string_100_10k.tb', 'wb') as fp:
+    a = typedbytes.Output(fp)
+    for x in range(10000):
+        a.write_string(rand_bytes(100))
+        a.write_string(rand_bytes(100))
+
+with open('string_1k_10k.tb', 'wb') as fp:
+    a = typedbytes.Output(fp)
+    for x in range(10000):
+        a.write_string(rand_bytes(1000))
+        a.write_string(rand_bytes(1000))
+
+with open('float_100k.tb', 'wb') as fp:
+    a = typedbytes.Output(fp)
+    for x in range(100000):
         a.write_float(rand_float())
         a.write_float(rand_float())
 
-with open('double_10k.tb', 'wb') as fp:
+with open('double_100k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
-    for x in range(10000):
+    for x in range(100000):
         a.write_double(rand_float())
         a.write_double(rand_float())
 
-with open('int_10k.tb', 'wb') as fp:
+with open('int_100k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
-    for x in range(10000):
+    for x in range(100000):
         a.write_int(rand_int())
         a.write_int(rand_int())
 
-with open('long_10k.tb', 'wb') as fp:
+with open('long_100k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
-    for x in range(10000):
+    for x in range(100000):
         a.write_long(rand_long())
         a.write_long(rand_long())
 
-with open('list_10k.tb', 'wb') as fp:
+with open('list_50.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
-    for x in range(10000):
+    for x in range(50):
         a.write_list(rand_list(x))
         a.write_list(rand_list(x))
 
-with open('tuple_10k.tb', 'wb') as fp:
+with open('tuple_50.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
-    for x in range(10000):
+    for x in range(50):
         a.write_vector(rand_tuple(x))
         a.write_vector(rand_tuple(x))
 
-with open('dict_10k.tb', 'wb') as fp:
+with open('dict_50.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
-    for x in range(10000):
+    for x in range(50):
         a.write_map(rand_dict(x))
         a.write_map(rand_dict(x))
-
-

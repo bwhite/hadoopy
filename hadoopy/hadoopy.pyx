@@ -22,6 +22,7 @@ import os
 from operator import itemgetter
 from itertools import groupby
 import typedbytes
+import types
 
 cdef extern from "stdlib.h":
     void *malloc(size_t size)
@@ -30,16 +31,22 @@ cdef extern from "stdlib.h":
 cdef extern from "stdio.h":
     ssize_t getdelim(char **lineptr, size_t *n, int delim, void *stream)
     void *stdin
+    void *stdout
+    void *stderr
     int getchar()
     size_t fread(void *ptr, size_t size, size_t nmemb, void *stream)
+    size_t fwrite(void *ptr, size_t size, size_t nmemb, void *stream)
 
 cdef extern from "endian.h":
     int be32toh(int val)
     long be64toh(long val)
-           
+    int htobe32(int val)
+    long htobe64(long val)
 
 cdef extern from "Python.h":
     object PyString_FromStringAndSize(char *s, Py_ssize_t len)
+    int PyString_AsStringAndSize(object obj, char **buffer, Py_ssize_t *length)
+    
 
 # Begin TB
 cdef _read_int():
@@ -49,12 +56,25 @@ cdef _read_int():
     Format: <32-bit signed integer>
 
     Returns:
-        Signed int
+        Python int
     """
     cdef int val
     fread(&val, 4, 1, stdin)  # = 1
     return int(be32toh(val))
-    #return (sz[0] << 24) + (sz[1] << 16) + (sz[2] << 8) + sz[3]
+
+
+cdef _write_int(val):
+    """Write integer
+
+    Code: 3
+    Format: <32-bit signed integer>
+
+    Args:
+        val: Python int
+    """
+    cdef int cval = val
+    cval = htobe32(cval)
+    fwrite(&cval, 4, 1, stdout)  # = 1
 
 
 cdef _read_long():
@@ -64,11 +84,26 @@ cdef _read_long():
     Format: <64-bit signed integer>
 
     Returns:
-        Signed long
+        Python int
     """
     cdef long val
     fread(&val, 8, 1, stdin)  # = 1
     return int(be64toh(val))
+
+
+cdef _write_long(val):
+    """Write long
+
+    Code: 4
+    Format: <64-bit signed integer>
+
+    Args:
+        val: Python int
+    """
+    cdef long cval = val
+    cval = htobe64(cval)
+    fwrite(&cval, 8, 1, stdout)  # = 1
+
 
 cdef _read_float():
     """Read float
@@ -77,12 +112,26 @@ cdef _read_float():
     Format: <32-bit IEEE floating point number>
 
     Returns:
-        Signed int
+        Python float
     """
     cdef int val
     fread(&val, 4, 1, stdin)  # = 1
     val = be32toh(val)
     return float((<float*>&val)[0])
+
+
+cdef _write_float(val):
+    """Write float
+
+    Code: 5
+    Format: <32-bit IEEE floating point number>
+
+    Args:
+        val: Python float
+    """
+    cdef float cval = val
+    cdef int cvalo = htobe32((<int*>&cval)[0])
+    fwrite(&cvalo, 4, 1, stdout)  # = 1
 
 
 cdef _read_double():
@@ -92,7 +141,7 @@ cdef _read_double():
     Format: <64-bit IEEE floating point number>
 
     Returns:
-        Signed long
+        Python float
     """
     cdef long val
     fread(&val, 8, 1, stdin)  # = 1
@@ -100,18 +149,45 @@ cdef _read_double():
     return float((<double*>&val)[0])
 
 
+cdef _write_double(val):
+    """Write double
+
+    Code: 6
+    Format: <64-bit IEEE floating point number>
+
+    Args:
+        val: Python float
+    """
+    cdef double cval = val
+    cdef long cvalo = htobe64((<long*>&cval)[0])
+    fwrite(&cvalo, 8, 1, stdout)  # = 1
+
+
 cdef _read_byte():
-    """Read integer
+    """Read byte
 
     Code: 1
     Format: <signed byte>
 
     Returns:
-        Signed int
+        Python int
     """
     cdef signed char val
-    fread(&val, 1, 1, stdin) # = 1
+    fread(&val, 1, 1, stdin)  # = 1
     return int(val)
+
+
+cdef _write_byte(val):
+    """Write byte
+
+    Code: 1
+    Format: <signed byte>
+
+    Args:
+        val: Python int
+    """
+    cdef signed char cval = val
+    fwrite(&cval, 1, 1, stdout)  # = 1
 
 
 cdef _read_bool():
@@ -121,13 +197,26 @@ cdef _read_bool():
     Format: <signed byte (0 = false and 1 = true)>
 
     Returns:
-        Bool
+        Python Bool
     """
     return bool(_read_byte())
 
 
+cdef _write_bool(val):
+    """Write bool
+
+    Code: 2
+    Format: <signed byte (0 = false and 1 = true)>
+
+    Args:
+        val: Python bool
+    """
+    cdef signed char cval = val
+    fwrite(&cval, 1, 1, stdout)  # = 1
+
+
 cdef _read_bytes():
-    """Read raw bytes
+    """Read bytes
 
     Code: 0
     Format: <32-bit signed integer> <as many bytes as indicated by the integer>
@@ -136,12 +225,50 @@ cdef _read_bytes():
         Python string of bytes
     """
     sz = _read_int()
-    print(sz)
     cdef char *bytes = <char*>malloc(sz)
-    fread(bytes, sz, 1, stdin) # = 1
+    fread(bytes, sz, 1, stdin)  # = 1
     out = PyString_FromStringAndSize(bytes, sz)
     free(bytes)
     return out
+
+cdef _write_bytes(val):
+    """Write bytes
+
+    Code: 0
+    Format: <32-bit signed integer> <as many bytes as indicated by the integer>
+
+    Args:
+        val: Python string (str or unicode)
+    """
+    cdef char *bytes
+    cdef Py_ssize_t sz  # Assumed to be 4 bytes
+    PyString_AsStringAndSize(val, &bytes, &sz)  # != -1
+    fwrite(&sz, 4, 1, stdout)  # = 1
+    fwrite(bytes, sz, 1, stdout)  # = 1
+
+
+cdef _read_unicode():
+    """Read unicode
+
+    Code: 7
+    Format: <32-bit signed integer> <as many UTF-8 bytes as indicated by the integer>
+
+    Returns:
+        Python unicode string
+    """
+    return _read_bytes()
+
+
+cdef _write_unicode(val):
+    """Write unicode
+
+    Code: 7
+    Format: <32-bit signed integer> <as many UTF-8 bytes as indicated by the integer>
+
+    Args:
+        val: Python string (str or unicode)
+    """
+    _write_bytes(val)
 
 
 cdef _read_vector():
@@ -158,6 +285,21 @@ cdef _read_vector():
     for x in range(sz):
         out.append(_read_tb_code())
     return tuple(out)
+
+
+cdef _write_vector(val):
+    """Write fixed length vector of typedbytes
+
+    Code: 8
+    Format: <32-bit signed integer> <as many typed bytes sequences as indicated by the integer>
+
+    Args:
+        val: Python tuple with nested values
+    """
+    cdef int sz = len(val)
+    fwrite(&sz, 4, 1, stdout)  # = 1
+    for x in val:
+        _write_tb_code(x)
 
 
 cdef _read_list():
@@ -178,6 +320,21 @@ cdef _read_list():
     return out
 
 
+cdef _write_list(val):
+    """Write variable length list of typedbytes
+
+    Code: 9
+    Format: <variable number of typed bytes sequences> <255 written as an unsigned byte>
+
+    Args:
+        val: Python list of nested values
+    """
+    for x in val:
+        _write_tb_code(x)
+    cdef unsigned char code = 255
+    fwrite(&code, 1, 1, stdout)  # = 1
+
+
 cdef _read_dict():
     """Read fixed length pairs of typedbytes (interpreted as a dict/map)
 
@@ -188,19 +345,70 @@ cdef _read_dict():
         Python dict with nested values
     """
     sz = _read_int()
-    out = []
+    out = {}
     for x in range(sz):
-        kv = _read_tb_code(), _read_tb_code()
-        out.append(kv)
-    return dict(out)
+        k, v = _read_tb_code(), _read_tb_code()
+        out[k] = v
+    return out
 
 
-# TODO Make this a function pointer array
-#_tb_codes = (_read_bytes,)
-#             _read_byte, _read_bool, _read_int, _read_long, _read_float,
-#     _read_double, _read_string, _read_vector, _read_list, _read_dict)
+cdef _write_dict(val):
+    """Write fixed length pairs of typedbytes (interpreted as a dict/map)
+
+    Code: 10
+    Format: <32-bit signed integer> <as many (key-value) pairs of typed bytes sequences as indicated by the integer>
+
+    Args:
+        val: Python dict with nested values
+    """
+    cdef int sz = len(val)
+    fwrite(&sz, 4, 1, stdout)  # = 1
+    for x, y in val.iteritems():
+        _write_tb_code(x)
+        _write_tb_code(y)
+
+
+_out_types = {types.StringType: 0,
+              # 1: _write_byte unused
+              types.BooleanType: 2,
+              types.IntType: 3,
+              types.LongType: 4,
+              # 5: _write_float unused
+              types.FloatType: 6,
+              types.UnicodeType: 7,
+              types.TupleType: 8,
+              types.ListType: 9,
+              types.DictType: 10}
+
+
+def _write_tb_code(val):
+    cdef int type_code
+    type_code = _out_types[type(val)]
+    fwrite(&type_code, 1, 1, stdout)  # = 1
+    if type_code == 0:
+        _write_bytes(val)
+    elif type_code == 2:
+        _write_bool(val)
+    elif type_code == 3:
+        _write_int(val)
+    elif type_code == 4:
+        _write_long(val)
+    elif type_code == 6:
+        _write_double(val)
+    elif type_code == 7:
+        _write_unicode(val)
+    elif type_code == 8:
+        _write_vector(val)
+    elif type_code == 9:
+        _write_list(val)
+    elif type_code == 10:
+        _write_dict(val)
+    else:
+        raise IndexError('Bad index %d ' % type_code)
+
+
 def _read_tb_code():
-    cdef unsigned char type_code = getchar()
+    cdef int type_code = getchar()
     if type_code == 0:
         return _read_bytes()
     elif type_code == 1:
@@ -225,21 +433,33 @@ def _read_tb_code():
         return _read_dict()
     elif type_code == 255:
         raise StopIteration
+    elif type_code < 0:
+        raise StopIteration        
     else:
         raise IndexError('Bad index %d ' % type_code)
 
-cdef __one_key_value_tb():
+
+cdef __read_key_value_tb():
     k = _read_tb_code()
-    print(k)
     v = _read_tb_code()
     return k, v
 
+
+cdef __write_key_value_tb(k, v):
+    _write_tb_code(k)
+    _write_tb_code(v)
+    
+
 def read_tb():
-    return __one_key_value_tb()
+    return __read_key_value_tb()
+
+
+def write_tb(k, v):
+    __write_key_value_tb(k, v)
 
 # End TB
 
-cdef __one_key_value_text():
+cdef __read_key_value_text():
     cdef ssize_t sz
     cdef char *lineptr = NULL
     cdef size_t n = 0
@@ -256,7 +476,7 @@ cdef __one_key_value_text():
     return k, v
 
 def _one_key_value_text():
-    return __one_key_value_text()
+    return __read_key_value_text()
 
 #def _one_key_value_text_slow():
 #    return sys.stdin.readline().x[:-1].split('\t', 1)
@@ -342,7 +562,7 @@ class GroupedKeyValues(object):
 
 
 _line_count = 0
-cdef __one_offset_value_text():
+cdef __read_offset_value_text():
     global _line_count
     cdef ssize_t sz
     cdef char *lineptr = NULL
@@ -359,7 +579,7 @@ cdef __one_offset_value_text():
 
 
 def _one_offset_value_text():
-    return __one_offset_value_text()
+    return __read_offset_value_text()
 
 
 def _is_io_typedbytes():
