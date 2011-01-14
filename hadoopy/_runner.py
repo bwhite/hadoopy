@@ -21,7 +21,7 @@ import subprocess
 import re
 import os
 
-import hadoopy.freeze
+import hadoopy._freeze
 
 
 def _find_hstreaming():

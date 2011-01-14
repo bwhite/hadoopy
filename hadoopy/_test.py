@@ -18,16 +18,24 @@ __author__ = 'Brandyn A. White <bwhite@cs.umd.edu>'
 __license__ = 'GPL V3'
 
 import unittest
-from hadoopy.main import process_inout, _groupby_kv
+import hadoopy
+from operator import itemgetter
+from itertools import groupby
 
 
-class Test(unittest.TestCase):    
+def _groupby_kv(kv):
+        return ((x, (z[1] for z in y))
+                for x, y in groupby(kv, itemgetter(0)))
+
+
+class Test(unittest.TestCase):
+
     def __init__(self, *args, **kw):
         super(Test, self).__init__(*args, **kw)
         self.call_map = self._call('map')
         self.call_reduce = self._call('reduce')
         self.groupby_kv = _groupby_kv
-    
+
     def sort_kv(self, kv):
         kv = list(kv)
         kv.sort(lambda x, y: cmp(x[0], y[0]))
@@ -42,6 +50,6 @@ class Test(unittest.TestCase):
 
             def out_func(out_iter):
                 out.extend(out_iter)
-            process_inout(func, test_input, out_func, attr)
+            hadoopy._main.process_inout(func, test_input, out_func, attr)
             return out
         return call_func

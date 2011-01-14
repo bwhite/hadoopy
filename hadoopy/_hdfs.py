@@ -18,12 +18,15 @@ __author__ = 'Brandyn A. White <bwhite@cs.umd.edu>'
 __license__ = 'GPL V3'
 
 import subprocess
-import typedbytes
 import tempfile
 import re
 import multiprocessing
+import hadoopy
+import sys
+import os
+import cPickle as pickle
 
-from hadoopy.runner import _find_hstreaming
+from hadoopy._runner import _find_hstreaming
 
 
 def ls(path):
@@ -49,9 +52,12 @@ def ls(path):
 
 def _hdfs_cat_tb(args):
     path, hstreaming, fn = args
+    script_path = '%s/_hdfs.py' % os.path.dirname(hadoopy.__file__)
     with open(fn, 'wb') as fp:
-        subprocess.Popen(['hadoop', 'jar', hstreaming, 'dumptb', path],
-                         stdout=fp, stderr=subprocess.PIPE).wait()
+        p0 = subprocess.Popen(['hadoop', 'jar', hstreaming, 'dumptb', path],
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.Popen(['python', script_path],
+                         stdin=p0.stdout, stdout=fp, stderr=subprocess.PIPE).wait()
 
 
 def cat(path, procs=10):
@@ -77,5 +83,19 @@ def cat(path, procs=10):
         fps = [tempfile.NamedTemporaryFile() for x in paths]
         p.map(_hdfs_cat_tb, [(path, hstreaming, fp.name) for path, fp in zip(paths, fps)])
         for y in fps:
-            for z in typedbytes.PairedInput(y).reads():
+            for z in pickle.load(y):
                 yield z
+
+
+def _main():
+    out = []
+    while True:
+        try:
+            out.append(hadoopy.typedbytes.read_tb())
+        except StopIteration:
+            break
+    sys.stdout.write(pickle.dumps(out, -1))
+
+
+if __name__ == '__main__':
+    _main()
