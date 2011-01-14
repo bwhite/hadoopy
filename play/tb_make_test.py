@@ -92,12 +92,6 @@ with open('gb_100k.tb', 'wb') as fp:
     for x in range(100000):
         grabbag(a)
 
-with open('bytes_10_10k.tb', 'wb') as fp:
-    a = typedbytes.Output(fp)
-    for x in range(10000):
-        a.write_bytes(rand_bytes(10))
-        a.write_bytes(rand_bytes(10))
-
 with open('bytes_100_10k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
     for x in range(10000):
@@ -109,6 +103,12 @@ with open('bytes_1k_10k.tb', 'wb') as fp:
     for x in range(10000):
         a.write_bytes(rand_bytes(1000))
         a.write_bytes(rand_bytes(1000))
+
+with open('bytes_10k_10k.tb', 'wb') as fp:
+    a = typedbytes.Output(fp)
+    for x in range(10000):
+        a.write_bytes(rand_bytes(10000))
+        a.write_bytes(rand_bytes(10000))
 
 with open('bool_100k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
@@ -122,12 +122,6 @@ with open('byte_100k.tb', 'wb') as fp:
         a.write_byte(rand_byte())
         a.write_byte(rand_byte())
 
-with open('string_10_10k.tb', 'wb') as fp:
-    a = typedbytes.Output(fp)
-    for x in range(10000):
-        a.write_unicode(rand_string(10))
-        a.write_unicode(rand_string(10))
-
 with open('string_100_10k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
     for x in range(10000):
@@ -139,6 +133,13 @@ with open('string_1k_10k.tb', 'wb') as fp:
     for x in range(10000):
         a.write_unicode(rand_string(1000))
         a.write_unicode(rand_string(1000))
+
+with open('string_10k_10k.tb', 'wb') as fp:
+    a = typedbytes.Output(fp)
+    for x in range(10000):
+        a.write_unicode(rand_string(10000))
+        a.write_unicode(rand_string(10000))
+
 
 with open('float_100k.tb', 'wb') as fp:
     a = typedbytes.Output(fp)
