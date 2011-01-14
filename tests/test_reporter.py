@@ -28,7 +28,7 @@ class TestReporter(unittest.TestCase):
 
     def test_status(self):
         def err(x):
-            self.assertEqual('reporter:status:[test]', x)
+            self.assertEqual('reporter:status:[test]\n', x)
         hadoopy.status('[test]', err=err)
 
     def test_counter(self):

@@ -23,3 +23,4 @@ from _main import run, print_doc_quit
 from _reporter import status, counter
 from _test import Test
 import _typedbytes as typedbytes
+import _main

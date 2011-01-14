@@ -160,7 +160,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
 def launch_frozen(in_name, out_name, script_path, **kw):
     """Freezes a script and then launches it.
 
-    Consult hadoopy.freeze.freeze and hadoopy.launch for optional kw args.
+    Consult hadoopy._freeze.freeze and hadoopy.launch for optional kw args.
 
     Args:
         in_name: Input path (string or list)
@@ -174,7 +174,7 @@ def launch_frozen(in_name, out_name, script_path, **kw):
         subprocess.CalledProcessError: Hadoop or Cxfreeze error.
         OSError: Hadoop streaming or Cxfreeze not found.
     """
-    freeze_cmd = hadoopy.freeze.freeze(script_path, **kw)
+    freeze_cmd = hadoopy._freeze.freeze(script_path, **kw)
     # Remove extension
     if script_path.endswith('.py'):
         script_path = script_path[:-3]

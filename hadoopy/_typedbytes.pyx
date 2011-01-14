@@ -21,7 +21,6 @@ import sys
 import os
 from operator import itemgetter
 from itertools import groupby
-import typedbytes
 import types
 import cPickle as pickle
 

@@ -28,7 +28,7 @@ class TestFindHStream(hadoopy.Test):
         super(TestFindHStream, self).__init__(*args, **kw)
 
     def test_find(self):
-        self.assertTrue(hadoopy.runner._find_hstreaming())
+        self.assertTrue(hadoopy._runner._find_hstreaming())
 
 
 if __name__ == '__main__':
