@@ -83,19 +83,25 @@ def cat(path, procs=10):
         fps = [tempfile.NamedTemporaryFile() for x in paths]
         p.map(_hdfs_cat_tb, [(path, hstreaming, fp.name) for path, fp in zip(paths, fps)])
         for y in fps:
-            for z in pickle.load(y):
-                yield z
+            while True:
+                try:
+                    yield pickle.load(y)
+                except EOFError:
+                    break
 
 
 def _main():
-    out = []
+    """Batch Typedbytes to Pickle converter
+
+    Reads typedbytes on stdin, converts the stream to pickles, outputs.
+    It can be used as an easy way to access the KeyValue pairs.  No buffering
+    is done in memory.
+    """
     while True:
         try:
-            out.append(hadoopy.typedbytes.read_tb())
+            sys.stdout.write(pickle.dumps(hadoopy.typedbytes.read_tb(), -1))
         except StopIteration:
             break
-    sys.stdout.write(pickle.dumps(out, -1))
-
 
 if __name__ == '__main__':
     _main()
