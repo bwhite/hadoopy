@@ -6,8 +6,6 @@
 Welcome to Hadoopy's documentation!
 ===================================
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
 
@@ -22,11 +20,6 @@ API
 .. autofunction:: hadoopy.cat
 .. autofunction:: hadoopy.ls
 .. autoclass:: hadoopy.GroupedValues
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+   :members:
+.. autoclass:: hadoopy.Test
+   :members:

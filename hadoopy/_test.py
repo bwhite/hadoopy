@@ -23,33 +23,59 @@ from operator import itemgetter
 from itertools import groupby
 
 
-def _groupby_kv(kv):
-        return ((x, (z[1] for z in y))
-                for x, y in groupby(kv, itemgetter(0)))
-
-
 class Test(unittest.TestCase):
 
     def __init__(self, *args, **kw):
         super(Test, self).__init__(*args, **kw)
-        self.call_map = self._call('map')
-        self.call_reduce = self._call('reduce')
-        self.groupby_kv = _groupby_kv
 
     def sort_kv(self, kv):
+        """Perform a stable sort on KeyValue pair keys
+
+        Args:
+            kv: Iterator of KeyValue pairs
+
+        Returns:
+            Grouped KeyValue pairs in sorted order
+        """
         kv = list(kv)
         kv.sort(lambda x, y: cmp(x[0], y[0]))
         return kv
 
+    def groupby_kv(kv):
+        """Group sorted KeyValue pairs
+
+        Args:
+            kv: Iterator of KeyValue pairs
+
+        Returns:
+            Grouped KeyValue pairs in sorted order
+        """
+        return ((x, (z[1] for z in y))
+                for x, y in groupby(kv, itemgetter(0)))
+
     def shuffle_kv(self, kv):
+        """Given KeyValue pairs, sort, then group
+
+        Args:
+            kv: Iterator of KeyValue pairs
+
+        Returns:
+            Grouped KeyValue pairs in sorted order
+        """
         return self.groupby_kv(self.sort_kv(kv))
 
-    def _call(self, attr):
-        def call_func(func, test_input):
-            out = []
+    def call_map(self, func, test_input):
+        out = []
 
-            def out_func(out_iter):
-                out.extend(out_iter)
-            hadoopy._main.process_inout(func, test_input, out_func, attr)
-            return out
-        return call_func
+        def out_func(out_iter):
+            out.extend(out_iter)
+        hadoopy._main.process_inout(func, test_input, out_func, 'map')
+        return out
+
+    def call_reduce(self, func, test_input):
+        out = []
+
+        def out_func(out_iter):
+            out.extend(out_iter)
+        hadoopy._main.process_inout(func, test_input, out_func, 'reduce')
+        return out
