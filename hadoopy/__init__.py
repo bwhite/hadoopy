@@ -24,3 +24,4 @@ from _reporter import status, counter
 from _test import Test
 import _typedbytes as typedbytes
 import _main
+from _main import GroupedValues
