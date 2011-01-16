@@ -24,9 +24,33 @@ def _err(x):
     sys.stderr.write(x)
 
 
-def counter(group, counter, amount=1, err=_err):
+def counter(group, counter, amount=1, err=None):
+    """Output a counter update that is displayed in the Hadoop web interface
+
+    Counters are useful for quickly identifying the number of times an error
+    occurred, current progress, or coarse statistics.
+
+    Args:
+        group: Counter group
+        counter: Counter name
+        amount: Value to add (default 1)
+        err: Func that outputs a string if None stderr is used (default None)
+    """
+    if not err:
+        err = _err
     err("reporter:counter:%s,%s,%s\n" % (group, counter, str(amount)))
 
 
-def status(msg, err=_err):
+def status(msg, err=None):
+    """Output a status message that is displayed in the Hadoop web interface
+
+    The status message will replace any other, if you want to append you must
+    do this yourself.
+
+    Args:
+        msg: String representing the status message
+        err: Func that outputs a string if None stderr is used (default None)
+    """
+    if not err:
+        err = _err
     err("reporter:status:%s\n" % str(msg))
