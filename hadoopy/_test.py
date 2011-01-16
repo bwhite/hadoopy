@@ -41,7 +41,7 @@ class Test(unittest.TestCase):
         kv.sort(lambda x, y: cmp(x[0], y[0]))
         return kv
 
-    def groupby_kv(kv):
+    def groupby_kv(self, kv):
         """Group sorted KeyValue pairs
 
         Args:
