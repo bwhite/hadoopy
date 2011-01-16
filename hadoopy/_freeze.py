@@ -42,6 +42,9 @@ __license__ = 'GPL V3'
 import os
 import shutil
 import subprocess
+import tarfile
+import glob
+import tempfile
 
 
 def _wrap_string(s):
@@ -52,7 +55,8 @@ def _wrap_string(s):
 
 def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
            target_dir='frozen', exclude_modules=('tcl', 'tk', 'Tkinter'),
-           freeze_cmd='cxfreeze', pretend=False, verbose=False, **kw):
+           freeze_cmd='cxfreeze', pretend=False, verbose=False, extra='',
+           **kw):
     """Wraps cxfreeze and provides an easy to use interface (see module doc).
 
     Args:
@@ -67,6 +71,7 @@ def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
         freeze_cmd: Path to cxfreeze (default is cxfreeze)
         pretend: If true, only build the command and return.
         verbose: If true, output to stdout all command results.
+        extra: A string to be appended to the command, pass string args here
 
     Returns:
         The cxfreeze command called (string).
@@ -92,7 +97,7 @@ def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
         freeze_cmd += ' --target-dir=%s' % (target_dir)
     if modules:
         freeze_cmd += ' --include-modules=%s' % (','.join(modules))
-    freeze_cmd += ' %s' % (script_path)
+    freeze_cmd += ' %s %s' % (extra, script_path)
     if not pretend:
         if verbose:
             print('HadooPY: Running[%s]' % (freeze_cmd))
@@ -104,3 +109,34 @@ def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
             shutil.copy(shared_lib, ''.join((target_dir, '/',
                                              os.path.basename(shared_lib))))
     return freeze_cmd
+
+
+def freeze_to_tar(script_path, freeze_fn, extra):
+    """Freezes a script to a .tar or .tar.gz file
+
+    The script contains all of the files at the root of the tar
+
+    Args:
+        script_path: Path to python script to be frozen.
+        freeze_fn: Tar filename (must end in .tar or .tar.gz)
+        extra: A string to be appended to the command, pass string args here
+
+    Raises:
+        subprocess.CalledProcessError: Cxfreeze error.
+        OSError: Cxfreeze not found.
+        NameError: Tar must end in .tar or .tar.gz
+    """
+    freeze_dir = tempfile.mkdtemp()
+    freeze(script_path, target_dir=freeze_dir, extra=extra)
+    if freeze_fn.endswith('.tar.gz'):
+        mode = 'w|gz'
+    elif freeze_fn.endswith('.tar'):
+        mode = 'w'
+    else:
+        shutil.rmtree(freeze_dir)
+        raise NameError('[%s] must end in .tar or .tar.gz' % freeze_fn)
+    fp = tarfile.open(freeze_fn, mode)
+    for x in glob.glob('%s/*' % freeze_dir):
+        fp.add(x, arcname=os.path.basename(x))
+    fp.close()
+    shutil.rmtree(freeze_dir)
