@@ -21,7 +21,6 @@ import sys
 import os
 import hadoopy
 
-
 cdef extern from "stdlib.h":
     void *malloc(size_t size)
     void free(void *ptr)
@@ -46,6 +45,7 @@ cdef __read_key_value_text():
         raise StopIteration
     k = PyString_FromStringAndSize(lineptr, sz - 1)
     free(lineptr)
+    lineptr = NULL
     sz = getdelim(&lineptr, &n, ord('\n'), stdin)
     if sz == -1:
         raise StopIteration
@@ -61,7 +61,6 @@ cdef __read_offset_value_text():
     cdef char *lineptr = NULL
     cdef size_t n = 0
     sz = getdelim(&lineptr, &n, ord('\n'), stdin)
-    free(lineptr)
     if sz == -1:
         raise StopIteration
     line = PyString_FromStringAndSize(lineptr, sz - 1)
@@ -83,12 +82,9 @@ def _one_key_value_tb():
     return hadoopy.typedbytes.read_tb()
 
 
-def _print_out_text(iter, sep='\t'):
-    for out in iter:
-        if isinstance(out, tuple):
-            print(sep.join([str(x) for x in out]))
-        else:
-            print(str(out))
+def _print_out_text(iter):
+    for k, v in iter:
+        print('%s\t%s' % (k, v))
 
 
 def _print_out_tb(iter):
@@ -221,7 +217,7 @@ def _read_in_map():
     """
     if _is_io_typedbytes():
         return KeyValueStream(_one_key_value_tb)
-    return KeyValueStream(_one_offset_value_text)
+    return KeyValueStream(_one_key_value_text)# was offset
 
 
 def _read_in_reduce():
@@ -270,6 +266,10 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
             ret = process_inout(reducer, _read_in_reduce(), _print_out, 'reduce')
         elif val == 'combine':
             ret = process_inout(reducer, _read_in_reduce(), _print_out, 'reduce')
+        elif val == 'freeze' and len(sys.argv) > 2:
+            extra = ' '.join(sys.argv[3:])
+            hadoopy._freeze.freeze_to_tar(script_path=sys.argv[0],
+                                          freeze_fn=sys.argv[2], extra=extra)
         else:
             print_doc_quit(kw['doc'])
     else:
