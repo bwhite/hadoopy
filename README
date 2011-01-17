@@ -1,7 +1,14 @@
 Brandyn White <bwhite@dappervision.com>
 
 Requirements
-cython
+cython, cxfreeze (for freeze support)
+
+Features
+- oozie support
+- typedbytes support (very fast)
+- critical path is in Cython
+- works on clusters without any extra installation, Python, or any Python libraries (requires cx_Freeze)
+- Simple HDFS access (cat and ls) inside Python, even inside running jobs
 
 Install
 sudo python setup.py install
