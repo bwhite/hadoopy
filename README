@@ -11,6 +11,12 @@ Features
 - Simple HDFS access (cat and ls) inside Python, even inside running jobs
 - Unit test interface
 - Reporting using status and counters
+- Supports design patterns in the Lin/Dyer book (http://www.umiacs.umd.edu/~jimmylin/book.html)
+
+Used in
+- A Case for Query by Image and Text Content: Searching Computer Help using Screenshots and Keywords (to appear in WWW'11)
+- Web-Scale Computer Vision using MapReduce for Multimedia Data Mining (at KDD'10)
+- Vitrieve: Visual Search engine
 
 Install
 sudo python setup.py install
