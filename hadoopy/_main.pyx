@@ -267,9 +267,16 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
         elif val == 'combine':
             ret = process_inout(reducer, _read_in_reduce(), _print_out, 'reduce')
         elif val == 'freeze' and len(sys.argv) > 2:
-            extra = ' '.join(sys.argv[3:])
+            extra_files = []
+            pos = 3
+            # Any file with -Z is added to the tar
+            while len(sys.argv) >= pos + 2 and sys.argv[pos] == '-Z':
+                extra_files.append(sys.argv[pos + 1])
+                pos += 2
+            extra = ' '.join(sys.argv[pos:])
             hadoopy._freeze.freeze_to_tar(script_path=sys.argv[0],
-                                          freeze_fn=sys.argv[2], extra=extra)
+                                          freeze_fn=sys.argv[2], extra=extra,
+                                          extra_files=extra_files)
         else:
             print_doc_quit(kw['doc'])
     else:

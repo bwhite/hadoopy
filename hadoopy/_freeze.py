@@ -111,7 +111,7 @@ def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
     return freeze_cmd
 
 
-def freeze_to_tar(script_path, freeze_fn, extra):
+def freeze_to_tar(script_path, freeze_fn, extra, extra_files):
     """Freezes a script to a .tar or .tar.gz file
 
     The script contains all of the files at the root of the tar
@@ -120,6 +120,7 @@ def freeze_to_tar(script_path, freeze_fn, extra):
         script_path: Path to python script to be frozen.
         freeze_fn: Tar filename (must end in .tar or .tar.gz)
         extra: A string to be appended to the command, pass string args here
+        extra_files: List of paths to add to the tar
 
     Raises:
         subprocess.CalledProcessError: Cxfreeze error.
@@ -136,7 +137,7 @@ def freeze_to_tar(script_path, freeze_fn, extra):
         shutil.rmtree(freeze_dir)
         raise NameError('[%s] must end in .tar or .tar.gz' % freeze_fn)
     fp = tarfile.open(freeze_fn, mode)
-    for x in glob.glob('%s/*' % freeze_dir):
+    for x in glob.glob('%s/*' % freeze_dir) + extra_files:
         fp.add(x, arcname=os.path.basename(x))
     fp.close()
     shutil.rmtree(freeze_dir)
