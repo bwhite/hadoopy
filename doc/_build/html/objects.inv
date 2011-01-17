@@ -1,0 +1,18 @@
+# Sphinx inventory version 1
+# Project: Hadoopy
+# Version: .01
+hadoopy.ls function index.html
+hadoopy.Test.groupby_kv method index.html
+hadoopy.cat function index.html
+hadoopy.counter function index.html
+hadoopy.status function index.html
+hadoopy.print_doc_quit function index.html
+hadoopy.TypedBytesFile.next attribute index.html
+hadoopy.Test.sort_kv method index.html
+hadoopy.launch_frozen function index.html
+hadoopy.GroupedValues class index.html
+hadoopy.Test.shuffle_kv method index.html
+hadoopy.launch function index.html
+hadoopy.run function index.html
+hadoopy.TypedBytesFile class index.html
+hadoopy.Test class index.html

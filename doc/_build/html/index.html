@@ -1,0 +1,279 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Welcome to Hadoopy’s documentation! &mdash; Hadoopy v.01 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '.01',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Hadoopy v.01 documentation" href="#" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="#">Hadoopy v.01 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="welcome-to-hadoopy-s-documentation">
+<h1>Welcome to Hadoopy&#8217;s documentation!<a class="headerlink" href="#welcome-to-hadoopy-s-documentation" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+</ul>
+<div class="section" id="api">
+<h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="hadoopy.run">
+<tt class="descclassname">hadoopy.</tt><tt class="descname">run</tt><big>(</big><big>)</big><a class="headerlink" href="#hadoopy.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hadoopy.print_doc_quit">
+<tt class="descclassname">hadoopy.</tt><tt class="descname">print_doc_quit</tt><big>(</big><big>)</big><a class="headerlink" href="#hadoopy.print_doc_quit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="hadoopy.status">
+<tt class="descclassname">hadoopy.</tt><tt class="descname">status</tt><big>(</big><em>msg</em>, <em>err=None</em><big>)</big><a class="headerlink" href="#hadoopy.status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Output a status message that is displayed in the Hadoop web interface</p>
+<p>The status message will replace any other, if you want to append you must
+do this yourself.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>msg: String representing the status message
+err: Func that outputs a string if None stderr is used (default None)</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="hadoopy.counter">
+<tt class="descclassname">hadoopy.</tt><tt class="descname">counter</tt><big>(</big><em>group</em>, <em>counter</em>, <em>amount=1</em>, <em>err=None</em><big>)</big><a class="headerlink" href="#hadoopy.counter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Output a counter update that is displayed in the Hadoop web interface</p>
+<p>Counters are useful for quickly identifying the number of times an error
+occurred, current progress, or coarse statistics.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>group: Counter group
+counter: Counter name
+amount: Value to add (default 1)
+err: Func that outputs a string if None stderr is used (default None)</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="hadoopy.launch">
+<tt class="descclassname">hadoopy.</tt><tt class="descname">launch</tt><big>(</big><em>in_name</em>, <em>out_name</em>, <em>script_path</em>, <em>mapper=True</em>, <em>reducer=True</em>, <em>combiner=False</em>, <em>partitioner=False</em>, <em>files=()</em>, <em>jobconfs=()</em>, <em>cmdenvs=()</em>, <em>copy_script=True</em>, <em>hstreaming=None</em>, <em>name=None</em>, <em>use_typedbytes=True</em>, <em>use_seqoutput=True</em>, <em>use_autoinput=True</em>, <em>pretend=False</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#hadoopy.launch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run Hadoop given the parameters</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><p class="first">in_name: Input path (string or list)
+out_name: Output path
+script_path: Path to the script (e.g., script.py)
+mapper: If True, the mapper is &#8220;script.py map&#8221;.</p>
+<blockquote>
+If string, the mapper is the value</blockquote>
+<dl class="docutils">
+<dt>reducer: If True (default), the reducer is &#8220;script.py reduce&#8221;.</dt>
+<dd>If string, the reducer is the value</dd>
+<dt>combiner: If True, the reducer is &#8220;script.py combine&#8221; (default False).</dt>
+<dd>If string, the combiner is the value</dd>
+</dl>
+<p>partitioner: If True, the partitioner is the value.
+copy_script: If True, the script is added to the files list.
+files: Extra files (other than the script) (string or list).</p>
+<blockquote>
+NOTE: Hadoop copies the files into working directory (path errors!).</blockquote>
+<p class="last">jobconfs: Extra jobconf parameters (string or list)
+cmdenvs: Extra cmdenv parameters (string or list)
+hstreaming: The full hadoop streaming path to call.
+use_typedbytes: If True (default), use typedbytes IO.
+use_seqoutput: True (default), output sequence file. If False, output is text.
+use_autoinput: If True (default), sets the input format to auto.
+pretend: If true, only build the command and return.</p>
+</dd>
+<dt>Returns:</dt>
+<dd>The hadoop command called.</dd>
+<dt>Raises:</dt>
+<dd>subprocess.CalledProcessError: Hadoop error.
+OSError: Hadoop streaming not found.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="hadoopy.launch_frozen">
+<tt class="descclassname">hadoopy.</tt><tt class="descname">launch_frozen</tt><big>(</big><em>in_name</em>, <em>out_name</em>, <em>script_path</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#hadoopy.launch_frozen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Freezes a script and then launches it.</p>
+<p>Consult hadoopy._freeze.freeze and hadoopy.launch for optional kw args.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>in_name: Input path (string or list)
+out_name: Output path
+script_path: Path to the script (e.g., script.py)</dd>
+<dt>Returns:</dt>
+<dd>A tuple of the freeze and hadoop commands.</dd>
+<dt>Raises:</dt>
+<dd>subprocess.CalledProcessError: Hadoop or Cxfreeze error.
+OSError: Hadoop streaming or Cxfreeze not found.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="hadoopy.cat">
+<tt class="descclassname">hadoopy.</tt><tt class="descname">cat</tt><big>(</big><em>path</em>, <em>procs=10</em><big>)</big><a class="headerlink" href="#hadoopy.cat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read typedbytes sequence files on HDFS (with optional compression).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>path: A string (potentially with wildcards).
+procs: Number of processes to use.</dd>
+<dt>Returns:</dt>
+<dd>An iterator of key, value pairs.</dd>
+<dt>Raises:</dt>
+<dd>IOError: An error occurred listing the directory (e.g., not available).</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="hadoopy.ls">
+<tt class="descclassname">hadoopy.</tt><tt class="descname">ls</tt><big>(</big><em>path</em><big>)</big><a class="headerlink" href="#hadoopy.ls" title="Permalink to this definition">¶</a></dt>
+<dd><p>List files on HDFS.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>path: A string (potentially with wildcards).</dd>
+<dt>Returns:</dt>
+<dd>A list of strings representing HDFS paths.</dd>
+<dt>Raises:</dt>
+<dd>IOError: An error occurred listing the directory (e.g., not available).</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="hadoopy.GroupedValues">
+<em class="property">class </em><tt class="descclassname">hadoopy.</tt><tt class="descname">GroupedValues</tt><a class="headerlink" href="#hadoopy.GroupedValues" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="hadoopy.Test">
+<em class="property">class </em><tt class="descclassname">hadoopy.</tt><tt class="descname">Test</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#hadoopy.Test" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="hadoopy.Test.groupby_kv">
+<tt class="descname">groupby_kv</tt><big>(</big><em>kv</em><big>)</big><a class="headerlink" href="#hadoopy.Test.groupby_kv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Group sorted KeyValue pairs</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>kv: Iterator of KeyValue pairs</dd>
+<dt>Returns:</dt>
+<dd>Grouped KeyValue pairs in sorted order</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="hadoopy.Test.shuffle_kv">
+<tt class="descname">shuffle_kv</tt><big>(</big><em>kv</em><big>)</big><a class="headerlink" href="#hadoopy.Test.shuffle_kv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given KeyValue pairs, sort, then group</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>kv: Iterator of KeyValue pairs</dd>
+<dt>Returns:</dt>
+<dd>Grouped KeyValue pairs in sorted order</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="hadoopy.Test.sort_kv">
+<tt class="descname">sort_kv</tt><big>(</big><em>kv</em><big>)</big><a class="headerlink" href="#hadoopy.Test.sort_kv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform a stable sort on KeyValue pair keys</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>kv: Iterator of KeyValue pairs</dd>
+<dt>Returns:</dt>
+<dd>Grouped KeyValue pairs in sorted order</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="hadoopy.TypedBytesFile">
+<em class="property">class </em><tt class="descclassname">hadoopy.</tt><tt class="descname">TypedBytesFile</tt><a class="headerlink" href="#hadoopy.TypedBytesFile" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="hadoopy.TypedBytesFile.next">
+<tt class="descname">next</tt><a class="headerlink" href="#hadoopy.TypedBytesFile.next" title="Permalink to this definition">¶</a></dt>
+<dd>x.next() -&gt; the next value, or raise StopIteration</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h3><a href="#">Table Of Contents</a></h3>
+            <ul>
+<li><a class="reference external" href="#">Welcome to Hadoopy&#8217;s documentation!</a><ul>
+<li><a class="reference external" href="#api">API</a></li>
+</ul>
+</li>
+</ul>
+
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="_sources/index.txt"
+                     rel="nofollow">Show Source</a></li>
+            </ul>
+          <div id="searchbox" style="display: none">
+            <h3>Quick search</h3>
+              <form class="search" action="search.html" method="get">
+                <input type="text" name="q" size="18" />
+                <input type="submit" value="Go" />
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+              <p class="searchtip" style="font-size: 90%">
+              Enter search terms or a module, class or function name.
+              </p>
+          </div>
+          <script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="#">Hadoopy v.01 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2011, Brandyn White.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.6.
+    </div>
+  </body>
+</html>
