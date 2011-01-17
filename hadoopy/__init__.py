@@ -22,6 +22,7 @@ from _hdfs import cat, ls
 from _main import run, print_doc_quit
 from _reporter import status, counter
 from _test import Test
-import _typedbytes as typedbytes
+from _typedbytes import TypedBytesFile
+import _typedbytes
 import _main
 from _main import GroupedValues

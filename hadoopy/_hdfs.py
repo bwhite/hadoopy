@@ -22,11 +22,8 @@ import tempfile
 import re
 import multiprocessing
 import hadoopy
-import sys
 import os
 import cPickle as pickle
-import typedbytes
-import cStringIO as StringIO
 
 from hadoopy._runner import _find_hstreaming
 
@@ -58,16 +55,9 @@ def _hdfs_cat_tb(args):
     path, hstreaming, fn = args
     script_path = '%s/_hdfs.py' % os.path.dirname(hadoopy.__file__)
     with open(fn, 'wb') as fp:
-        p0 = subprocess.Popen('hadoop jar %s dumptb %s' % (hstreaming, path),
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                              env={}, shell=True)
-        stdout = p0.communicate()[0]
-        for kv in typedbytes.PairedInput(StringIO.StringIO(stdout)):
-            pickle.dump(kv, fp, -1)
-        # TODO: This is a hack and should be accessed directly
-        #subprocess.Popen('python %s' % script_path,
-        #                 stdin=p0.stdout, stdout=fp,
-        #                 stderr=subprocess.PIPE, env={}, shell=True).wait()
+        subprocess.Popen('hadoop jar %s dumptb %s' % (hstreaming, path),
+                         stdout=fp, stderr=subprocess.PIPE,
+                         env={}, shell=True).wait()
 
 
 def cat(path, procs=10):
@@ -94,25 +84,5 @@ def cat(path, procs=10):
         p.map(_hdfs_cat_tb, [(path, hstreaming, fp.name)
                              for path, fp in zip(paths, fps)])
         for y in fps:
-            while True:
-                try:
-                    yield pickle.load(y)
-                except EOFError:
-                    break
-
-
-def _main():
-    """Batch Typedbytes to Pickle converter
-
-    Reads typedbytes on stdin, converts the stream to pickles, outputs.
-    It can be used as an easy way to access the KeyValue pairs.  No buffering
-    is done in memory.
-    """
-    while True:
-        try:
-            sys.stdout.write(pickle.dumps(hadoopy.typedbytes.read_tb(), -1))
-        except StopIteration:
-            break
-
-if __name__ == '__main__':
-    _main()
+            for x in hadoopy.TypedBytesFile(y.name, 'r'):
+                yield x
