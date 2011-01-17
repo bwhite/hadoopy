@@ -9,6 +9,7 @@ Features
 - critical path is in Cython
 - works on clusters without any extra installation, Python, or any Python libraries (requires cx_Freeze)
 - Simple HDFS access (cat and ls) inside Python, even inside running jobs
+- Unit test interface
 
 Install
 sudo python setup.py install
