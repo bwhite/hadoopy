@@ -1,2 +1,7 @@
+Brandyn White <bwhite@dappervision.com>
+
+Requirements
+cython
+
 Install
-python setup.py install
+sudo python setup.py install
