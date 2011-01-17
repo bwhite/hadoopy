@@ -25,6 +25,8 @@ import hadoopy
 import sys
 import os
 import cPickle as pickle
+import typedbytes
+import cStringIO as StringIO
 
 from hadoopy._runner import _find_hstreaming
 
@@ -41,12 +43,14 @@ def ls(path):
     Raises:
         IOError: An error occurred listing the directory (e.g., not available).
     """
-    out, err = subprocess.Popen(['hadoop', 'fs', '-ls', path],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+    out, err = subprocess.Popen('hadoop fs -ls %s' % path, env={}, shell=True,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE).communicate()
     if err:
-        raise IOError, err
+        raise IOError('Ran[%s]: %s' % (path, err))
     found_line = lambda x: re.search('Found [0-9]+ items$', x)
-    out = [x.split(' ')[-1] for x in out.split('\n') if x and not found_line(x)]
+    out = [x.split(' ')[-1] for x in out.split('\n')
+           if x and not found_line(x)]
     return out
 
 
@@ -54,10 +58,16 @@ def _hdfs_cat_tb(args):
     path, hstreaming, fn = args
     script_path = '%s/_hdfs.py' % os.path.dirname(hadoopy.__file__)
     with open(fn, 'wb') as fp:
-        p0 = subprocess.Popen(['hadoop', 'jar', hstreaming, 'dumptb', path],
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        subprocess.Popen(['python', script_path],
-                         stdin=p0.stdout, stdout=fp, stderr=subprocess.PIPE).wait()
+        p0 = subprocess.Popen('hadoop jar %s dumptb %s' % (hstreaming, path),
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              env={}, shell=True)
+        stdout = p0.communicate()[0]
+        for kv in typedbytes.PairedInput(StringIO.StringIO(stdout)):
+            pickle.dump(kv, fp, -1)
+        # TODO: This is a hack and should be accessed directly
+        #subprocess.Popen('python %s' % script_path,
+        #                 stdin=p0.stdout, stdout=fp,
+        #                 stderr=subprocess.PIPE, env={}, shell=True).wait()
 
 
 def cat(path, procs=10):
@@ -81,7 +91,8 @@ def cat(path, procs=10):
         paths = all_paths[:max_files]
         del all_paths[:max_files]
         fps = [tempfile.NamedTemporaryFile() for x in paths]
-        p.map(_hdfs_cat_tb, [(path, hstreaming, fp.name) for path, fp in zip(paths, fps)])
+        p.map(_hdfs_cat_tb, [(path, hstreaming, fp.name)
+                             for path, fp in zip(paths, fps)])
         for y in fps:
             while True:
                 try:
