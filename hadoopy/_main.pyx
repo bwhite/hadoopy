@@ -288,15 +288,15 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
         Input Key/Value Types
             For TypedBytes, the type will be the decoded typed
             For Text, the type will be text assuming
-                key0\tvalue0\n
-                key1\tvalue1\n
+                key0\\tvalue0\\n
+                key1\\tvalue1\\n
 
         Output Key/Value Types
             For TypedBytes, anything Pickle-able can be used
             For Text, types are converted to string.  Note that neither may
-                contain \t or \n as these are used in the encoding.
+                contain \\t or \\n as these are used in the encoding.
                 Output is
-                key\tvalue\n
+                key\\tvalue\\n
     
         Expected arguments
             mapper(key, value) or mapper.map(key, value)
