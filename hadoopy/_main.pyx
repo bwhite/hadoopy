@@ -79,7 +79,7 @@ def _one_key_value_text():
 
 
 def _one_key_value_tb():
-    return hadoopy.typedbytes.read_tb()
+    return hadoopy._typedbytes.read_tb()
 
 
 def _print_out_text(iter):
@@ -89,7 +89,7 @@ def _print_out_text(iter):
 
 def _print_out_tb(iter):
     for x in iter:
-        hadoopy.typedbytes.write_tb(x)
+        hadoopy._typedbytes.write_tb(x)
 
 
 def _print_out(iter):
