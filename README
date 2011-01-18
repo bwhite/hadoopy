@@ -1,7 +1,7 @@
 Brandyn White <bwhite@dappervision.com>
 
 Requirements
-cython, cxfreeze (for freeze support)
+cython (>=.13), cxfreeze (for freeze support)
 
 Features
 - oozie support
