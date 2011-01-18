@@ -14,8 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Hadoopy Wordcount Demo
-"""
+"""Hadoopy Wordcount Demo"""
 
 __author__ =  'Brandyn A. White <bwhite@cs.umd.edu>'
 __license__ = 'GPL V3'
@@ -56,7 +55,5 @@ def reducer(key, values):
         accum += int(count)
     yield key, accum
 
-
 if __name__ == "__main__":
-    if hadoopy.run(mapper, reducer):
-        hadoopy.print_doc_quit(__doc__)
+    hadoopy.run(mapper, reducer, doc=__doc__)
