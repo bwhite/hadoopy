@@ -4,38 +4,17 @@ import unittest
 
 class Test(unittest.TestCase):
 
-    def test00(self):
-        self.assertEquals(hadoopy.read_tb(), ('abcdefg', '01234'))
+    def __init__(self, methodName='runTest'):
+        super(Test, self).__init__(methodName)
+        self.f = hadoopy.TypedBytesFile('gb_single.tb', 'r')
 
-    def test01(self):
-        self.assertEquals(hadoopy.read_tb(), (83, 12))
-
-    def test02(self):
-        self.assertEquals(hadoopy.read_tb(), (True, False))
-
-    def test03(self):
-        self.assertEquals(hadoopy.read_tb(), (13413, 164))
-
-    def test04(self):
-        self.assertEquals(hadoopy.read_tb(), (8589934592L, 17179869184L))
-
-    def test05(self):
-        self.assertEquals(hadoopy.read_tb(), (12.5, 15.25))
-
-    def test06(self):
-        self.assertEquals(hadoopy.read_tb(), (134223.123, .1232233))
-
-    def test07(self):
-        self.assertEquals(hadoopy.read_tb(), ('abcdefg', '01234'))
-
-    def test08(self):
-        self.assertEquals(hadoopy.read_tb(), ((1, 'a', True), (1, .25, ())))
-
-    def test09(self):
-        self.assertEquals(hadoopy.read_tb(), ([1, 'a', True], [1, .25, []]))
-
-    def test10(self):
-        self.assertEquals(hadoopy.read_tb(), ({'1': 3, 5: True}, {'1': 3, (3, 4): True}))
+    def test(self):
+        a = [('abcdefg', '01234'), (83, 12), (True, False), (13413, 164),
+             (8589934592L, 17179869184L), (12.5, 15.25),
+             (134223.123, .1232233), ('abcdefg', '01234'),
+             ((1, 'a', True), (1, .25, ())), ([1, 'a', True], [1, .25, []]),
+             ({'1': 3, 5: True}, {'1': 3, (3, 4): True})]
+        self.assertEquals(list(self.f), a)
 
 
 if __name__ == '__main__':
