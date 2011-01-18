@@ -44,7 +44,8 @@ def _find_hstreaming():
 def launch(in_name, out_name, script_path, mapper=True, reducer=True,
            combiner=False, partitioner=False, files=(), jobconfs=(), cmdenvs=(),
            copy_script=True, hstreaming=None, name=None, use_typedbytes=True,
-           use_seqoutput=True, use_autoinput=True, pretend=False, **kw):
+           use_seqoutput=True, use_autoinput=True, pretend=False, add_python=True,
+           **kw):
     """Run Hadoop given the parameters
 
     Args:
@@ -68,6 +69,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         use_seqoutput: True (default), output sequence file. If False, output is text.
         use_autoinput: If True (default), sets the input format to auto.
         pretend: If true, only build the command and return.
+        add_python: If true, use 'python script_name.py'
 
     Returns:
         The hadoop command called.
@@ -80,7 +82,10 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         hadoop_cmd = 'hadoop jar ' + hstreaming
     except TypeError:
         hadoop_cmd = 'hadoop jar ' + _find_hstreaming()
-    script_name =  os.path.basename(script_path)
+    if add_python:
+        script_name = 'python %s' % (os.path.basename(script_path))
+    else:
+        script_name = os.path.basename(script_path)
     if mapper == True:
         mapper = ' '.join((script_name, 'map'))
     if reducer == True:
@@ -193,5 +198,6 @@ def launch_frozen(in_name, out_name, script_path, **kw):
     # Do not copy script
     kw['copy_script'] = False
     kw['files'] = files
+    kw['add_python'] = False
     launch_cmd = launch(in_name, out_name, script_path, **kw)
     return freeze_cmd, launch_cmd
