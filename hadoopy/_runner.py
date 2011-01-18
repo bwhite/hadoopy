@@ -18,34 +18,35 @@ __author__ = 'Brandyn A. White <bwhite@cs.umd.edu>'
 __license__ = 'GPL V3'
 
 import subprocess
-import re
 import os
-
 import hadoopy._freeze
 
 
 def _find_hstreaming():
     """Finds the whole path to the hadoop streaming jar.
 
-    If the environmental var HADOOP_HOME is specified, then start the search from there.
+    If the environmental var HADOOP_HOME is specified, then start the search
+    from there.
 
     Returns:
-        Full path to the hadoop streaming jar if found, else return an empty string.
+        Full path to the hadoop streaming jar if found, else return an empty
+        string.
     """
     try:
         search_root = os.environ['HADOOP_HOME']
     except KeyError:
         search_root = '/'
     cmd = 'find %s -name hadoop*streaming*.jar' % (search_root)
-    p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
     return p.communicate()[0].split('\n')[0]
 
 
 def launch(in_name, out_name, script_path, mapper=True, reducer=True,
-           combiner=False, partitioner=False, files=(), jobconfs=(), cmdenvs=(),
-           copy_script=True, hstreaming=None, name=None, use_typedbytes=True,
-           use_seqoutput=True, use_autoinput=True, pretend=False, add_python=True,
-           **kw):
+           combiner=False, partitioner=False, files=(), jobconfs=(),
+           cmdenvs=(), copy_script=True, hstreaming=None, name=None,
+           use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
+           pretend=False, add_python=True, **kw):
     """Run Hadoop given the parameters
 
     Args:
@@ -56,17 +57,18 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
             If string, the mapper is the value
         reducer: If True (default), the reducer is "script.py reduce".
             If string, the reducer is the value
-        combiner: If True, the reducer is "script.py combine" (default False).
+        combiner: If True, the combiner is "script.py combine" (default False).
             If string, the combiner is the value
         partitioner: If True, the partitioner is the value.
         copy_script: If True, the script is added to the files list.
         files: Extra files (other than the script) (string or list).
-            NOTE: Hadoop copies the files into working directory (path errors!).
+            NOTE: Hadoop copies the files into working directory
         jobconfs: Extra jobconf parameters (string or list)
         cmdenvs: Extra cmdenv parameters (string or list)
         hstreaming: The full hadoop streaming path to call.
         use_typedbytes: If True (default), use typedbytes IO.
-        use_seqoutput: True (default), output sequence file. If False, output is text.
+        use_seqoutput: True (default), output sequence file. If False, output
+            is text.
         use_autoinput: If True (default), sets the input format to auto.
         pretend: If true, only build the command and return.
         add_python: If true, use 'python script_name.py'
@@ -97,21 +99,21 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     if isinstance(in_name, str):
         in_name = [in_name]
     for f in in_name:
-        cmd += ['-input', f]        
+        cmd += ['-input', f]
     # Add mapper/reducer
     cmd += ['-mapper',
             '"%s"' % (mapper)]
     if reducer:
-        cmd += ['-reducer', 
+        cmd += ['-reducer',
                 '"%s"' % (reducer)]
     else:
-        cmd += ['-reducer', 
+        cmd += ['-reducer',
                 'NONE']
     if combiner:
-        cmd += ['-combiner', 
+        cmd += ['-combiner',
                 '"%s"' % (combiner)]
     if partitioner:
-        cmd += ['-partitioner', 
+        cmd += ['-partitioner',
                 '"%s"' % (partitioner)]
     # Add files
     if isinstance(files, str):
@@ -151,7 +153,8 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         cmd += ['-io', 'typedbytes']
     # Add Outputformat
     if use_seqoutput:
-        cmd += ['-outputformat', 'org.apache.hadoop.mapred.SequenceFileOutputFormat']
+        cmd += ['-outputformat',
+                'org.apache.hadoop.mapred.SequenceFileOutputFormat']
     # Add InputFormat
     if use_autoinput:
         cmd += ['-inputformat', 'AutoInputFormat']
@@ -165,12 +168,40 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
 def launch_frozen(in_name, out_name, script_path, **kw):
     """Freezes a script and then launches it.
 
-    Consult hadoopy._freeze.freeze and hadoopy.launch for optional kw args.
-
     Args:
         in_name: Input path (string or list)
         out_name: Output path
         script_path: Path to the script (e.g., script.py)
+        mapper: If True, the mapper is "script.py map".
+            If string, the mapper is the value
+        reducer: If True (default), the reducer is "script.py reduce".
+            If string, the reducer is the value
+        combiner: If True, the combiner is "script.py combine" (default False).
+            If string, the combiner is the value
+        partitioner: If True, the partitioner is the value.
+        copy_script: If True, the script is added to the files list.
+        files: Extra files (other than the script) (string or list).
+            NOTE: Hadoop copies the files into working directory
+        jobconfs: Extra jobconf parameters (string or list)
+        cmdenvs: Extra cmdenv parameters (string or list)
+        hstreaming: The full hadoop streaming path to call.
+        use_typedbytes: If True (default), use typedbytes IO.
+        use_seqoutput: True (default), output sequence file. If False, output
+            is text.
+        use_autoinput: If True (default), sets the input format to auto.
+        pretend: If true, only build the command and return.
+        add_python: If true, use 'python script_name.py'
+        shared_libs: A sequence of additional shared library paths for cxfreeze
+            to include.
+        modules: Additional modules to include.
+        remove_dir: Will rm -r the target_dir when true (be careful)!
+            (default is False)
+        target_dir: Output directory where cxfreeze and this function output.
+        exclude_modules: A sequence of modules for cxfreeze to ignore
+            (default is (tcl, tk, Tkinter))
+        freeze_cmd: Path to cxfreeze (default is cxfreeze)
+        verbose: If true, output to stdout all command results.
+        extra: A string to be appended to the cxfreeze command
 
     Returns:
         A tuple of the freeze and hadoop commands.
