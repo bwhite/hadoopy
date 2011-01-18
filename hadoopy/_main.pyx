@@ -210,14 +210,25 @@ def _is_io_typedbytes():
         return False
 
 
+def _is_on_hadoop():
+    return 'mapred_input_format_class' in os.environ
+
+
 def _read_in_map():
-    """
+    """Provides the input iterator to use
+
+    If _is_io_typedbytes() is true, then use TypedBytes.
+    If _is_on_hadoop() is true, then use Text as key\\tvalue\\n.
+    Else, then use Text with key as byte offset and value as line (no \\n)
+    
     Returns:
         Iterator that can be called to get KeyValue pairs.
     """
     if _is_io_typedbytes():
         return KeyValueStream(_one_key_value_tb)
-    return KeyValueStream(_one_key_value_text)# was offset
+    if _is_on_hadoop():
+        return KeyValueStream(_one_key_value_text)
+    return KeyValueStream(_one_offset_value_text)
 
 
 def _read_in_reduce():
