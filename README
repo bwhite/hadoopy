@@ -1,5 +1,9 @@
 Brandyn White <bwhite@dappervision.com>
 
+Source  https://github.com/bwhite/hadoopy/
+Issues  https://github.com/bwhite/hadoopy/issues
+Docs    http://bwhite.github.com/hadoopy/
+
 Requirements
 cython (>=.13), cxfreeze (for freeze support)
 
