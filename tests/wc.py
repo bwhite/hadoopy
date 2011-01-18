@@ -23,11 +23,11 @@ import hadoopy
 
 
 def mapper(key, value):
-    """Take in a byte offset and a document, emit word counts.
+    """Take in a byte offset and a line, emit word counts.
 
     Args:
         key: byte offset
-        value: document as a string
+        value: line as a string
 
     Yields:
         A tuple in the form of (key, value)
