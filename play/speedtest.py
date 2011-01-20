@@ -13,9 +13,11 @@ def parse_tb(val):
 
 
 def main():
-    out = {}
+    out = []
+    print('+-----------------+---------+---------+---------+---------+---------+')
+    print('|Filename         |Hadoopy  |HadoopyFP|TB       |cTB      |Ratio    |')
+    print('+=================+=========+=========+=========+=========+=========+')
     for fn in sorted(glob.glob('*.tb')):
-        print(fn)
         with open(fn) as fp:
             data = fp.read()
         st = time.time()
@@ -37,7 +39,8 @@ def main():
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         o3 = p.communicate(data)[0]
         t3 = time.time() - st
-        print('%s:\tHadoopy[%2.6f] Hadoopyfp[%2.6f] Typedbytes[%2.6f] cTypedbytes[%2.6f]:  min(TypedBytes, cTypedBytes) / Hadoopyfp = %f' % (fn, t0, t1, t2, t3, min(t2, t3) / t1))
+        out.append((fn, t0, t1, t2, t3, min(t2, t3) / t1))
+        #print('%s:\tHadoopy[%2.6f] Hadoopyfp[%2.6f] Typedbytes[%2.6f] cTypedbytes[%2.6f]:  min(TypedBytes, cTypedBytes) / Hadoopyfp = %f' % (fn, t0, t1, t2, t3, min(t2, t3) / t1))
         assert(o0 == o1 == o2 == o3)
         #for x, y, z in itertools.izip(parse_tb(o0), parse_tb(o1), parse_tb(o2)):
         #    try:
@@ -45,8 +48,9 @@ def main():
         #    except AssertionError, e:
         #        print('x:%r\ny:%r\nz:%r' % (x, y, z))
         #        raise e
-        out[fn] = (t0, t1, t2)
-
-
+    out.sort(lambda x, y: cmp(x[-1], y[-1]), reverse=True)
+    for x in out:
+        print('|%17s|%9.6f|%9.6f|%9.6f|%9.6f|%9.6f|' % x)
+        print('+-----------------+---------+---------+---------+---------+---------+')
 if __name__ == '__main__':
     main()
