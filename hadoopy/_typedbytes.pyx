@@ -19,10 +19,11 @@ __license__ = 'GPL V3'
 
 import types
 import cPickle as pickle
+from libc.stdint cimport int32_t, int64_t
 
 cdef extern from "stdlib.h":
     void *malloc(size_t size)
-    void free(void *ptr)
+    void free(void *ptr)            
 
 cdef extern from "stdio.h":
     ssize_t getdelim(char **lineptr, size_t *n, int delim, void *stream)
@@ -35,12 +36,11 @@ cdef extern from "stdio.h":
     int fclose(void *fp)
     void *fopen(char *path, char *mode)
 
-
 cdef extern from "endian.h":
-    int be32toh(int val)
-    long be64toh(long val)
-    int htobe32(int val)
-    long htobe64(long val)
+    int32_t be32toh(int32_t val)
+    int64_t be64toh(int64_t val)
+    int32_t htobe32(int32_t val)
+    int64_t htobe64(int64_t val)
 
 cdef extern from "Python.h":
     object PyString_FromStringAndSize(char *s, Py_ssize_t len)
@@ -57,7 +57,7 @@ cdef _read_int(void *fp):
     Returns:
         Python int
     """
-    cdef int val
+    cdef int32_t val
     fread(&val, 4, 1, fp)  # = 1
     return int(be32toh(val))
 
@@ -71,7 +71,7 @@ cdef _raw_write_int(void *fp, val):
     Raises:
         OverflowError: If val overflows an int
     """
-    cdef int cval = val
+    cdef int32_t cval = val
     cval = htobe32(cval)
     fwrite(&cval, 4, 1, fp)  # = 1
 
@@ -85,7 +85,7 @@ cdef _write_int(void *fp, val):
     Args:
         val: Python int
     """
-    cdef int cval
+    cdef int32_t cval
     try:
         cval = val
     except OverflowError:
@@ -103,7 +103,7 @@ cdef _read_long(void *fp):
     Returns:
         Python int
     """
-    cdef long val
+    cdef int64_t val
     fread(&val, 8, 1, fp)  # = 1
     return int(be64toh(val))
 
@@ -117,7 +117,7 @@ cdef _write_long(void *fp, val):
     Args:
         val: Python int
     """
-    cdef long cval = val
+    cdef int64_t cval = val
     cval = htobe64(cval)
     fwrite(&cval, 8, 1, fp)  # = 1
 
@@ -131,7 +131,7 @@ cdef _read_float(void *fp):
     Returns:
         Python float
     """
-    cdef int val
+    cdef int32_t val
     fread(&val, 4, 1, fp)  # = 1
     val = be32toh(val)
     return float((<float*>&val)[0])
@@ -147,7 +147,7 @@ cdef _write_float(void *fp, val):
         val: Python float
     """
     cdef float cval = val
-    cdef int cvalo = htobe32((<int*>&cval)[0])
+    cdef int32_t cvalo = htobe32((<int32_t*>&cval)[0])
     fwrite(&cvalo, 4, 1, fp)  # = 1
 
 
@@ -160,7 +160,7 @@ cdef _read_double(void *fp):
     Returns:
         Python float
     """
-    cdef long val
+    cdef int64_t val
     fread(&val, 8, 1, fp)  # = 1
     val = be64toh(val)
     return float((<double*>&val)[0])
@@ -176,7 +176,7 @@ cdef _write_double(void *fp, val):
         val: Python float
     """
     cdef double cval = val
-    cdef long cvalo = htobe64((<long*>&cval)[0])
+    cdef int64_t cvalo = htobe64((<int64_t*>&cval)[0])
     fwrite(&cvalo, 8, 1, fp)  # = 1
 
 
@@ -524,15 +524,15 @@ cdef class TypedBytesFile(object):
                 fnc = PyString_AsString(fn)
                 modec = PyString_AsString(mode)
                 self._write_ptr = self._read_ptr = fopen(fnc, modec)
+                if self._write_ptr == NULL:
+                    raise IOError('Cannot open file [%s]' % fn)
             else:
                 self._write_ptr = stdout
                 self._read_ptr = stdin
 
         cdef _close(self):
-            if self._write_ptr != stdout:
+            if self._write_ptr != NULL and self._write_ptr == self._read_ptr:
                 fclose(self._write_ptr)
-            if self._read_ptr != stdin:
-                fclose(self._read_ptr)
             self._write_ptr = NULL
             self._read_ptr = NULL
         
@@ -543,7 +543,10 @@ cdef class TypedBytesFile(object):
             return self
 
         def __exit__(self, type, value, traceback):
-            self.close()
+            self._close()
+
+        def __del__(self):
+            self._close()
 
         def __iter__(self):
             return self
