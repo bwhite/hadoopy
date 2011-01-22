@@ -312,7 +312,7 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
         Expected arguments
             mapper(key, value) or mapper.map(key, value)
             reducer(key, values) or reducer.reduce(key, values)
-            combiner(key, values) or combiner.combine(key, values)
+            combiner(key, values) or combiner.reduce(key, values)
 
         Optional methods
             func.configure(): Call first.  Returns None.
@@ -340,7 +340,7 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
         elif val == 'reduce':
             ret = process_inout(reducer, _read_in_reduce(), _print_out, 'reduce')
         elif val == 'combine':
-            ret = process_inout(combiner, _read_in_reduce(), _print_out, 'combine')
+            ret = process_inout(combiner, _read_in_reduce(), _print_out, 'reduce')
         elif val == 'freeze' and len(sys.argv) > 2:
             extra_files = []
             pos = 3
