@@ -322,9 +322,9 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
             Iterator of (key, value) or None
 
     Args:
-        mapper: Function or class instance following the above spec
-        reducer: Function or class instance following the above spec
-        combiner: Function or class instance following the above spec
+        mapper: Function or class following the above spec
+        reducer: Function or class following the above spec
+        combiner: Function or class following the above spec
 
     Kwargs:
         doc: If specified, on error print this and call sys.exit(1)
