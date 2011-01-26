@@ -62,6 +62,10 @@ def _run(path):
 def _copytree(src, dst):
     """Similar to shutils.copytree, except that dst is already there
     """
+    try:
+        os.mkdir(dst)
+    except OSError:
+        pass # It must already exist
     for file in os.listdir(src):
         try:
             shutil.copy2('%s/%s' % (src, file), '%s/%s' % (dst, file))

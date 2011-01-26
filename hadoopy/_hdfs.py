@@ -40,7 +40,7 @@ def ls(path):
     Raises:
         IOError: An error occurred listing the directory (e.g., not available).
     """
-    out, err = subprocess.Popen('hadoop fs -ls %s' % path, env={}, shell=True,
+    out, err = subprocess.Popen('hadoop fs -ls %s' % path, shell=True,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE).communicate()
     if err:

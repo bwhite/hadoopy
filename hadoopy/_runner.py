@@ -161,7 +161,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     # Run command and wait till it has completed
     if not pretend:
         print('HadooPY: Running[%s]' % (' '.join(cmd)))
-        subprocess.check_call(cmd)
+        subprocess.check_call(cmd, shell=True)
     return ' '.join(cmd)
 
 
