@@ -204,13 +204,13 @@ def launch_frozen(in_name, out_name, script_path, **kw):
         extra: A string to be appended to the cxfreeze command
 
     Returns:
-        A tuple of the freeze and hadoop commands.
+        The hadoop command called.
 
     Raises:
         subprocess.CalledProcessError: Hadoop or Cxfreeze error.
         OSError: Hadoop streaming or Cxfreeze not found.
     """
-    freeze_cmd = hadoopy._freeze.freeze(script_path, **kw)
+    hadoopy._freeze.freeze(os.path.abspath(script_path), **kw)
     # Remove extension
     if script_path.endswith('.py'):
         script_path = script_path[:-3]
@@ -231,4 +231,4 @@ def launch_frozen(in_name, out_name, script_path, **kw):
     kw['files'] = files
     kw['add_python'] = False
     launch_cmd = launch(in_name, out_name, script_path, **kw)
-    return freeze_cmd, launch_cmd
+    return launch_cmd
