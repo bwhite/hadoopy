@@ -36,7 +36,7 @@ cdef extern from "stdio.h":
     int fclose(void *fp)
     void *fopen(char *path, char *mode)
 
-cdef extern from "endian.h":
+cdef extern from "byteconversion.h":
     int32_t be32toh(int32_t val)
     int64_t be64toh(int64_t val)
     int32_t htobe32(int32_t val)
