@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import os
 from distutils.core import setup
 from distutils.extension import Extension
 
@@ -9,6 +10,11 @@ from Cython.Distutils import build_ext
 tb_extra_args = []
 if sys.byteorder != 'little':
     tb_extra_args.append('-D BYTECONVERSION_ISBIGENDIAN')
+
+# TODO: Make a better check for this
+if os.path.isfile('/usr/include/endian.h'):
+    tb_extra_args.append('-D BYTECONVERSION_HASENDIAN_H')
+
 
 ext_modules = [Extension("_main", ["hadoopy/_main.pyx"]),
                Extension("_typedbytes", ["hadoopy/_typedbytes.pyx"],
