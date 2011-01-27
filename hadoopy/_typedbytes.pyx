@@ -37,10 +37,10 @@ cdef extern from "stdio.h":
     void *fopen(char *path, char *mode)
 
 cdef extern from "byteconversion.h":
-    int32_t be32toh(int32_t val)
-    int64_t be64toh(int64_t val)
-    int32_t htobe32(int32_t val)
-    int64_t htobe64(int64_t val)
+    int32_t _be32toh(int32_t val)
+    int64_t _be64toh(int64_t val)
+    int32_t _htobe32(int32_t val)
+    int64_t _htobe64(int64_t val)
 
 cdef extern from "Python.h":
     object PyString_FromStringAndSize(char *s, Py_ssize_t len)
@@ -59,7 +59,7 @@ cdef _read_int(void *fp):
     """
     cdef int32_t val
     fread(&val, 4, 1, fp)  # = 1
-    return int(be32toh(val))
+    return int(_be32toh(val))
 
 
 cdef _raw_write_int(void *fp, val):
@@ -72,7 +72,7 @@ cdef _raw_write_int(void *fp, val):
         OverflowError: If val overflows an int
     """
     cdef int32_t cval = val
-    cval = htobe32(cval)
+    cval = _htobe32(cval)
     fwrite(&cval, 4, 1, fp)  # = 1
 
 
@@ -90,7 +90,7 @@ cdef _write_int(void *fp, val):
         cval = val
     except OverflowError:
         return _write_long(fp, val)
-    cval = htobe32(cval)
+    cval = _htobe32(cval)
     fwrite(&cval, 4, 1, fp)  # = 1
 
 
@@ -105,7 +105,7 @@ cdef _read_long(void *fp):
     """
     cdef int64_t val
     fread(&val, 8, 1, fp)  # = 1
-    return int(be64toh(val))
+    return int(_be64toh(val))
 
 
 cdef _write_long(void *fp, val):
@@ -118,7 +118,7 @@ cdef _write_long(void *fp, val):
         val: Python int
     """
     cdef int64_t cval = val
-    cval = htobe64(cval)
+    cval = _htobe64(cval)
     fwrite(&cval, 8, 1, fp)  # = 1
 
 
@@ -133,7 +133,7 @@ cdef _read_float(void *fp):
     """
     cdef int32_t val
     fread(&val, 4, 1, fp)  # = 1
-    val = be32toh(val)
+    val = _be32toh(val)
     return float((<float*>&val)[0])
 
 
@@ -147,7 +147,7 @@ cdef _write_float(void *fp, val):
         val: Python float
     """
     cdef float cval = val
-    cdef int32_t cvalo = htobe32((<int32_t*>&cval)[0])
+    cdef int32_t cvalo = _htobe32((<int32_t*>&cval)[0])
     fwrite(&cvalo, 4, 1, fp)  # = 1
 
 
@@ -162,7 +162,7 @@ cdef _read_double(void *fp):
     """
     cdef int64_t val
     fread(&val, 8, 1, fp)  # = 1
-    val = be64toh(val)
+    val = _be64toh(val)
     return float((<double*>&val)[0])
 
 
@@ -176,7 +176,7 @@ cdef _write_double(void *fp, val):
         val: Python float
     """
     cdef double cval = val
-    cdef int64_t cvalo = htobe64((<int64_t*>&cval)[0])
+    cdef int64_t cvalo = _htobe64((<int64_t*>&cval)[0])
     fwrite(&cvalo, 8, 1, fp)  # = 1
 
 

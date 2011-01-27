@@ -1,49 +1,27 @@
-int bedd32toh(int val);
-
 #ifndef BYTECONVERSION_H
 #define BYTECONVERSION_H
 
 #ifdef BYTECONVERSION_HASENDIAN_H
 #include <endian.h>
+#define _be32toh(x) (be32toh(x))
+#define _htobe32(x) (htobe32(x))
+#define _be64toh(x) (be64toh(x))
+#define _htobe64(x) (htobe64(x))
 #else
 #include <stdint.h>
-
+#define _be32toh(x) (ntohl(x))
+#define _htobe32(x) (htonl(x))
 #ifdef BYTECONVERSION_ISBIGENDIAN
-#ifndef be32toh
-uint32_t be32toh(uint32_t val) {return val;}
-#endif
-#ifndef htobe32
-uint32_t htobe32(uint32_t val) {return val;}
-#endif
-#ifndef be64toh
-uint64_t be64toh(uint64_t val) {return val;}
-#endif
-#ifndef htobe64
-uint64_t htobe64(uint64_t val) {return val;}
-#endif
+#define _be64toh(x) (x)
+#define _htobe64(x) (x)
 #else
 #include <arpa/inet.h>
-
-uint32_t be32toh(uint32_t val) {
-    return ntohl(val);
-}
-#ifndef be32toh
-#endif
-#ifndef htobe32
-uint32_t htobe32(uint32_t val) {
-    return htonl(val);
-}
-#endif
-#ifndef be64toh
-uint64_t be64toh(uint64_t val) {
+inline uint64_t _be64toh(uint64_t val) {
     return ((uint64_t)ntohl(val >> 32)) | ((uint64_t)ntohl(val) << 32);
 }
-#endif
-#ifndef htobe64
-uint64_t htobe64(uint64_t val) {
+inline uint64_t _htobe64(uint64_t val) {
     return ((uint64_t)htonl(val >> 32)) | ((uint64_t)htonl(val) << 32);
 }
-#endif
 #endif
 #endif
 
