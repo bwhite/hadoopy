@@ -44,6 +44,15 @@ def _remove_prefix(string, prefix='hadoopy/'):
         return string[len(prefix):]
 
 
+def _run_pyinstaller_configure():
+    """Pyinstaller needs to run this once
+
+    The resulting config is stored in hadoopy/thirdparty which will be copied
+    along
+    """
+    subprocess.call(['python', 'hadoopy/thirdparty/pyinstaller/Configure.py'])
+
+_run_pyinstaller_configure()
 glibc_version = get_glibc_version()
 tb_extra_args = []
 if sys.byteorder != 'little':

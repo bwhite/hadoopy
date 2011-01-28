@@ -57,6 +57,9 @@ def _copytree(src, dst):
 def freeze(script_path, target_dir='frozen', **kw):
     """Wraps pyinstaller and provides an easy to use interface
 
+    This requires that the Configure.py script has been run (this is run in
+    setup.py during installation)
+
     Args:
         script_path: Absolute path to python script to be frozen.
 
@@ -67,7 +70,6 @@ def freeze(script_path, target_dir='frozen', **kw):
     pyinst_path = tempfile.mkdtemp()
     root_path = '%s/thirdparty/pyinstaller' % __path__[0]
     script_dir = os.path.dirname(script_path)
-    _run('python %s/Configure.py' % (root_path))
     _run(('python %s/Makespec.py -o %s -C %s/config.dat -p %s %s' %
           (root_path, pyinst_path, root_path, script_dir,
            script_path)))
