@@ -14,7 +14,7 @@ from Cython.Distutils import build_ext
 def get_glibc_version():
     """
     Returns:
-        Version as a triple of ints (major, minor, patch) or None
+        Version as a pair of ints (major, minor) or None
     """
     # TODO: Look into a nicer way to get the version
     try:
@@ -22,7 +22,7 @@ def get_glibc_version():
                                stdout=subprocess.PIPE).communicate()[0]
     except OSError:
         return
-    match = re.search('([0-9]+)\.([0-9]+)\.([0-9]+)', out)
+    match = re.search('([0-9]+)\.([0-9]+)\.?[0-9]*', out)
     try:
         return map(int, match.groups(1))
     except AttributeError:
@@ -45,7 +45,6 @@ def _remove_prefix(string, prefix='hadoopy/'):
 
 
 glibc_version = get_glibc_version()
-
 tb_extra_args = []
 if sys.byteorder != 'little':
     tb_extra_args.append('-D BYTECONVERSION_ISBIGENDIAN')
