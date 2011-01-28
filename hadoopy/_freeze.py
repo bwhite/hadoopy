@@ -45,6 +45,7 @@ import subprocess
 import tarfile
 import glob
 import tempfile
+from . import __path__
 
 
 def _wrap_string(s):
@@ -53,7 +54,48 @@ def _wrap_string(s):
     return list(s)
 
 
-def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
+def _run(path):
+    print(path)
+    subprocess.call(path.split())
+
+
+def _copytree(src, dst):
+    """Similar to shutils.copytree, except that dst is already there
+    """
+    for file in os.listdir(src):
+        try:
+            shutil.copy2('%s/%s' % (src, file), '%s/%s' % (dst, file))
+        except IOError:
+            shutil.copytree('%s/%s' % (src, file), '%s/%s' % (dst, file))
+
+
+def freeze(script_path, target_dir='frozen', **kw):
+    """Wraps pyinstaller and provides an easy to use interface
+
+    Args:
+        script_path: Absolute path to python script to be frozen.
+
+    Raises:
+        subprocess.CalledProcessError: Freeze error.
+        OSError: Freeze not found.
+    """
+    pyinst_path = tempfile.mkdtemp()
+    root_path = '%s/thirdparty/pyinstaller' % __path__[0]
+    script_dir = os.path.dirname(script_path)
+    _run('python %s/Configure.py' % (root_path))
+    _run(('python %s/Makespec.py -o %s -C %s/config.dat -p %s %s' %
+          (root_path, pyinst_path, root_path, script_dir,
+           script_path)))
+    proj_name = os.path.basename(script_path)
+    proj_name = proj_name[:proj_name.rfind('.')]  # Remove extension
+    spec_path = '%s/%s.spec' % (pyinst_path, proj_name)
+    _run(('python %s/Build.py -y -o %s -C %s/config.dat %s' %
+          (root_path, pyinst_path, root_path, spec_path)))
+    _copytree('%s/dist/%s' % (pyinst_path, proj_name), target_dir)
+    shutil.rmtree(pyinst_path)
+
+
+def freeze_cxfreeze(script_path, shared_libs=(), modules=(), remove_dir=False,
            target_dir='frozen', exclude_modules=('tcl', 'tk', 'Tkinter'),
            freeze_cmd='cxfreeze', pretend=False, verbose=False, extra='',
            **kw):
@@ -111,7 +153,7 @@ def freeze(script_path, shared_libs=(), modules=(), remove_dir=False,
     return freeze_cmd
 
 
-def freeze_to_tar(script_path, freeze_fn, extra, extra_files):
+def freeze_to_tar(script_path, freeze_fn, extra_files):
     """Freezes a script to a .tar or .tar.gz file
 
     The script contains all of the files at the root of the tar
@@ -119,7 +161,6 @@ def freeze_to_tar(script_path, freeze_fn, extra, extra_files):
     Args:
         script_path: Path to python script to be frozen.
         freeze_fn: Tar filename (must end in .tar or .tar.gz)
-        extra: A string to be appended to the command, pass string args here
         extra_files: List of paths to add to the tar
 
     Raises:
@@ -128,7 +169,7 @@ def freeze_to_tar(script_path, freeze_fn, extra, extra_files):
         NameError: Tar must end in .tar or .tar.gz
     """
     freeze_dir = tempfile.mkdtemp()
-    freeze(script_path, target_dir=freeze_dir, extra=extra)
+    freeze(script_path, target_dir=freeze_dir)
     if freeze_fn.endswith('.tar.gz'):
         mode = 'w|gz'
     elif freeze_fn.endswith('.tar'):

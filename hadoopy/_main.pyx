@@ -289,11 +289,10 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
         Use the provided reducer
     python script.py combine
         Use the provided combiner
-    python script.py freeze <tar_path> <-Zadd_file0 -Zadd_file1...> <cx_Freeze args>
+    python script.py freeze <tar_path> <-Z add_file0 -Z add_file1...>
         Freeze the script to a tar file specified by <tar_path>.  The extension
         may be .tar or .tar.gz.  All files are placed in the root of the tar.
-        Files specified with -Z will be added to the tar root.  Additional
-        cx_Freeze arguments may be passed in.
+        Files specified with -Z will be added to the tar root.
     
     Specification of mapper/reducer/combiner
         Input Key/Value Types
@@ -349,8 +348,8 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
                 extra_files.append(sys.argv[pos + 1])
                 pos += 2
             extra = ' '.join(sys.argv[pos:])
-            hadoopy._freeze.freeze_to_tar(script_path=sys.argv[0],
-                                          freeze_fn=sys.argv[2], extra=extra,
+            hadoopy._freeze.freeze_to_tar(script_path=os.path.abspath(sys.argv[0]),
+                                          freeze_fn=sys.argv[2],
                                           extra_files=extra_files)
         else:
             ret = 1

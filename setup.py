@@ -4,6 +4,8 @@ import re
 import subprocess
 from distutils.core import setup
 from distutils.extension import Extension
+import glob
+import os
 
 # TODO: Only use Cython if it is available, else just use the .c
 from Cython.Distutils import build_ext
@@ -26,6 +28,22 @@ def get_glibc_version():
     except AttributeError:
         return
 
+
+def _glob_recursive(glob_path):
+    out = []
+    for path in glob.glob(glob_path):
+        if os.path.isdir(path):
+            out += _glob_recursive(path + '/*')
+        else:
+            out.append(path)
+    return out
+
+
+def _remove_prefix(string, prefix='hadoopy/'):
+    if string.startswith(prefix):
+        return string[len(prefix):]
+
+
 glibc_version = get_glibc_version()
 
 tb_extra_args = []
@@ -35,13 +53,16 @@ if sys.byteorder != 'little':
 if glibc_version and (glibc_version[0] == 2 and glibc_version[1] >= 9):
     tb_extra_args.append('-D BYTECONVERSION_HASENDIAN_H')
 
+# Since package_data doesn't handle directories, we find all of the files
+thirdparty_paths = map(_remove_prefix, _glob_recursive('hadoopy/thirdparty/*'))
 ext_modules = [Extension("_main", ["hadoopy/_main.pyx"]),
                Extension("_typedbytes", ["hadoopy/_typedbytes.pyx"],
                          extra_compile_args=tb_extra_args)]
 setup(name='hadoopy',
       cmdclass={'build_ext': build_ext},
-      version='.2',
+      version='.3',
       packages=['hadoopy'],
+      package_data={'hadoopy': thirdparty_paths},
       author='Brandyn A. White',
       author_email='bwhite@dappervision.com',
       license='GPL',

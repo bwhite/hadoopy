@@ -1,0 +1,1 @@
+This is version 1.5-rc1 of Pyinstaller, distributed without modification except for removal of unnecessary files.  This is included here as Pyinstaller doesn't have a common way to install itself, since Hadoopy uses it a lot it makes sense to bring it along.
