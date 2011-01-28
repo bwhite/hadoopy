@@ -17,6 +17,8 @@
 __author__ = 'Brandyn A. White <bwhite@cs.umd.edu>'
 __license__ = 'GPL V3'
 
+import sys
+
 import subprocess
 import tempfile
 import re
@@ -26,6 +28,56 @@ import os
 import cPickle as pickle
 
 from hadoopy._runner import _find_hstreaming
+
+def _cleaned_hadoop_stderr(hdfs_stderr):
+    for line in hdfs_stderr:
+        parts = line.split()
+        if parts[2] == 'INFO' or parts[2] == 'WARN':
+            pass
+        else:
+            yield line
+        
+
+def _checked_hadoop_fs_command(cmd):
+    if sys.version[:3] == '2.4':
+        return os.system(cmd) / 256
+    proc = subprocess.Popen(cmd, env={}, shell=True,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+    out, err = proc.communicate()
+    rcode = proc.returncode
+    
+    return rcode, out, err
+
+def exists(path):
+    """Check if a file exists.
+    
+    Args:
+        path: A string for the path.  This should not have any wildcards.
+        
+    Return:
+        True if the path exists, False otherwise.
+    """
+    # ported from Dumbo
+    shellcmd = "hadoop fs -stat '%s'"
+    rval = _checked_hadoop_fs_command(shellcmd%(path))[0]
+    return bool(int(rval == 0))
+    
+def rm(path):
+    """Remove a file if it exists.
+    
+    Args:
+        path: A string (potentially with wildcards).
+    
+    Return:
+        True if the path was removed.  False otherwise.
+    """
+    shellcmd = "hadoop fs -rmr '%s'"%(path)
+    rval, out, err = _checked_hadoop_fs_command(shellcmd)
+    if rval is not 0:
+        if rval is not 0:
+            raise IOError('Ran[%s]: %s' % (path, err))
+    return rval
 
 
 def ls(path):
@@ -40,10 +92,9 @@ def ls(path):
     Raises:
         IOError: An error occurred listing the directory (e.g., not available).
     """
-    out, err = subprocess.Popen('hadoop fs -ls %s' % path, env={}, shell=True,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE).communicate()
-    if err:
+    rval, out, err = _checked_hadoop_fs_command('hadoop fs -ls %s' % path)
+    
+    if rval is not 0:
         raise IOError('Ran[%s]: %s' % (path, err))
     found_line = lambda x: re.search('Found [0-9]+ items$', x)
     out = [x.split(' ')[-1] for x in out.split('\n')

@@ -46,7 +46,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
            combiner=False, partitioner=False, files=(), jobconfs=(),
            cmdenvs=(), copy_script=True, hstreaming=None, name=None,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
-           pretend=False, add_python=True, **kw):
+           pretend=False, add_python=True, python_cmd="python", **kw):
     """Run Hadoop given the parameters
 
     Args:
@@ -72,6 +72,9 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         use_autoinput: If True (default), sets the input format to auto.
         pretend: If true, only build the command and return.
         add_python: If true, use 'python script_name.py'
+        python_cmd: The python command to use. The default is "python".
+          Can be used to override the system default python, e.g. 
+          python_cmd = "python2.6"
 
     Returns:
         The hadoop command called.
@@ -85,7 +88,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     except TypeError:
         hadoop_cmd = 'hadoop jar ' + _find_hstreaming()
     if add_python:
-        script_name = 'python %s' % (os.path.basename(script_path))
+        script_name = '%s %s' % (python_cmd, os.path.basename(script_path))
     else:
         script_name = os.path.basename(script_path)
     if mapper == True:
