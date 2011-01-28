@@ -22,9 +22,6 @@ import tempfile
 import re
 import multiprocessing
 import hadoopy
-import os
-import cPickle as pickle
-
 from hadoopy._runner import _find_hstreaming
 
 
@@ -40,8 +37,17 @@ def ls(path):
     Raises:
         IOError: An error occurred listing the directory (e.g., not available).
     """
-    out, err = subprocess.Popen('hadoop fs -ls %s' % path, env={}, shell=True,
-                                stdout=subprocess.PIPE,
+    try:
+        # This one works while inside of a running job
+        # One of the environmental variables set in a job breaks
+        # normal execution, resulting in permission denied on the .pid
+        out, err = subprocess.Popen('hadoop fs -ls %s' % path, env={},
+                                    shell=True, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE).communicate()
+    except subprocess.CalledProcessError:
+        # This one works otherwise
+        out, err = subprocess.Popen('hadoop fs -ls %s' % path,
+                                    shell=True, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE).communicate()
     if err:
         raise IOError('Ran[%s]: %s' % (path, err))
@@ -53,11 +59,19 @@ def ls(path):
 
 def _hdfs_cat_tb(args):
     path, hstreaming, fn = args
-    script_path = '%s/_hdfs.py' % os.path.dirname(hadoopy.__file__)
     with open(fn, 'wb') as fp:
-        subprocess.Popen('hadoop jar %s dumptb %s' % (hstreaming, path),
-                         stdout=fp, stderr=subprocess.PIPE,
-                         env={}, shell=True).wait()
+        try:
+            # This one works while inside of a running job
+            # One of the environmental variables set in a job breaks
+            # normal execution, resulting in permission denied on the .pid
+            subprocess.Popen('hadoop jar %s dumptb %s' % (hstreaming, path),
+                             stdout=fp, stderr=subprocess.PIPE,
+                             env={}, shell=True).wait()
+        except subprocess.CalledProcessError:
+            # This one works otherwise
+            subprocess.Popen('hadoop jar %s dumptb %s' % (hstreaming, path),
+                             stdout=fp, stderr=subprocess.PIPE,
+                             shell=True).wait()
 
 
 def cat(path, procs=10):
