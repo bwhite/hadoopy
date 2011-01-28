@@ -7,8 +7,14 @@ from distutils.extension import Extension
 import glob
 import os
 
-# TODO: Only use Cython if it is available, else just use the .c
-from Cython.Distutils import build_ext
+# Only use Cython if it is available, else just use the pre-generated files
+try:
+    from Cython.Distutils import build_ext
+    source_ext = '.pyx'
+    cmdclass = {'build_ext': build_ext}
+except ImportError:
+    source_ext = '.c'
+    cmdclass = {}
 
 
 def get_glibc_version():
@@ -63,11 +69,11 @@ if glibc_version and (glibc_version[0] == 2 and glibc_version[1] >= 9):
 
 # Since package_data doesn't handle directories, we find all of the files
 thirdparty_paths = map(_remove_prefix, _glob_recursive('hadoopy/thirdparty/*'))
-ext_modules = [Extension("_main", ["hadoopy/_main.pyx"]),
-               Extension("_typedbytes", ["hadoopy/_typedbytes.pyx"],
+ext_modules = [Extension("_main", ["hadoopy/_main" + source_ext]),
+               Extension("_typedbytes", ["hadoopy/_typedbytes" + source_ext],
                          extra_compile_args=tb_extra_args)]
 setup(name='hadoopy',
-      cmdclass={'build_ext': build_ext},
+      cmdclass=cmdclass,
       version='0.3.0',
       packages=['hadoopy'],
       package_data={'hadoopy': thirdparty_paths},
