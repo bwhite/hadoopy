@@ -45,7 +45,7 @@ def ls(path):
                              shell=True, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         out, err = p.communicate()
-        if not p.returncode:
+        if p.returncode:
             raise IOError
     except IOError:
         # This one works otherwise
@@ -53,7 +53,7 @@ def ls(path):
                               shell=True, stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE)
         out, err = p.communicate()
-        if not p.returncode:
+        if p.returncode:
             raise IOError
     except IOError:
         raise IOError('Ran[%s]: %s' % (path, err))
@@ -75,7 +75,7 @@ def _hdfs_cat_tb(args):
                                  stdout=fp, stderr=subprocess.PIPE,
                                  env={}, shell=True)
             p.wait()
-            if not p.returncode:
+            if p.returncode:
                 raise IOError
         except IOError:
             # This one works otherwise
@@ -84,7 +84,7 @@ def _hdfs_cat_tb(args):
                              stdout=fp, stderr=subprocess.PIPE,
                              shell=True)
             p.wait()
-            if not p.returncode:
+            if p.returncode:
                 raise IOError
 
 
