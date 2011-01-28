@@ -41,14 +41,22 @@ def ls(path):
         # This one works while inside of a running job
         # One of the environmental variables set in a job breaks
         # normal execution, resulting in permission denied on the .pid
-        out, err = subprocess.Popen('hadoop fs -ls %s' % path, env={},
-                                    shell=True, stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE).communicate()
-    except subprocess.CalledProcessError:
+        p = subprocess.Popen('hadoop fs -ls %s' % path, env={},
+                             shell=True, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        if not p.returncode:
+            raise IOError
+    except IOError:
         # This one works otherwise
-        out, err = subprocess.Popen('hadoop fs -ls %s' % path,
-                                    shell=True, stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE).communicate()
+        p = subprocess.Popen('hadoop fs -ls %s' % path,
+                              shell=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        if not p.returncode:
+            raise IOError
+    except IOError:
+        raise IOError('Ran[%s]: %s' % (path, err))
     found_line = lambda x: re.search('Found [0-9]+ items$', x)
     out = [x.split(' ')[-1] for x in out.split('\n')
            if x and not found_line(x)]
@@ -62,14 +70,22 @@ def _hdfs_cat_tb(args):
             # This one works while inside of a running job
             # One of the environmental variables set in a job breaks
             # normal execution, resulting in permission denied on the .pid
-            subprocess.Popen('hadoop jar %s dumptb %s' % (hstreaming, path),
-                             stdout=fp, stderr=subprocess.PIPE,
-                             env={}, shell=True).wait()
-        except subprocess.CalledProcessError:
+            p = subprocess.Popen('hadoop jar %s dumptb %s' \
+                                     % (hstreaming, path),
+                                 stdout=fp, stderr=subprocess.PIPE,
+                                 env={}, shell=True)
+            p.wait()
+            if not p.returncode:
+                raise IOError
+        except IOError:
             # This one works otherwise
-            subprocess.Popen('hadoop jar %s dumptb %s' % (hstreaming, path),
+            p = subprocess.Popen('hadoop jar %s dumptb %s' \
+                                     % (hstreaming, path),
                              stdout=fp, stderr=subprocess.PIPE,
-                             shell=True).wait()
+                             shell=True)
+            p.wait()
+            if not p.returncode:
+                raise IOError
 
 
 def cat(path, procs=10):
