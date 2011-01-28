@@ -6,7 +6,10 @@ Issues  https://github.com/bwhite/hadoopy/issues
 Docs    http://bwhite.github.com/hadoopy/
 
 Requirements
-cython (>=.13)
+python development headers (python-dev), build tools (build-essential)
+
+Optional
+cython (>=.13) (without this it falls back to the pregenerated .c files)
 
 Features
 - oozie support
@@ -23,5 +26,6 @@ Used in
 - Web-Scale Computer Vision using MapReduce for Multimedia Data Mining (at KDD'10)
 - Vitrieve: Visual Search engine
 
-Install
+Ubuntu Install (others are similar)
+sudo apt-get install python-dev build-essential
 sudo python setup.py install
