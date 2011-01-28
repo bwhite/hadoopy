@@ -8,18 +8,8 @@ from distutils.extension import Extension
 # TODO: Only use Cython if it is available, else just use the .c
 from Cython.Distutils import build_ext
 
-
-def get_glibc_version():
-    """
-    Returns:
-        Version as a triple of ints (major, minor, patch)
-    """
-    # TODO: Look into a nicer way to get the version
-    out = subprocess.Popen(['ldd', '--version'],
-                           stdout=subprocess.PIPE).communicate()[0]
-    return map(int, re.search('([0-9]+)\.([0-9]+)\.([0-9]+)', out).groups(1))
-
-glibc_version = get_glibc_version()
+import platform
+glibc_version = map(int, platform.libc_ver()[1].split('.'))
 
 tb_extra_args = []
 if sys.byteorder != 'little':
