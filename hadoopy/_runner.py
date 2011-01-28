@@ -46,7 +46,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
            combiner=False, partitioner=False, files=(), jobconfs=(),
            cmdenvs=(), copy_script=True, hstreaming=None, name=None,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
-           pretend=False, add_python=True, **kw):
+           pretend=False, add_python=True, config=None, **kw):
     """Run Hadoop given the parameters
 
     Args:
@@ -72,6 +72,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         use_autoinput: If True (default), sets the input format to auto.
         pretend: If true, only build the command and return.
         add_python: If true, use 'python script_name.py'
+        config: If a string, set the hadoop config path
 
     Returns:
         The hadoop command called.
@@ -158,9 +159,12 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     # Add InputFormat
     if use_autoinput:
         cmd += ['-inputformat', 'AutoInputFormat']
+    # Add config
+    if config:
+        cmd += ['--config', config]
     # Run command and wait till it has completed
     if not pretend:
-        print('HadooPY: Running[%s]' % (' '.join(cmd)))
+        print('hadoopy: Running[%s]' % (' '.join(cmd)))
         subprocess.check_call(cmd)
     return ' '.join(cmd)
 
@@ -191,17 +195,8 @@ def launch_frozen(in_name, out_name, script_path, **kw):
         use_autoinput: If True (default), sets the input format to auto.
         pretend: If true, only build the command and return.
         add_python: If true, use 'python script_name.py'
-        shared_libs: A sequence of additional shared library paths for cxfreeze
-            to include.
-        modules: Additional modules to include.
-        remove_dir: Will rm -r the target_dir when true (be careful)!
-            (default is False)
         target_dir: Output directory where cxfreeze and this function output.
-        exclude_modules: A sequence of modules for cxfreeze to ignore
-            (default is (tcl, tk, Tkinter))
-        freeze_cmd: Path to cxfreeze (default is cxfreeze)
         verbose: If true, output to stdout all command results.
-        extra: A string to be appended to the cxfreeze command
 
     Returns:
         The hadoop command called.
