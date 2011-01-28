@@ -5,13 +5,13 @@ Issues  https://github.com/bwhite/hadoopy/issues
 Docs    http://bwhite.github.com/hadoopy/
 
 Requirements
-cython (>=.13), cxfreeze (for freeze support)
+cython (>=.13)
 
 Features
 - oozie support
 - typedbytes support (very fast)
 - critical path is in Cython
-- works on clusters without any extra installation, Python, or any Python libraries (requires cx_Freeze)
+- works on clusters without any extra installation, Python, or any Python libraries (uses Pyinstaller that is included in this source tree)
 - Simple HDFS access (cat and ls) inside Python, even inside running jobs
 - Unit test interface
 - Reporting using status and counters
