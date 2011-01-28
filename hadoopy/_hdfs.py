@@ -20,6 +20,7 @@ __license__ = 'GPL V3'
 import subprocess
 import tempfile
 import re
+import os
 import multiprocessing
 import hadoopy
 from hadoopy._runner import _find_hstreaming
@@ -86,12 +87,18 @@ def _hdfs_cat_tb(args):
                 raise IOError
 
 
-def cat(path, procs=10):
+def cat(path, ignore_logs=True, procs=10):
     """Read typedbytes sequence files on HDFS (with optional compression).
+
+    By default, ignores files who's names start with an underscore '_' as they
+    are log files.  This allows you to cat a directory that may be a variety of
+    outputs from hadoop (e.g., _SUCCESS, _logs).
 
     Args:
         path: A string (potentially with wildcards).
         procs: Number of processes to use.
+        ignore_logs: If True, ignore all files who's name starts with an
+            underscore.  Defaults to True.
 
     Returns:
         An iterator of key, value pairs.
@@ -102,6 +109,10 @@ def cat(path, procs=10):
     max_files = 100
     hstreaming = _find_hstreaming()
     all_paths = ls(path)
+    if ignore_logs:
+        # Ignore any files that start with an underscore
+        keep_file = lambda x: os.path.basename(x)[0] != '_'
+        all_paths = filter(keep_file, all_paths)
     p = multiprocessing.Pool(min((procs, max_files, len(all_paths))))
     while all_paths:
         paths = all_paths[:max_files]
