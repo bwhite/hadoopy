@@ -106,20 +106,23 @@ cdef class KeyValueStream(object):
 
     Supports putting back one item
     """
+    cdef object _key_value_func
+    cdef object _prev
+    cdef object _done
     def __init__(self, key_value_func):
         """
         Args:
             key_value_func: Function that returns a KeyValue tuple.  Raises
                 StopIteration when it is exhausted.
         """
-        self._key_value_fun = key_value_func
+        self._key_value_func = key_value_func
         self._prev = None
         self._done = False
 
     def __iter__(self):
         return self
 
-    cpdef object next(self):
+    def __next__(self):
         """Get next KeyValue tuple
 
         If a value was replaced using 'put', then it is used and cleared.
@@ -137,7 +140,7 @@ cdef class KeyValueStream(object):
         if self._done:
             raise StopIteration
         try:
-            return self._key_value_fun()
+            return self._key_value_func()
         except StopIteration, e:
             self._done = True
             raise e
@@ -164,7 +167,7 @@ cdef class GroupedValues(object):
     def __iter__(self):
         return self
 
-    cpdef object next(self):
+    def __next__(self):
         if self._done:
             raise StopIteration
         try:
@@ -192,7 +195,7 @@ cdef class GroupedKeyValues(object):
     def __iter__(self):
         return self
 
-    cpdef object next(self):
+    def __next__(self):
         if self._done:
             raise StopIteration
         # Exhaust prev
