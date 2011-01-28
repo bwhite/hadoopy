@@ -12,12 +12,19 @@ from Cython.Distutils import build_ext
 def get_glibc_version():
     """
     Returns:
-        Version as a triple of ints (major, minor, patch)
+        Version as a triple of ints (major, minor, patch) or None
     """
     # TODO: Look into a nicer way to get the version
-    out = subprocess.Popen(['ldd', '--version'],
-                           stdout=subprocess.PIPE).communicate()[0]
-    return map(int, re.search('([0-9]+)\.([0-9]+)\.([0-9]+)', out).groups(1))
+    try:
+        out = subprocess.Popen(['ldd', '--version'],
+                               stdout=subprocess.PIPE).communicate()[0]
+    except OSError:
+        return
+    match = re.search('([0-9]+)\.([0-9]+)\.([0-9]+)', out)
+    try:
+        return map(int, match.groups(1))
+    except AttributeError:
+        return
 
 glibc_version = get_glibc_version()
 
@@ -25,7 +32,7 @@ tb_extra_args = []
 if sys.byteorder != 'little':
     tb_extra_args.append('-D BYTECONVERSION_ISBIGENDIAN')
 
-if glibc_version[0] > 2 or (glibc_version[0] == 2 and glibc_version[1] >= 9):
+if glibc_version and (glibc_version[0] == 2 and glibc_version[1] >= 9):
     tb_extra_args.append('-D BYTECONVERSION_HASENDIAN_H')
 
 ext_modules = [Extension("_main", ["hadoopy/_main.pyx"]),
