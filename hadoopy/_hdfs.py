@@ -54,9 +54,7 @@ def ls(path):
                               stderr=subprocess.PIPE)
         out, err = p.communicate()
         if p.returncode:
-            raise IOError
-    except IOError:
-        raise IOError('Ran[%s]: %s' % (path, err))
+            raise IOError('Ran[%s]: %s' % (path, err))
     found_line = lambda x: re.search('Found [0-9]+ items$', x)
     out = [x.split(' ')[-1] for x in out.split('\n')
            if x and not found_line(x)]
