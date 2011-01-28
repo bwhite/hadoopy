@@ -44,13 +44,11 @@ def ls(path):
         out, err = subprocess.Popen('hadoop fs -ls %s' % path, env={},
                                     shell=True, stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE).communicate()
-    except IOError:
+    except subprocess.CalledProcessError:
         # This one works otherwise
         out, err = subprocess.Popen('hadoop fs -ls %s' % path,
                                     shell=True, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE).communicate()
-    #if err:
-    #    raise IOError('Ran[%s]: %s' % (path, err))
+                                    stderr=subprocess.PIPE).communicate()
     found_line = lambda x: re.search('Found [0-9]+ items$', x)
     out = [x.split(' ')[-1] for x in out.split('\n')
            if x and not found_line(x)]
@@ -67,7 +65,7 @@ def _hdfs_cat_tb(args):
             subprocess.Popen('hadoop jar %s dumptb %s' % (hstreaming, path),
                              stdout=fp, stderr=subprocess.PIPE,
                              env={}, shell=True).wait()
-        except IOError:
+        except subprocess.CalledProcessError:
             # This one works otherwise
             subprocess.Popen('hadoop jar %s dumptb %s' % (hstreaming, path),
                              stdout=fp, stderr=subprocess.PIPE,
