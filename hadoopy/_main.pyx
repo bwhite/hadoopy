@@ -40,13 +40,13 @@ cdef __read_key_value_text():
     cdef ssize_t sz
     cdef char *lineptr = NULL
     cdef size_t n = 0
-    sz = getdelim(&lineptr, &n, ord('\t'), stdin)
+    sz = getdelim(&lineptr, &n, 9, stdin)  # 9 == ord('\t')
     if sz == -1:
         raise StopIteration
     k = PyString_FromStringAndSize(lineptr, sz - 1)
     free(lineptr)
     lineptr = NULL
-    sz = getdelim(&lineptr, &n, ord('\n'), stdin)
+    sz = getdelim(&lineptr, &n, 10, stdin)  # 10 == ord('\n')
     if sz == -1:
         raise StopIteration
     v = PyString_FromStringAndSize(lineptr, sz - 1)
@@ -60,7 +60,7 @@ cdef __read_offset_value_text():
     cdef ssize_t sz
     cdef char *lineptr = NULL
     cdef size_t n = 0
-    sz = getdelim(&lineptr, &n, ord('\n'), stdin)
+    sz = getdelim(&lineptr, &n, 10, stdin)  # 10 == ord('\n')
     if sz == -1:
         raise StopIteration
     line = PyString_FromStringAndSize(lineptr, sz - 1)
@@ -101,7 +101,7 @@ def _print_out(iter):
     _print_out_tb(iter) if _is_io_typedbytes() else _print_out_text(iter)
 
 
-class KeyValueStream(object):
+cdef class KeyValueStream(object):
     """Represents KeyValue input streams as iterators
 
     Supports putting back one item
@@ -119,7 +119,7 @@ class KeyValueStream(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    cpdef object next(self):
         """Get next KeyValue tuple
 
         If a value was replaced using 'put', then it is used and cleared.
@@ -142,7 +142,7 @@ class KeyValueStream(object):
             self._done = True
             raise e
 
-    def put(self, kv):
+    cpdef object put(self, kv):
         """Place an item back into the stream, return following call to 'next'
 
         Args:
@@ -151,7 +151,11 @@ class KeyValueStream(object):
         self._prev = kv
 
 
-class GroupedValues(object):
+cdef class GroupedValues(object):
+    cdef object _key_value_iter
+    cdef object _group_key
+    cdef object _done
+    
     def __init__(self, group_key, key_value_iter):
         self._key_value_iter = key_value_iter
         self._group_key = group_key
@@ -160,7 +164,7 @@ class GroupedValues(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    cpdef object next(self):
         if self._done:
             raise StopIteration
         try:
@@ -176,7 +180,10 @@ class GroupedValues(object):
         return v
 
 
-class GroupedKeyValues(object):
+cdef class GroupedKeyValues(object):
+    cdef object _key_value_iter
+    cdef object _prev
+    cdef object _done
     def __init__(self, key_value_iter):
         self._key_value_iter = key_value_iter
         self._prev = None
@@ -185,7 +192,7 @@ class GroupedKeyValues(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    cpdef object next(self):
         if self._done:
             raise StopIteration
         # Exhaust prev

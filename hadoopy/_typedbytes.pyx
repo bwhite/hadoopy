@@ -48,7 +48,7 @@ cdef extern from "Python.h":
     char* PyString_AsString(object string)
     
 
-cdef _read_int(void *fp):
+cdef inline int32_t _read_int(void *fp):
     """Read integer
 
     Code: 3
@@ -59,10 +59,10 @@ cdef _read_int(void *fp):
     """
     cdef int32_t val
     fread(&val, 4, 1, fp)  # = 1
-    return int(_be32toh(val))
+    return _be32toh(val)
 
 
-cdef _raw_write_int(void *fp, val):
+cdef inline _raw_write_int(void *fp, val):
     """Write integer (used for sizes)
 
     Args:
@@ -76,7 +76,7 @@ cdef _raw_write_int(void *fp, val):
     fwrite(&cval, 4, 1, fp)  # = 1
 
 
-cdef _write_int(void *fp, val):
+cdef inline _write_int(void *fp, val):
     """Write integer
 
     Code: 3
@@ -94,7 +94,7 @@ cdef _write_int(void *fp, val):
     fwrite(&cval, 4, 1, fp)  # = 1
 
 
-cdef _read_long(void *fp):
+cdef inline int64_t _read_long(void *fp):
     """Read integer
 
     Code: 4
@@ -105,10 +105,10 @@ cdef _read_long(void *fp):
     """
     cdef int64_t val
     fread(&val, 8, 1, fp)  # = 1
-    return int(_be64toh(val))
+    return _be64toh(val)
 
 
-cdef _write_long(void *fp, val):
+cdef inline _write_long(void *fp, val):
     """Write long
 
     Code: 4
@@ -122,7 +122,7 @@ cdef _write_long(void *fp, val):
     fwrite(&cval, 8, 1, fp)  # = 1
 
 
-cdef _read_float(void *fp):
+cdef inline float _read_float(void *fp):
     """Read float
 
     Code: 5
@@ -134,10 +134,10 @@ cdef _read_float(void *fp):
     cdef int32_t val
     fread(&val, 4, 1, fp)  # = 1
     val = _be32toh(val)
-    return float((<float*>&val)[0])
+    return (<float*>&val)[0]
 
 
-cdef _write_float(void *fp, val):
+cdef inline _write_float(void *fp, val):
     """Write float
 
     Code: 5
@@ -151,7 +151,7 @@ cdef _write_float(void *fp, val):
     fwrite(&cvalo, 4, 1, fp)  # = 1
 
 
-cdef _read_double(void *fp):
+cdef inline double _read_double(void *fp):
     """Read double
 
     Code: 6
@@ -163,10 +163,10 @@ cdef _read_double(void *fp):
     cdef int64_t val
     fread(&val, 8, 1, fp)  # = 1
     val = _be64toh(val)
-    return float((<double*>&val)[0])
+    return (<double*>&val)[0]
 
 
-cdef _write_double(void *fp, val):
+cdef inline _write_double(void *fp, val):
     """Write double
 
     Code: 6
@@ -180,7 +180,7 @@ cdef _write_double(void *fp, val):
     fwrite(&cvalo, 8, 1, fp)  # = 1
 
 
-cdef _read_byte(void *fp):
+cdef inline _read_byte(void *fp):
     """Read byte
 
     Code: 1
@@ -194,7 +194,7 @@ cdef _read_byte(void *fp):
     return int(val)
 
 
-cdef _write_byte(void *fp, val):
+cdef inline _write_byte(void *fp, val):
     """Write byte
 
     Code: 1
@@ -207,7 +207,7 @@ cdef _write_byte(void *fp, val):
     fwrite(&cval, 1, 1, fp)  # = 1
     
 
-cdef _read_bool(void *fp):
+cdef inline _read_bool(void *fp):
     """Read integer
 
     Code: 2
@@ -219,7 +219,7 @@ cdef _read_bool(void *fp):
     return bool(_read_byte(fp))
 
 
-cdef _write_bool(void *fp, val):
+cdef inline _write_bool(void *fp, val):
     """Write bool
 
     Code: 2
@@ -232,7 +232,7 @@ cdef _write_bool(void *fp, val):
     fwrite(&cval, 1, 1, fp)  # = 1
 
 
-cdef _read_bytes(void *fp):
+cdef inline _read_bytes(void *fp):
     """Read bytes
 
     Code: 0
@@ -249,7 +249,7 @@ cdef _read_bytes(void *fp):
     return out
 
 
-cdef _write_bytes(void *fp, val):
+cdef inline _write_bytes(void *fp, val):
     """Write bytes
 
     Code: 0
@@ -265,7 +265,7 @@ cdef _write_bytes(void *fp, val):
     fwrite(bytes, sz, 1, fp)  # = 1
 
 
-cdef _read_string(void *fp):
+cdef inline _read_string(void *fp):
     """Read string
 
     Code: 7
@@ -277,7 +277,7 @@ cdef _read_string(void *fp):
     return _read_bytes(fp)
 
 
-cdef _write_string(void *fp, val):
+cdef inline _write_string(void *fp, val):
     """Write string
 
     Code: 7
@@ -289,7 +289,7 @@ cdef _write_string(void *fp, val):
     _write_bytes(fp, val)
 
 
-cdef _read_vector(void *fp):
+cdef inline _read_vector(void *fp):
     """Read fixed length vector of typedbytes
 
     Code: 8
@@ -305,7 +305,7 @@ cdef _read_vector(void *fp):
     return tuple(out)
 
 
-cdef _write_vector(void *fp, val):
+cdef inline _write_vector(void *fp, val):
     """Write fixed length vector of typedbytes
 
     Code: 8
@@ -320,7 +320,7 @@ cdef _write_vector(void *fp, val):
         _write_tb_code(fp, x)
 
 
-cdef _read_list(void *fp):
+cdef inline _read_list(void *fp):
     """Read variable length list of typedbytes
 
     Code: 9
@@ -338,7 +338,7 @@ cdef _read_list(void *fp):
     return out
 
 
-cdef _write_list(void *fp, val):
+cdef inline _write_list(void *fp, val):
     """Write variable length list of typedbytes
 
     Code: 9
@@ -353,7 +353,7 @@ cdef _write_list(void *fp, val):
     fwrite(&code, 1, 1, fp)  # = 1
 
 
-cdef _read_map(void *fp):
+cdef inline _read_map(void *fp):
     """Read fixed length pairs of typedbytes (interpreted as a dict/map)
 
     Code: 10
@@ -370,7 +370,7 @@ cdef _read_map(void *fp):
     return out
 
 
-cdef _write_map(void *fp, val):
+cdef inline _write_map(void *fp, val):
     """Write fixed length pairs of typedbytes (interpreted as a dict/map)
 
     Code: 10
@@ -385,7 +385,7 @@ cdef _write_map(void *fp, val):
         _write_tb_code(fp, y)
 
 
-cdef _read_pickle(void *fp):
+cdef inline _read_pickle(void *fp):
     """Read a python pickle
 
     Code: 100 (custom)
@@ -397,7 +397,7 @@ cdef _read_pickle(void *fp):
     return pickle.loads(_read_bytes(fp))
 
 
-cdef _write_pickle(void *fp, val):
+cdef inline _write_pickle(void *fp, val):
     """Write a python pickle
 
     Code: 100 (custom)
