@@ -67,6 +67,7 @@ def freeze(script_path, target_dir='frozen', **kw):
         subprocess.CalledProcessError: Freeze error.
         OSError: Freeze not found.
     """
+    print('/\\%s%s Output%s/\\' % ('-' * 10, 'Pyinstaller', '-' * 10))
     pyinst_path = tempfile.mkdtemp()
     root_path = '%s/thirdparty/pyinstaller' % __path__[0]
     script_dir = os.path.dirname(script_path)
@@ -80,9 +81,10 @@ def freeze(script_path, target_dir='frozen', **kw):
           (root_path, pyinst_path, root_path, spec_path)))
     _copytree('%s/dist/%s' % (pyinst_path, proj_name), target_dir)
     shutil.rmtree(pyinst_path)
+    print('\\/%s%s Output%s\\/' % ('-' * 10, 'Pyinstaller', '-' * 10))
 
 
-def freeze_to_tar(script_path, freeze_fn, extra_files):
+def freeze_to_tar(script_path, freeze_fn, extra_files=None):
     """Freezes a script to a .tar or .tar.gz file
 
     The script contains all of the files at the root of the tar
@@ -90,13 +92,15 @@ def freeze_to_tar(script_path, freeze_fn, extra_files):
     Args:
         script_path: Path to python script to be frozen.
         freeze_fn: Tar filename (must end in .tar or .tar.gz)
-        extra_files: List of paths to add to the tar
+        extra_files: List of paths to add to the tar (default is None)
 
     Raises:
         subprocess.CalledProcessError: freeze error.
         OSError: freeze not found.
         NameError: Tar must end in .tar or .tar.gz
     """
+    if not extra_files:
+        extra_files = []
     freeze_dir = tempfile.mkdtemp()
     freeze(script_path, target_dir=freeze_dir)
     if freeze_fn.endswith('.tar.gz'):

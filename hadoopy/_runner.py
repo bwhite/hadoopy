@@ -21,6 +21,8 @@ import sys
 
 import subprocess
 import os
+import time
+import tempfile
 import hadoopy._freeze
 
 
@@ -50,7 +52,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
            pretend=False, add_python=True, config=None, 
            python_cmd="python", num_mappers=None, num_reducers=None, 
-           **kw):
+           script_dir='',**kw):
     """Run Hadoop given the parameters
 
     Args:
@@ -86,6 +88,8 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         num_reducers: The number of reducers to use, i.e. the
             argument given to 'numReduceTasks'. If None, then
             do not specify this argument to hadoop streaming.
+        script_dir: Where the script is relative to working dir, will be
+            prefixed to script_path with a / (default '' is current dir)
 
     Returns:
         The hadoop command called.
@@ -102,6 +106,8 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         script_name = '%s %s' % (python_cmd, os.path.basename(script_path))
     else:
         script_name = os.path.basename(script_path)
+    if script_dir:
+        script_name = ''.join([script_dir, '/', script_name])
     if mapper == True:
         mapper = ' '.join((script_name, 'map'))
     if reducer == True:
@@ -181,18 +187,23 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         cmd += ['--config', config]
     # Run command and wait till it has completed
     if not pretend:
+        print('/\\%s%s Output%s/\\' % ('-' * 10, 'Hadoop', '-' * 10))
         print('hadoopy: Running[%s]' % (' '.join(cmd)))
         subprocess.check_call(' '.join(cmd),shell=True)
+        print('\\/%s%s Output%s\\/' % ('-' * 10, 'Hadoop', '-' * 10))
     return ' '.join(cmd)
 
 
-def launch_frozen(in_name, out_name, script_path, **kw):
+def launch_frozen(in_name, out_name, script_path, temp_path='_hadoopy_temp',
+                  **kw):
     """Freezes a script and then launches it.
 
     Args:
         in_name: Input path (string or list)
         out_name: Output path
         script_path: Path to the script (e.g., script.py)
+        temp_path: HDFS path that we can use to store temporary files
+            (default to _hadoopy_temp)
         mapper: If True, the mapper is "script.py map".
             If string, the mapper is the value
         reducer: If True (default), the reducer is "script.py reduce".
@@ -212,7 +223,6 @@ def launch_frozen(in_name, out_name, script_path, **kw):
         use_autoinput: If True (default), sets the input format to auto.
         pretend: If true, only build the command and return.
         add_python: If true, use 'python script_name.py'
-        target_dir: Output directory where cxfreeze and this function output.
         verbose: If true, output to stdout all command results.
 
     Returns:
@@ -222,25 +232,27 @@ def launch_frozen(in_name, out_name, script_path, **kw):
         subprocess.CalledProcessError: Hadoop or Cxfreeze error.
         OSError: Hadoop streaming or Cxfreeze not found.
     """
-    hadoopy._freeze.freeze(os.path.abspath(script_path), **kw)
+    frozen_tar_path = temp_path + '/%f/_frozen.tar.gz' % time.time()
+    freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar.gz')
+    hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
+    # TODO: Put this file on hdfs
+    subprocess.call(('hadoop fs -put %s %s' % (freeze_fp.name,
+                                               frozen_tar_path)).split())
+    #hadoopy.put(freeze_fp.name, frozen_tar_path)
     # Remove extension
     if script_path.endswith('.py'):
         script_path = script_path[:-3]
     try:
-        files = kw['files']
+        jobconfs = kw['jobconfs']
     except KeyError:
-        files = []
+        jobconfs = []
     else:
-        if isinstance(files, str):
-            files = [files]
-    try:
-        target_dir = kw['target_dir']
-    except KeyError:
-        target_dir = 'frozen'
-    files.append(target_dir)
-    # Do not copy script
+        if isinstance(jobconfs, str):
+            jobconfs = [jobconfs]
+    jobconfs.append('mapred.cache.archives=%s#_frozen' % frozen_tar_path)
     kw['copy_script'] = False
-    kw['files'] = files
     kw['add_python'] = False
-    launch_cmd = launch(in_name, out_name, script_path, **kw)
+    kw['jobconfs'] = jobconfs
+    launch_cmd = launch(in_name, out_name, script_path,
+                        script_dir='_frozen', **kw)
     return launch_cmd
