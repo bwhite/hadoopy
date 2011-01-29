@@ -82,7 +82,7 @@ def freeze(script_path, target_dir='frozen', **kw):
     shutil.rmtree(pyinst_path)
 
 
-def freeze_to_tar(script_path, freeze_fn, extra_files):
+def freeze_to_tar(script_path, freeze_fn, extra_files=None):
     """Freezes a script to a .tar or .tar.gz file
 
     The script contains all of the files at the root of the tar
@@ -90,13 +90,15 @@ def freeze_to_tar(script_path, freeze_fn, extra_files):
     Args:
         script_path: Path to python script to be frozen.
         freeze_fn: Tar filename (must end in .tar or .tar.gz)
-        extra_files: List of paths to add to the tar
+        extra_files: List of paths to add to the tar (default is None)
 
     Raises:
         subprocess.CalledProcessError: freeze error.
         OSError: freeze not found.
         NameError: Tar must end in .tar or .tar.gz
     """
+    if not extra_files:
+        extra_files = []
     freeze_dir = tempfile.mkdtemp()
     freeze(script_path, target_dir=freeze_dir)
     if freeze_fn.endswith('.tar.gz'):
