@@ -16,7 +16,6 @@ except ImportError:
     source_ext = '.c'
     cmdclass = {}
 
-
 def get_glibc_version():
     """
     Returns:

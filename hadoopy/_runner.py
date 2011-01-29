@@ -17,6 +17,8 @@
 __author__ = 'Brandyn A. White <bwhite@cs.umd.edu>'
 __license__ = 'GPL V3'
 
+import sys
+
 import subprocess
 import os
 import hadoopy._freeze
@@ -46,7 +48,9 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
            combiner=False, partitioner=False, files=(), jobconfs=(),
            cmdenvs=(), copy_script=True, hstreaming=None, name=None,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
-           pretend=False, add_python=True, config=None, **kw):
+           pretend=False, add_python=True, config=None, 
+           python_cmd="python", num_mappers=None, num_reducers=None, 
+           **kw):
     """Run Hadoop given the parameters
 
     Args:
@@ -73,6 +77,15 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         pretend: If true, only build the command and return.
         add_python: If true, use 'python script_name.py'
         config: If a string, set the hadoop config path
+        python_cmd: The python command to use. The default is "python".
+            Can be used to override the system default python, e.g. 
+            python_cmd = "python2.6"
+        num_mappers: The number of mappers to use, i.e. the
+            argument given to 'numMapTasks'. If None, then
+            do not specify this argument to hadoop streaming.
+        num_reducers: The number of reducers to use, i.e. the
+            argument given to 'numReduceTasks'. If None, then
+            do not specify this argument to hadoop streaming.
 
     Returns:
         The hadoop command called.
@@ -86,7 +99,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     except TypeError:
         hadoop_cmd = 'hadoop jar ' + _find_hstreaming()
     if add_python:
-        script_name = 'python %s' % (os.path.basename(script_path))
+        script_name = '%s %s' % (python_cmd, os.path.basename(script_path))
     else:
         script_name = os.path.basename(script_path)
     if mapper == True:
@@ -116,6 +129,10 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     if partitioner:
         cmd += ['-partitioner',
                 '"%s"' % (partitioner)]
+    if num_mappers:
+        cmd += ['-numMapTasks', "'%i'"%(int(num_mappers))]
+    if num_reducers:
+        cmd += ['-numReduceTasks', "'%i'"%(int(num_reducers))]
     # Add files
     if isinstance(files, str):
         files = [files]
@@ -165,7 +182,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     # Run command and wait till it has completed
     if not pretend:
         print('hadoopy: Running[%s]' % (' '.join(cmd)))
-        subprocess.check_call(cmd)
+        subprocess.check_call(' '.join(cmd),shell=True)
     return ' '.join(cmd)
 
 
