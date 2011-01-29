@@ -5,6 +5,8 @@ Source  https://github.com/bwhite/hadoopy/
 Issues  https://github.com/bwhite/hadoopy/issues
 Docs    http://bwhite.github.com/hadoopy/
 
+IRC: #hadoopy @ freenode.net
+
 Requirements
 python development headers (python-dev), build tools (build-essential)
 
