@@ -521,6 +521,8 @@ cdef class TypedBytesFile(object):
             cdef char *modec
             self._repr = "TypedBytesFile(%s, %s)" % (repr(fn), repr(mode))
             if fn:
+                if mode == None:
+                    mode = 'r'
                 fnc = PyString_AsString(fn)
                 modec = PyString_AsString(mode)
                 self._write_ptr = self._read_ptr = fopen(fnc, modec)
@@ -556,6 +558,10 @@ cdef class TypedBytesFile(object):
 
         def write(self, kv):
             __write_key_value_tb(self._write_ptr, kv)
+
+        def writes(self, kvs):
+            for kv in kvs:
+                __write_key_value_tb(self._write_ptr, kv)
 
         def close(self):
             self._close()
