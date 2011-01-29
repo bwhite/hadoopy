@@ -89,6 +89,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         hadoop_cmd = 'hadoop jar ' + hstreaming
     except TypeError:
         hadoop_cmd = 'hadoop jar ' + _find_hstreaming()
+    job_name = os.path.basename(script_path)
     if add_python:
         script_name = 'python %s' % (os.path.basename(script_path))
     else:
@@ -145,7 +146,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         jobconfs = [jobconfs]
     if name == None:
         jobconfs = list(jobconfs)
-        jobconfs.append('mapred.job.name=%s' % (script_name))
+        jobconfs.append('mapred.job.name=%s' % (job_name))
     else:
         jobconfs.append('mapred.job.name=%s' % (str(name)))
     for jobconf in jobconfs:
@@ -233,6 +234,7 @@ def launch_frozen(in_name, out_name, script_path, temp_path='_hadoopy_temp',
         if isinstance(jobconfs, str):
             jobconfs = [jobconfs]
     jobconfs.append('mapred.cache.archives=%s#_frozen' % frozen_tar_path)
+    jobconfs.append('mapreduce.cache.archives=%s#_frozen' % frozen_tar_path)
     kw['copy_script'] = False
     kw['add_python'] = False
     kw['jobconfs'] = jobconfs
