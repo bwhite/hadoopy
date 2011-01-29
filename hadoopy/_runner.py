@@ -170,8 +170,10 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         cmd += ['--config', config]
     # Run command and wait till it has completed
     if not pretend:
+        print('/\\%s%s Output%s/\\' % ('-' * 10, 'Hadoop', '-' * 10))
         print('hadoopy: Running[%s]' % (' '.join(cmd)))
         subprocess.check_call(cmd)
+        print('\\/%s%s Output%s\\/' % ('-' * 10, 'Hadoop', '-' * 10))
     return ' '.join(cmd)
 
 

@@ -67,6 +67,7 @@ def freeze(script_path, target_dir='frozen', **kw):
         subprocess.CalledProcessError: Freeze error.
         OSError: Freeze not found.
     """
+    print('/\\%s%s Output%s/\\' % ('-' * 10, 'Pyinstaller', '-' * 10))
     pyinst_path = tempfile.mkdtemp()
     root_path = '%s/thirdparty/pyinstaller' % __path__[0]
     script_dir = os.path.dirname(script_path)
@@ -80,6 +81,7 @@ def freeze(script_path, target_dir='frozen', **kw):
           (root_path, pyinst_path, root_path, spec_path)))
     _copytree('%s/dist/%s' % (pyinst_path, proj_name), target_dir)
     shutil.rmtree(pyinst_path)
+    print('\\/%s%s Output%s\\/' % ('-' * 10, 'Pyinstaller', '-' * 10))
 
 
 def freeze_to_tar(script_path, freeze_fn, extra_files=None):
