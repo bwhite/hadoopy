@@ -249,7 +249,7 @@ def launch_frozen(in_name, out_name, script_path, temp_path='_hadoopy_temp',
     else:
         if isinstance(jobconfs, str):
             jobconfs = [jobconfs]
-    jobconfs.append('mapred.cache.archives=%s#_frozen' % frozen_tar_path)
+    jobconfs.append('"mapreduce.job.cache.archives=%s#_frozen"' % frozen_tar_path)
     kw['copy_script'] = False
     kw['add_python'] = False
     kw['jobconfs'] = jobconfs
