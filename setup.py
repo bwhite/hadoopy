@@ -7,8 +7,29 @@ from distutils.extension import Extension
 import glob
 import os
 
+
+def get_cython_version():
+    """
+    Returns:
+        Version as a pair of ints (major, minor)
+
+    Raises:
+        ImportError: Can't load cython or find version
+    """
+    import Cython.Compiler.Main
+    match = re.search('^([0-9]+)\.([0-9]+)',
+                      Cython.Compiler.Main.Version.version)
+    try:
+        return map(int, match.groups())
+    except AttributeError:
+        raise ImportError
+
 # Only use Cython if it is available, else just use the pre-generated files
 try:
+    cython_version = get_cython_version()
+    # Requires Cython version 0.13 and up
+    if cython_version[0] == 0 and cython_version[1] < 13:
+        raise ImportError
     from Cython.Distutils import build_ext
     source_ext = '.pyx'
     cmdclass = {'build_ext': build_ext}
@@ -30,7 +51,7 @@ def get_glibc_version():
         return
     match = re.search('([0-9]+)\.([0-9]+)\.?[0-9]*', out)
     try:
-        return map(int, match.groups(1))
+        return map(int, match.groups())
     except AttributeError:
         return
 
@@ -59,6 +80,7 @@ def _run_pyinstaller_configure():
     subprocess.call(['python', 'hadoopy/thirdparty/pyinstaller/Configure.py'])
 
 _run_pyinstaller_configure()
+
 glibc_version = get_glibc_version()
 tb_extra_args = []
 if sys.byteorder != 'little':
