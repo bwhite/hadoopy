@@ -292,6 +292,11 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
     your functions is limited when using Text (i.e., no \\t or \\n).  You can use
     the base64 module to ensure that your output is clean.
 
+    If the HADOOPY_CHDIR environmental variable is set, this will immediately
+    change the working directory to the one specified.  This is useful if your
+    data is provided in an archive but your program assumes it is in that
+    directory.
+
     The command line switches added to your script (e.g., script.py) are
     python script.py map
         Use the provided mapper
@@ -342,6 +347,10 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
         True on error, else False (may not return if doc is set and
         there is an error)
     """
+    try:
+        os.chdir(os.environ['HADOOPY_CHDIR'])
+    except KeyError:
+        pass
     if len(sys.argv) >= 2:
         val = sys.argv[1]
         if val == 'map':
