@@ -21,6 +21,17 @@ import sys
 import os
 import hadoopy
 
+try:
+    d = os.environ['HADOOPY_CHDIR']
+    sys.stderr.write('Trying to chdir to [%s]\n' % d)
+except KeyError:
+    pass
+else:
+    try:
+        os.chdir(d)
+    except OSError:
+        sys.stderr.write('Failed to chdir to [%s]\n' % d)
+
 cdef extern from "stdlib.h":
     void *malloc(size_t size)
     void free(void *ptr)
@@ -347,10 +358,6 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
         True on error, else False (may not return if doc is set and
         there is an error)
     """
-    try:
-        os.chdir(os.environ['HADOOPY_CHDIR'])
-    except KeyError:
-        pass
     if len(sys.argv) >= 2:
         val = sys.argv[1]
         if val == 'map':
