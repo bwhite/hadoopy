@@ -23,14 +23,14 @@ import hadoopy
 
 try:
     d = os.environ['HADOOPY_CHDIR']
-    sys.stderr.write('Trying to chdir to [%s]\n' % d)
+    sys.stderr.write('HADOOPY: Trying to chdir to [%s]\n' % d)
 except KeyError:
     pass
 else:
     try:
         os.chdir(d)
     except OSError:
-        sys.stderr.write('Failed to chdir to [%s]\n' % d)
+        sys.stderr.write('HADOOPY: Failed to chdir to [%s]\n' % d)
 
 cdef extern from "stdlib.h":
     void *malloc(size_t size)
