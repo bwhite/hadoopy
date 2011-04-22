@@ -20,6 +20,7 @@ __license__ = 'GPL V3'
 import sys
 import os
 import hadoopy
+import subprocess
 
 def change_dir():
     # Skip this process if the command used is pipe.  The child will still get
@@ -40,6 +41,7 @@ def change_dir():
 # This is called immediately so that client imports are in their expected dir
 change_dir()
 
+
 cdef extern from "stdlib.h":
     void *malloc(size_t size)
     void free(void *ptr)
@@ -47,6 +49,8 @@ cdef extern from "stdlib.h":
 
 cdef extern from "stdio.h":
     ssize_t getdelim(char **lineptr, size_t *n, int delim, void *stream)
+    void *fdopen(int fd, char *mode)
+    int fflush(void *stream)
     void *stdin
     void *stdout
 
@@ -173,14 +177,27 @@ cdef class HadoopyTask(object):
     cdef object task_type
     cdef int line_count
     cdef object args
+    cdef int read_fd
+    cdef int write_fd
+    cdef void* read_fp
+    cdef object tb
 
-    def __init__(self, mapper, reducer, combiner, task_type, *args):
+    def __init__(self, mapper, reducer, combiner, task_type, *args, **kw):
         self.mapper = mapper
         self.reducer = reducer
         self.combiner = combiner
         self.task_type = task_type
         self.line_count = 0
-        self.args = args
+        try:
+            self.read_fd = int(args[0])
+        except IndexError:
+            self.read_fd = sys.stdin.fileno()
+        try:
+            self.write_fd = int(args[1])
+        except IndexError:
+            self.write_fd = sys.stdout.fileno()
+        self.read_fp = fdopen(self.read_fd, 'r')
+        self.tb = hadoopy.TypedBytesFile(read_fd=self.read_fd, write_fd=self.write_fd)
 
     # Core methods
     def run(self):
@@ -190,8 +207,6 @@ cdef class HadoopyTask(object):
             return self.process_inout(self.reducer, self.read_in_reduce(), self.print_out, 'reduce')
         elif self.task_type == 'combine':
             return self.process_inout(self.combiner, self.read_in_reduce(), self.print_out, 'reduce')
-        elif self.task_type == 'freeze' and self.args:
-            return self.freeze()
         else:
             return 1
 
@@ -222,28 +237,13 @@ cdef class HadoopyTask(object):
                 out_func(work_iter)
         return 0
 
-    def freeze(self):
-        extra_files = []
-        pos = 3
-        # Any file with -Z is added to the tar
-        while len(sys.argv) >= pos + 2 and sys.argv[pos] == '-Z':
-            extra_files.append(sys.argv[pos + 1])
-            pos += 2
-        extra = ' '.join(sys.argv[pos:])
-        hadoopy._freeze.freeze_to_tar(script_path=os.path.abspath(sys.argv[0]),
-                                      freeze_fn=sys.argv[2],
-                                      extra_files=extra_files)
-
     # Output methods
     def print_out_text(self, iter):
         for k, v in iter:
-            print('%s\t%s' % (k, v))
-
+            os.write(self.write_fd, '%s\t%s\n' % (k, v))
 
     def print_out_tb(self, iter):
-        for x in iter:
-            hadoopy._typedbytes.write_tb(x)
-
+        self.tb.writes(iter)
 
     def print_out(self, iter):
         """Given an iterator, output the paired values
@@ -254,28 +254,28 @@ cdef class HadoopyTask(object):
         self.print_out_tb(iter) if self.is_io_typedbytes() else self.print_out_text(iter)
 
     # Input methods
-    cdef read_key_value_text(self):
+    cpdef read_key_value_text(self):
         cdef ssize_t sz
         cdef char *lineptr = NULL
         cdef size_t n = 0
-        sz = getdelim(&lineptr, &n, 9, stdin)  # 9 == ord('\t')
+        sz = getdelim(&lineptr, &n, 9, self.read_fp)  # 9 == ord('\t')
         if sz == -1:
             raise StopIteration
         k = PyString_FromStringAndSize(lineptr, sz - 1)
         free(lineptr)
         lineptr = NULL
-        sz = getdelim(&lineptr, &n, 10, stdin)  # 10 == ord('\n')
+        sz = getdelim(&lineptr, &n, 10, self.read_fp)  # 10 == ord('\n')
         if sz == -1:
             raise StopIteration
         v = PyString_FromStringAndSize(lineptr, sz - 1)
         free(lineptr)
         return k, v
 
-    cdef read_offset_value_text(self):
+    cpdef read_offset_value_text(self):
         cdef ssize_t sz
         cdef char *lineptr = NULL
         cdef size_t n = 0
-        sz = getdelim(&lineptr, &n, 10, stdin)  # 10 == ord('\n')
+        sz = getdelim(&lineptr, &n, 10, self.read_fp)  # 10 == ord('\n')
         if sz == -1:
             raise StopIteration
         line = PyString_FromStringAndSize(lineptr, sz - 1)
@@ -283,15 +283,6 @@ cdef class HadoopyTask(object):
         out_count = self.line_count
         self.line_count += sz
         return out_count, line
-
-    def one_offset_value_text(self):
-        return self.read_offset_value_text()
-
-    def one_key_value_text(self):
-        return self.read_key_value_text()
-
-    def one_key_value_tb(self):
-        return hadoopy._typedbytes.read_tb()
 
     def read_in_map(self):
         """Provides the input iterator to use
@@ -304,10 +295,10 @@ cdef class HadoopyTask(object):
             Iterator that can be called to get KeyValue pairs.
         """
         if self.is_io_typedbytes():
-            return KeyValueStream(self.one_key_value_tb)
+            return KeyValueStream(self.tb.__next__)
         if self.is_on_hadoop():
-            return KeyValueStream(self.one_key_value_text)
-        return KeyValueStream(self.one_offset_value_text)
+            return KeyValueStream(self.read_key_value_text)
+        return KeyValueStream(self.read_offset_value_text)
 
     def read_in_reduce(self):
         """
@@ -315,8 +306,8 @@ cdef class HadoopyTask(object):
             Iterator that can be called to get grouped KeyValues.
         """
         if self.is_io_typedbytes():
-            return GroupedKeyValues(KeyValueStream(self.one_key_value_tb))
-        return GroupedKeyValues(KeyValueStream(self.one_key_value_text))
+            return GroupedKeyValues(KeyValueStream(self.tb.__next__))
+        return GroupedKeyValues(KeyValueStream(self.read_key_value_text))
 
     # Environment info methods
     def is_io_typedbytes(self):
@@ -328,6 +319,19 @@ cdef class HadoopyTask(object):
 
     def is_on_hadoop(self):
         return 'mapred_input_format_class' in os.environ
+
+
+def freeze(self):
+    extra_files = []
+    pos = 3
+    # Any file with -Z is added to the tar
+    while len(sys.argv) >= pos + 2 and sys.argv[pos] == '-Z':
+        extra_files.append(sys.argv[pos + 1])
+        pos += 2
+    extra = ' '.join(sys.argv[pos:])
+    hadoopy._freeze.freeze_to_tar(script_path=os.path.abspath(sys.argv[0]),
+                                  freeze_fn=sys.argv[2],
+                                  extra_files=extra_files)
 
 
 def run(mapper=None, reducer=None, combiner=None, **kw):
@@ -349,13 +353,33 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
     data is provided in an archive but your program assumes it is in that
     directory.
 
+    As hadoop streaming relies on stdin/stdout/stderr for communication,
+    anything that outputs on them in an unexpected way (especially stdout) will
+    break the pipe on the Java side and can potentially cause data errors.  To
+    fix this problem, hadoopy allows file descriptors (integers) to be provided
+    to each task.  These will be used instead of stdin/stdout by hadoopy.  This
+    is designed to combine with the 'pipe' command.
+
+    To use the pipe functionality, instead of using
+    `your_script.py map` use `your_script.py pipe map`
+    which will call the script as a subprocess and use the read_fd/write_fd
+    arguments for communication.  This isolates your script and eliminates
+    the largest source of errors when using hadoop streaming.
+
+    The pipe functionality has the following semantics
+    stdin: Always an empty file
+    stdout: Redirected to stderr (which is visible in the hadoop log)
+    stderr: Kept as stderr
+    read_fd: File descriptor that points to the true stdin
+    write_fd: File descriptor that points to the true stdout
+
     The command line switches added to your script (e.g., script.py) are
-    python script.py map
-        Use the provided mapper
-    python script.py reduce
-        Use the provided reducer
-    python script.py combine
-        Use the provided combiner
+    python script.py map (read_fd) (write_fd)
+        Use the provided mapper, optional read_fd/write_fd.
+    python script.py reduce (read_fd) (write_fd)
+        Use the provided reducer, optional read_fd/write_fd.
+    python script.py combine (read_fd) (write_fd)
+        Use the provided combiner, optional read_fd/write_fd.
     python script.py freeze <tar_path> <-Z add_file0 -Z add_file1...>
         Freeze the script to a tar file specified by <tar_path>.  The extension
         may be .tar or .tar.gz.  All files are placed in the root of the tar.
@@ -401,7 +425,23 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
     """
     ret = 0
     if len(sys.argv) >= 2:
-        ret = HadoopyTask(mapper, reducer, combiner, *sys.argv[1:]).run()
+        if sys.argv[1] == 'freeze' and len(sys.argv) > 2:
+            ret = freeze()
+        elif sys.argv[1] == 'pipe' and len(sys.argv) == 3:
+            cmd = '%s %s %d %d' % (sys.argv[0],
+                                   sys.argv[2],
+                                   os.dup(sys.stdin.fileno()),
+                                   os.dup(sys.stdout.fileno()))
+            slave_stdin = open('/dev/null', 'r')
+            slave_stdout = os.fdopen(os.dup(sys.stderr.fileno()), 'w')
+            try:
+                subprocess.call(cmd.split(), stdout=slave_stdout, stdin=slave_stdin)
+            except OSError:  # If we can't find the file, check the local dir
+                subprocess.call(('./' + cmd).split(), stdout=slave_stdout, stdin=slave_stdin)
+        elif sys.argv[1] in ['map', 'reduce', 'combine']:
+            ret = HadoopyTask(mapper, reducer, combiner, *sys.argv[1:]).run()
+        else:
+            ret = 1
     else:
         ret = 1
     if ret and 'doc' in kw:
