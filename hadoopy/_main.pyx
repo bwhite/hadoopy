@@ -21,16 +21,24 @@ import sys
 import os
 import hadoopy
 
-try:
-    d = os.environ['HADOOPY_CHDIR']
-    sys.stderr.write('HADOOPY: Trying to chdir to [%s]\n' % d)
-except KeyError:
-    pass
-else:
+def change_dir():
+    # Skip this process if the command used is pipe.  The child will still get
+    # the environmental variable
+    if len(sys.argv) >= 2 and sys.argv[1] == 'pipe':
+        return
     try:
-        os.chdir(d)
-    except OSError:
-        sys.stderr.write('HADOOPY: Failed to chdir to [%s]\n' % d)
+        d = os.environ['HADOOPY_CHDIR']
+        sys.stderr.write('HADOOPY: Trying to chdir to [%s]\n' % d)
+    except KeyError:
+        pass
+    else:
+        try:
+            os.chdir(d)
+        except OSError:
+            sys.stderr.write('HADOOPY: Failed to chdir to [%s]\n' % d)
+
+# This is called immediately so that client imports are in their expected dir
+change_dir()
 
 cdef extern from "stdlib.h":
     void *malloc(size_t size)
@@ -45,71 +53,6 @@ cdef extern from "stdio.h":
 
 cdef extern from "Python.h":
     object PyString_FromStringAndSize(char *s, Py_ssize_t len)
-
-
-cdef __read_key_value_text():
-    cdef ssize_t sz
-    cdef char *lineptr = NULL
-    cdef size_t n = 0
-    sz = getdelim(&lineptr, &n, 9, stdin)  # 9 == ord('\t')
-    if sz == -1:
-        raise StopIteration
-    k = PyString_FromStringAndSize(lineptr, sz - 1)
-    free(lineptr)
-    lineptr = NULL
-    sz = getdelim(&lineptr, &n, 10, stdin)  # 10 == ord('\n')
-    if sz == -1:
-        raise StopIteration
-    v = PyString_FromStringAndSize(lineptr, sz - 1)
-    free(lineptr)
-    return k, v
-
-
-_line_count = 0
-cdef __read_offset_value_text():
-    global _line_count
-    cdef ssize_t sz
-    cdef char *lineptr = NULL
-    cdef size_t n = 0
-    sz = getdelim(&lineptr, &n, 10, stdin)  # 10 == ord('\n')
-    if sz == -1:
-        raise StopIteration
-    line = PyString_FromStringAndSize(lineptr, sz - 1)
-    free(lineptr)
-    out_count = _line_count
-    _line_count += sz
-    return out_count, line
-
-
-def _one_offset_value_text():
-    return __read_offset_value_text()
-
-
-def _one_key_value_text():
-    return __read_key_value_text()
-
-
-def _one_key_value_tb():
-    return hadoopy._typedbytes.read_tb()
-
-
-def _print_out_text(iter):
-    for k, v in iter:
-        print('%s\t%s' % (k, v))
-
-
-def _print_out_tb(iter):
-    for x in iter:
-        hadoopy._typedbytes.write_tb(x)
-
-
-def _print_out(iter):
-    """Given an iterator, output the paired values
-
-    Args:
-        iter: Iterator of (key, value)
-    """
-    _print_out_tb(iter) if _is_io_typedbytes() else _print_out_text(iter)
 
 
 cdef class KeyValueStream(object):
@@ -223,70 +166,168 @@ cdef class GroupedKeyValues(object):
         return k, self._prev
 
 
-def _is_io_typedbytes():
-    # Only all or nothing typedbytes is supported, just check stream_map_input
-    try:
-        return os.environ['stream_map_input'] == 'typedbytes'
-    except KeyError:
-        return False
+cdef class HadoopyTask(object):
+    cdef object mapper
+    cdef object reducer
+    cdef object combiner
+    cdef object task_type
+    cdef int line_count
+    cdef object args
+
+    def __init__(self, mapper, reducer, combiner, task_type, *args):
+        self.mapper = mapper
+        self.reducer = reducer
+        self.combiner = combiner
+        self.task_type = task_type
+        self.line_count = 0
+        self.args = args
+
+    # Core methods
+    def run(self):
+        if self.task_type == 'map':
+            return self.process_inout(self.mapper, self.read_in_map(), self.print_out, 'map')
+        elif self.task_type == 'reduce':
+            return self.process_inout(self.reducer, self.read_in_reduce(), self.print_out, 'reduce')
+        elif self.task_type == 'combine':
+            return self.process_inout(self.combiner, self.read_in_reduce(), self.print_out, 'reduce')
+        elif self.task_type == 'freeze' and self.args:
+            return self.freeze()
+        else:
+            return 1
+
+    @classmethod
+    def process_inout(cls, work_func, in_iter, out_func, attr):
+        if work_func == None:
+            return 1
+        if isinstance(work_func, type):
+            work_func = work_func()
+        try:
+            work_func.configure()
+        except AttributeError:
+            pass
+        try:
+            call_work_func = getattr(work_func, attr)
+        except AttributeError:
+            call_work_func = work_func
+        for x in in_iter:
+            work_iter = call_work_func(*x)
+            if work_iter != None:
+                out_func(work_iter)
+        try:
+            work_iter = work_func.close()
+        except AttributeError:
+            pass
+        else:
+            if work_iter != None:
+                out_func(work_iter)
+        return 0
+
+    def freeze(self):
+        extra_files = []
+        pos = 3
+        # Any file with -Z is added to the tar
+        while len(sys.argv) >= pos + 2 and sys.argv[pos] == '-Z':
+            extra_files.append(sys.argv[pos + 1])
+            pos += 2
+        extra = ' '.join(sys.argv[pos:])
+        hadoopy._freeze.freeze_to_tar(script_path=os.path.abspath(sys.argv[0]),
+                                      freeze_fn=sys.argv[2],
+                                      extra_files=extra_files)
+
+    # Output methods
+    def print_out_text(self, iter):
+        for k, v in iter:
+            print('%s\t%s' % (k, v))
 
 
-def _is_on_hadoop():
-    return 'mapred_input_format_class' in os.environ
+    def print_out_tb(self, iter):
+        for x in iter:
+            hadoopy._typedbytes.write_tb(x)
 
 
-def _read_in_map():
-    """Provides the input iterator to use
+    def print_out(self, iter):
+        """Given an iterator, output the paired values
 
-    If _is_io_typedbytes() is true, then use TypedBytes.
-    If _is_on_hadoop() is true, then use Text as key\\tvalue\\n.
-    Else, then use Text with key as byte offset and value as line (no \\n)
-    
-    Returns:
-        Iterator that can be called to get KeyValue pairs.
-    """
-    if _is_io_typedbytes():
-        return KeyValueStream(_one_key_value_tb)
-    if _is_on_hadoop():
-        return KeyValueStream(_one_key_value_text)
-    return KeyValueStream(_one_offset_value_text)
+        Args:
+            iter: Iterator of (key, value)
+        """
+        self.print_out_tb(iter) if self.is_io_typedbytes() else self.print_out_text(iter)
 
+    # Input methods
+    cdef read_key_value_text(self):
+        cdef ssize_t sz
+        cdef char *lineptr = NULL
+        cdef size_t n = 0
+        sz = getdelim(&lineptr, &n, 9, stdin)  # 9 == ord('\t')
+        if sz == -1:
+            raise StopIteration
+        k = PyString_FromStringAndSize(lineptr, sz - 1)
+        free(lineptr)
+        lineptr = NULL
+        sz = getdelim(&lineptr, &n, 10, stdin)  # 10 == ord('\n')
+        if sz == -1:
+            raise StopIteration
+        v = PyString_FromStringAndSize(lineptr, sz - 1)
+        free(lineptr)
+        return k, v
 
-def _read_in_reduce():
-    """
-    Returns:
-        Iterator that can be called to get grouped KeyValues.
-    """
-    if _is_io_typedbytes():
-        return GroupedKeyValues(KeyValueStream(_one_key_value_tb))
-    return GroupedKeyValues(KeyValueStream(_one_key_value_text))
+    cdef read_offset_value_text(self):
+        cdef ssize_t sz
+        cdef char *lineptr = NULL
+        cdef size_t n = 0
+        sz = getdelim(&lineptr, &n, 10, stdin)  # 10 == ord('\n')
+        if sz == -1:
+            raise StopIteration
+        line = PyString_FromStringAndSize(lineptr, sz - 1)
+        free(lineptr)
+        out_count = self.line_count
+        self.line_count += sz
+        return out_count, line
 
+    def one_offset_value_text(self):
+        return self.read_offset_value_text()
 
-def process_inout(work_func, in_iter, out_func, attr):
-    if work_func == None:
-        return 1
-    if isinstance(work_func, type):
-        work_func = work_func()
-    try:
-        work_func.configure()
-    except AttributeError:
-        pass
-    try:
-        call_work_func = getattr(work_func, attr)
-    except AttributeError:
-        call_work_func = work_func
-    for x in in_iter:
-        work_iter = call_work_func(*x)
-        if work_iter != None:
-            out_func(work_iter)
-    try:
-        work_iter = work_func.close()
-    except AttributeError:
-        pass
-    else:
-        if work_iter != None:
-            out_func(work_iter)
-    return 0
+    def one_key_value_text(self):
+        return self.read_key_value_text()
+
+    def one_key_value_tb(self):
+        return hadoopy._typedbytes.read_tb()
+
+    def read_in_map(self):
+        """Provides the input iterator to use
+
+        If is_io_typedbytes() is true, then use TypedBytes.
+        If is_on_hadoop() is true, then use Text as key\\tvalue\\n.
+        Else, then use Text with key as byte offset and value as line (no \\n)
+
+        Returns:
+            Iterator that can be called to get KeyValue pairs.
+        """
+        if self.is_io_typedbytes():
+            return KeyValueStream(self.one_key_value_tb)
+        if self.is_on_hadoop():
+            return KeyValueStream(self.one_key_value_text)
+        return KeyValueStream(self.one_offset_value_text)
+
+    def read_in_reduce(self):
+        """
+        Returns:
+            Iterator that can be called to get grouped KeyValues.
+        """
+        if self.is_io_typedbytes():
+            return GroupedKeyValues(KeyValueStream(self.one_key_value_tb))
+        return GroupedKeyValues(KeyValueStream(self.one_key_value_text))
+
+    # Environment info methods
+    def is_io_typedbytes(self):
+        # Only all or nothing typedbytes is supported, just check stream_map_input
+        try:
+            return os.environ['stream_map_input'] == 'typedbytes'
+        except KeyError:
+            return False
+
+    def is_on_hadoop(self):
+        return 'mapred_input_format_class' in os.environ
 
 
 def run(mapper=None, reducer=None, combiner=None, **kw):
@@ -358,27 +399,9 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
         True on error, else False (may not return if doc is set and
         there is an error)
     """
+    ret = 0
     if len(sys.argv) >= 2:
-        val = sys.argv[1]
-        if val == 'map':
-            ret = process_inout(mapper, _read_in_map(), _print_out, 'map')
-        elif val == 'reduce':
-            ret = process_inout(reducer, _read_in_reduce(), _print_out, 'reduce')
-        elif val == 'combine':
-            ret = process_inout(combiner, _read_in_reduce(), _print_out, 'reduce')
-        elif val == 'freeze' and len(sys.argv) > 2:
-            extra_files = []
-            pos = 3
-            # Any file with -Z is added to the tar
-            while len(sys.argv) >= pos + 2 and sys.argv[pos] == '-Z':
-                extra_files.append(sys.argv[pos + 1])
-                pos += 2
-            extra = ' '.join(sys.argv[pos:])
-            hadoopy._freeze.freeze_to_tar(script_path=os.path.abspath(sys.argv[0]),
-                                          freeze_fn=sys.argv[2],
-                                          extra_files=extra_files)
-        else:
-            ret = 1
+        ret = HadoopyTask(mapper, reducer, combiner, *sys.argv[1:]).run()
     else:
         ret = 1
     if ret and 'doc' in kw:

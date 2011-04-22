@@ -69,7 +69,8 @@ class Test(unittest.TestCase):
 
         def out_func(out_iter):
             out.extend(out_iter)
-        hadoopy._main.process_inout(func, test_input, out_func, 'map')
+        hadoopy._main.HadoopyTask.process_inout(func, test_input,
+                                                out_func, 'map')
         return out
 
     def call_reduce(self, func, test_input):
@@ -77,5 +78,6 @@ class Test(unittest.TestCase):
 
         def out_func(out_iter):
             out.extend(out_iter)
-        hadoopy._main.process_inout(func, test_input, out_func, 'reduce')
+        hadoopy._main.HadoopyTask.process_inout(func, test_input,
+                                                out_func, 'reduce')
         return out

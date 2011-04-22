@@ -461,7 +461,6 @@ cdef _write_tb_code(void *fp, val):
 
 cdef _read_tb_code(void *fp):
     cdef int type_code = getc(fp)
-    print(type_code)
     # TODO Use a func pointer array
     if type_code == 0:
         return _read_bytes(fp)
