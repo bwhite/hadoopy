@@ -43,8 +43,9 @@ class TestHDFS(unittest.TestCase):
         self.nonsense_path = self.data_path + '93f8h93'
 
         # Upload a test file
-        cmd = 'hadoop fs -put %s %s' % (self.fn, self.file_path)
-        subprocess.check_call(cmd.split())
+        if hadoop_installed():
+            cmd = 'hadoop fs -put %s %s' % (self.fn, self.file_path)
+            subprocess.check_call(cmd.split())
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_ls(self):
