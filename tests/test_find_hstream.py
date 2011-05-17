@@ -19,7 +19,7 @@ __license__ = 'GPL V3'
 
 import unittest
 import hadoopy
-
+from test_hdfs import hadoop_installed
 
     
 class TestFindHStream(hadoopy.Test):
@@ -27,6 +27,7 @@ class TestFindHStream(hadoopy.Test):
     def __init__(self, *args, **kw):
         super(TestFindHStream, self).__init__(*args, **kw)
 
+    @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_find(self):
         self.assertTrue(hadoopy._runner._find_hstreaming())
 
