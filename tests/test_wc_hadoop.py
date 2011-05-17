@@ -20,8 +20,9 @@ __license__ = 'GPL V3'
 import subprocess
 import time
 import unittest
-
 import hadoopy
+
+from test_hdfs import hadoop_installed
 
 
 class TestWordcountHadoop(unittest.TestCase):
@@ -41,12 +42,15 @@ class TestWordcountHadoop(unittest.TestCase):
         self.assertEqual(wc['the'], 1664)
         self.assertEqual(wc['Alice'], 221)
 
+    @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_textgz_in(self):
         self._run('wc-input-alice.txt.gz')
 
+    @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_text_in(self):
         self._run('wc-input-alice.txt')
 
+    @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_tb_in(self):
         self._run('wc-input-alice.tb')
 

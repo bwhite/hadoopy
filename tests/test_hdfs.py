@@ -24,6 +24,15 @@ import unittest
 import hadoopy
 
 
+def hadoop_installed():
+    try:
+        subprocess.Popen('hadoop', stderr=subprocess.PIPE,
+                         stdout=subprocess.PIPE)
+    except OSError:
+        return False
+    return True
+
+
 class TestHDFS(unittest.TestCase):
 
     def __init__(self, *args, **kw):
@@ -37,15 +46,18 @@ class TestHDFS(unittest.TestCase):
         cmd = 'hadoop fs -put %s %s' % (self.fn, self.file_path)
         subprocess.check_call(cmd.split())
 
+    @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_ls(self):
         ls_output = hadoopy.ls(self.data_path)
         self.assertTrue(ls_output[0].endswith(self.file_path))
 
+    @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_cat(self):
         cat_output = [_ for _ in hadoopy.cat(self.file_path)]
         line = (331, 'Title: Alice\'s Adventures in Wonderland')
         self.assertTrue(line in cat_output)
 
+    @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_err(self):
         self.assertRaises(IOError, hadoopy.ls, self.nonsense_path)
         self.assertRaises(IOError, hadoopy.cat(self.nonsense_path).next)
