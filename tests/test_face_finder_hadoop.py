@@ -52,14 +52,9 @@ class TestFaceFinderHadoop(unittest.TestCase):
     def __init__(self, *args, **kw):
         super(TestFaceFinderHadoop, self).__init__(*args, **kw)
         cur_time = time.time()
-        load_from_umiacs('face_finder-input-voctrainpart.tb',
-                         'dbc50c02103221a499fc7cc77a5b61e9')
         self.data_path = 'hadoopy-test-data/%f/' % cur_time
         self.out_path = 'face_finder_out/%f/' % cur_time
         os.makedirs(self.out_path)
-        with open('haarcascade_frontalface_default.xml', 'w') as fp:
-            o = gzip.GzipFile('haarcascade_frontalface_default.xml.gz').read()
-            fp.write(o)
 
     def _run(self, fn):
         in_path = self.data_path + fn
@@ -73,6 +68,11 @@ class TestFaceFinderHadoop(unittest.TestCase):
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_tb_in(self):
+        load_from_umiacs('face_finder-input-voctrainpart.tb',
+                         'dbc50c02103221a499fc7cc77a5b61e9')
+        with open('haarcascade_frontalface_default.xml', 'w') as fp:
+            o = gzip.GzipFile('haarcascade_frontalface_default.xml.gz').read()
+            fp.write(o)
         self._run('face_finder-input-voctrainpart.tb')
 
 
