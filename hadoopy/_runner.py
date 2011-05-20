@@ -50,7 +50,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
            combiner=False, partitioner=False, files=(), jobconfs=(),
            cmdenvs=(), copy_script=True, hstreaming=None, name=None,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
-           pretend=False, add_python=True, config=None, 
+           pretend=False, add_python=True, config=None, pipe=True,
            python_cmd="python", num_mappers=None, num_reducers=None, 
            script_dir='',**kw):
     """Run Hadoop given the parameters
@@ -79,6 +79,8 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         pretend: If true, only build the command and return.
         add_python: If true, use 'python script_name.py'
         config: If a string, set the hadoop config path
+        pipe: If true then call user code through a pipe to isolate it
+            and stop bugs when printing to stdout.  See project docs.
         python_cmd: The python command to use. The default is "python".
             Can be used to override the system default python, e.g. 
             python_cmd = "python2.6"
@@ -110,11 +112,14 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     if script_dir:
         script_name = ''.join([script_dir, '/', script_name])
     if mapper == True:
-        mapper = ' '.join((script_name, 'map'))
+        c = 'pipe map' if pipe else 'map'
+        mapper = ' '.join((script_name, c))
     if reducer == True:
-        reducer = ' '.join((script_name, 'reduce'))
+        c = 'pipe reduce' if pipe else 'reduce'
+        reducer = ' '.join((script_name, c))
     if combiner == True:
-        combiner = ' '.join((script_name, 'combine'))
+        c = 'pipe combine' if pipe else 'combine'
+        combiner = ' '.join((script_name, c))
     cmd = ('%s -output %s' % (hadoop_cmd, out_name)).split()
     # Add inputs
     if isinstance(in_name, str):

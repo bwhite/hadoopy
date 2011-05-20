@@ -33,8 +33,10 @@ cdef extern from "stdio.h":
     int getc(void *stream)
     size_t fread(void *ptr, size_t size, size_t nmemb, void *stream)
     size_t fwrite(void *ptr, size_t size, size_t nmemb, void *stream)
+    void *fdopen(int fd, char *mode)
     int fclose(void *fp)
     void *fopen(char *path, char *mode)
+    int fflush(void *stream)
 
 cdef extern from "byteconversion.h":
     int32_t _be32toh(int32_t val)
@@ -516,11 +518,13 @@ cdef class TypedBytesFile(object):
         cdef void* _write_ptr
         cdef void* _read_ptr
         cdef object _repr
-        def __init__(self, fn=None, mode=None):
+        cdef object file_method
+        def __init__(self, fn=None, mode=None, read_fd=None, write_fd=None):
             cdef char *fnc
             cdef char *modec
-            self._repr = "TypedBytesFile(%s, %s)" % (repr(fn), repr(mode))
+            self._repr = "TypedBytesFile(%s, %s, %s, %s)" % (repr(fn), repr(mode), repr(read_fd), repr(write_fd))
             if fn:
+                self.file_method = 'fn'
                 if mode == None:
                     mode = 'r'
                 fnc = PyString_AsString(fn)
@@ -528,16 +532,27 @@ cdef class TypedBytesFile(object):
                 self._write_ptr = self._read_ptr = fopen(fnc, modec)
                 if self._write_ptr == NULL:
                     raise IOError('Cannot open file [%s]' % fn)
+            elif read_fd != None or write_fd != None:
+                self.file_method = 'readwritefds'
+                self._read_ptr = fdopen(read_fd, 'r') if read_fd != None else <void *>0
+                self._write_ptr = fdopen(write_fd, 'w') if write_fd != None else <void *>0
             else:
+                self.file_method = 'stdinout'
                 self._write_ptr = stdout
                 self._read_ptr = stdin
 
         cdef _close(self):
-            if self._write_ptr != NULL and self._write_ptr == self._read_ptr:
+            self.flush()
+            if self.file_method == 'readwritefds':
+                if self._write_ptr:
+                    fclose(self._write_ptr)
+                if self._read_ptr:
+                    fclose(self._read_ptr)
+            elif self.file_method == 'stdinout':
                 fclose(self._write_ptr)
             self._write_ptr = NULL
             self._read_ptr = NULL
-        
+
         def __repr__(self):
             return self._repr
 
@@ -554,14 +569,24 @@ cdef class TypedBytesFile(object):
             return self
 
         def __next__(self):
+            if self._read_ptr == <void *>0:
+                raise ValueError("Read pointer not set!")
             return __read_key_value_tb(self._read_ptr)
 
         def write(self, kv):
+            if self._write_ptr == <void *>0:
+                raise ValueError("Write pointer not set!")
             __write_key_value_tb(self._write_ptr, kv)
 
         def writes(self, kvs):
+            if self._write_ptr == <void *>0:
+                raise ValueError("Write pointer not set!")
             for kv in kvs:
                 __write_key_value_tb(self._write_ptr, kv)
+
+        def flush(self):
+            if self._write_ptr:
+                fflush(self._write_ptr)
 
         def close(self):
             self._close()
