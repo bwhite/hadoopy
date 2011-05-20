@@ -22,8 +22,29 @@ import time
 import unittest
 import hadoopy
 import os
+import gzip
 
 from test_hdfs import hadoop_installed
+
+
+def load_from_umiacs(path, md5hash):
+    import hashlib
+    import os
+    import urllib
+    name = os.path.basename(path)
+    download = not os.path.exists(path)
+    if os.path.exists(path) and md5hash:
+        with open(path) as fp:
+            if hashlib.md5(fp.read()).hexdigest() != md5hash:
+                download = True
+    if download:
+        url = 'http://umiacs.umd.edu/~bwhite/%s' % name
+        print('Downloading [%s]' % url)
+        data = urllib.urlopen(url).read()
+        with open(path, 'w') as fp:
+            if md5hash:
+                assert(md5hash == hashlib.md5(data).hexdigest())
+            fp.write(data)
 
 
 class TestFaceFinderHadoop(unittest.TestCase):
@@ -31,10 +52,15 @@ class TestFaceFinderHadoop(unittest.TestCase):
     def __init__(self, *args, **kw):
         super(TestFaceFinderHadoop, self).__init__(*args, **kw)
         cur_time = time.time()
+        load_from_umiacs('face_finder-input-voctrainpart.tb',
+                         'dbc50c02103221a499fc7cc77a5b61e9')
         self.data_path = 'hadoopy-test-data/%f/' % cur_time
         self.out_path = 'face_finder_out/%f/' % cur_time
         os.makedirs(self.out_path)
-    
+        with open('haarcascade_frontalface_default.xml', 'w') as fp:
+            o = gzip.GzipFile('haarcascade_frontalface_default.xml.gz').read()
+            fp.write(o)
+
     def _run(self, fn):
         in_path = self.data_path + fn
         out_path = self.data_path + 'out-' + fn
