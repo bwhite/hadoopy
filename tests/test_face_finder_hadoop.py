@@ -21,6 +21,7 @@ import subprocess
 import time
 import unittest
 import hadoopy
+import os
 
 from test_hdfs import hadoop_installed
 
@@ -29,7 +30,10 @@ class TestFaceFinderHadoop(unittest.TestCase):
 
     def __init__(self, *args, **kw):
         super(TestFaceFinderHadoop, self).__init__(*args, **kw)
-        self.data_path = 'hadoopy-test-data/%f/' % (time.time())
+        cur_time = time.time()
+        self.data_path = 'hadoopy-test-data/%f/' % cur_time
+        self.out_path = 'face_finder_out/%f/' % cur_time
+        os.makedirs(self.out_path)
     
     def _run(self, fn):
         in_path = self.data_path + fn
@@ -37,7 +41,9 @@ class TestFaceFinderHadoop(unittest.TestCase):
         cmd = 'hadoop fs -put %s %s' % (fn,  in_path)
         subprocess.check_call(cmd.split())
         hadoopy.launch_frozen(in_path, out_path, 'face_finder.py', reducer=False, files=['haarcascade_frontalface_default.xml'])
-        print([x for x, y in hadoopy.cat(out_path)])
+        for num, (image_name, (image_data, faces)) in enumerate(hadoopy.cat(out_path)):
+            with open(self.out_path + 'img%.8d.jpg' % num, 'w') as fp:
+                fp.write(image_data)
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_tb_in(self):
