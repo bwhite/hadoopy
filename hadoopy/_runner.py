@@ -238,8 +238,8 @@ def launch_frozen(in_name, out_name, script_path, temp_path='_hadoopy_temp',
         subprocess.CalledProcessError: Hadoop or Cxfreeze error.
         OSError: Hadoop streaming or Cxfreeze not found.
     """
-    frozen_tar_path = temp_path + '/%f/_frozen.tar.gz' % time.time()
-    freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar.gz')
+    frozen_tar_path = temp_path + '/%f/_frozen.tar' % time.time()
+    freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar')
     hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
     # TODO: Put this file on hdfs
     subprocess.call(('hadoop fs -put %s %s' % (freeze_fp.name,

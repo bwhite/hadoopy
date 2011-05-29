@@ -79,7 +79,11 @@ class Mapper(object):
             value: (image, faces) where image is the input value and faces is
                 a list of ((x, y, w, h), n)
         """
-        image = self._load_cv_image(value)
+        try:
+            image = self._load_cv_image(value)
+        except:
+            hadoopy.counter('DATA_ERRORS', 'ImageLoadError')
+            return
         faces = self._detect_faces(image)
         if faces:
             yield key, (value, faces)
