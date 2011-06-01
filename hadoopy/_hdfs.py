@@ -47,6 +47,7 @@ def _checked_hadoop_fs_command(cmd):
     
     return rcode, out, err
 
+
 def exists(path):
     """Check if a file exists.
     
@@ -61,21 +62,52 @@ def exists(path):
     rval = _checked_hadoop_fs_command(shellcmd%(path))[0]
     return bool(int(rval == 0))
     
+
 def rm(path):
     """Remove a file if it exists.
     
     Args:
         path: A string (potentially with wildcards).
-    
-    Return:
-        True if the path was removed.  False otherwise.
+
+    Raises:
+        IOError: If unsuccessful
     """
     shellcmd = "hadoop fs -rmr '%s'"%(path)
     rval, out, err = _checked_hadoop_fs_command(shellcmd)
     if rval is not 0:
-        if rval is not 0:
-            raise IOError('Ran[%s]: %s' % (path, err))
-    return rval
+        raise IOError('Ran[%s]: %s' % (shellcmd, err))
+
+
+def put(local_path, hdfs_path):
+    """Put a file on hdfs
+    
+    Args:
+        local_path: Source (str)
+        hdfs_path: Destrination (str)
+
+    Raises:
+        IOError: If unsuccessful
+    """
+    shellcmd = "hadoop fs -put '%s' '%s'" % (local_path, hdfs_path)
+    rval, out, err = _checked_hadoop_fs_command(shellcmd)
+    if rval is not 0:
+        raise IOError('Ran[%s]: %s' % (shellcmd, err))
+
+
+def get(hdfs_path, local_path):
+    """Get a file from hdfs
+    
+    Args:
+        hdfs_path: Destrination (str)
+        local_path: Source (str)
+
+    Raises:
+        IOError: If unsuccessful
+    """
+    shellcmd = "hadoop fs -get '%s' '%s'" % (hdfs_path, local_path)
+    rval, out, err = _checked_hadoop_fs_command(shellcmd)
+    if rval is not 0:
+        raise IOError('Ran[%s]: %s' % (shellcmd, err))
 
 
 def ls(path):
@@ -140,7 +172,7 @@ def _hdfs_cat_tb(args):
                 raise IOError
 
 
-def cat(path, ignore_logs=True, procs=10):
+def readtb(path, ignore_logs=True, procs=10):
     """Read typedbytes sequence files on HDFS (with optional compression).
 
     By default, ignores files who's names start with an underscore '_' as they
@@ -176,3 +208,25 @@ def cat(path, ignore_logs=True, procs=10):
         for y in fps:
             for x in hadoopy.TypedBytesFile(y.name, 'r'):
                 yield x
+
+
+def writetb(path, kvs):
+    """Write typedbytes sequence file on local disk
+    """
+    read_fd, write_fd = os.pipe()
+    read_fp = os.fdopen(read_fd, 'r')
+    with tempfile.NamedTemporaryFile() as temp_fp:
+        try:
+            p = subprocess.Popen('hadoop jar %s loadtb %s' % (hstreaming, temp_fp.name),
+                                 stdin=read_fp, close_fds=True, env={}, shell=True,
+                                 stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        except IOError:
+            p = subprocess.Popen('hadoop jar %s loadtb %s' % (hstreaming, temp_fp.name),
+                                 stdin=read_fp, close_fds=True, shell=True,
+                                 stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        with hadoopy.TypedBytesFile(write_fd=write_fd) as tb_fp:
+            for kv in kvs:
+                tb_fp.write(kv)
+            tb_fp.flush()
+        p.wait()
+        put(temp_fp.name, path)
