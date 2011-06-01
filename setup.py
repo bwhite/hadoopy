@@ -76,7 +76,10 @@ def _run_pyinstaller_configure():
     The resulting config is stored in hadoopy/thirdparty which will be copied
     along
     """
-    subprocess.call(['python', 'hadoopy/thirdparty/pyinstaller/Configure.py'])
+    with open('pyinstaller.log', 'w') as fp:
+        subprocess.Popen(['python', 'hadoopy/thirdparty/pyinstaller/Configure.py'],
+                         stdout=fp,
+                         stderr=fp)
 
 _run_pyinstaller_configure()
 

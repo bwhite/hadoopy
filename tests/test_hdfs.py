@@ -54,7 +54,7 @@ class TestHDFS(unittest.TestCase):
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_cat(self):
-        cat_output = [_ for _ in hadoopy.cat(self.file_path)]
+        cat_output = [_ for _ in hadoopy.readtb(self.file_path)]
         line = (331, 'Title: Alice\'s Adventures in Wonderland')
         self.assertTrue(line in cat_output)
 
