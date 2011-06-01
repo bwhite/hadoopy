@@ -35,9 +35,12 @@ def _wrap_string(s):
     return list(s)
 
 
-def _run(path):
-    print(path)
-    subprocess.call(path.split())
+def _run(path, verbose=False):
+    p = subprocess.Popen(path.split(), stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    stderr, stdout = p.communicate()
+    if verbose:
+        print('stdout[%s] stderr[%s]' % (stdout, stderr))
 
 
 def _copytree(src, dst):
@@ -54,7 +57,7 @@ def _copytree(src, dst):
             shutil.copytree('%s/%s' % (src, file), '%s/%s' % (dst, file))
 
 
-def freeze(script_path, target_dir='frozen', **kw):
+def freeze(script_path, target_dir='frozen', verbose=False, **kw):
     """Wraps pyinstaller and provides an easy to use interface
 
     This requires that the Configure.py script has been run (this is run in
@@ -67,21 +70,23 @@ def freeze(script_path, target_dir='frozen', **kw):
         subprocess.CalledProcessError: Freeze error.
         OSError: Freeze not found.
     """
-    print('/\\%s%s Output%s/\\' % ('-' * 10, 'Pyinstaller', '-' * 10))
+    if verbose:
+        print('/\\%s%s Output%s/\\' % ('-' * 10, 'Pyinstaller', '-' * 10))
     pyinst_path = tempfile.mkdtemp()
     root_path = '%s/thirdparty/pyinstaller' % __path__[0]
     script_dir = os.path.dirname(script_path)
     _run(('python %s/Makespec.py -o %s -C %s/config.dat -p %s %s' %
           (root_path, pyinst_path, root_path, script_dir,
-           script_path)))
+           script_path)), verbose=verbose)
     proj_name = os.path.basename(script_path)
     proj_name = proj_name[:proj_name.rfind('.')]  # Remove extension
     spec_path = '%s/%s.spec' % (pyinst_path, proj_name)
     _run(('python %s/Build.py -y -o %s -C %s/config.dat %s' %
-          (root_path, pyinst_path, root_path, spec_path)))
+          (root_path, pyinst_path, root_path, spec_path)), verbose=verbose)
     _copytree('%s/dist/%s' % (pyinst_path, proj_name), target_dir)
     shutil.rmtree(pyinst_path)
-    print('\\/%s%s Output%s\\/' % ('-' * 10, 'Pyinstaller', '-' * 10))
+    if verbose:
+        print('\\/%s%s Output%s\\/' % ('-' * 10, 'Pyinstaller', '-' * 10))
 
 
 def freeze_to_tar(script_path, freeze_fn, extra_files=None):
