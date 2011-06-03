@@ -321,7 +321,7 @@ cdef class HadoopyTask(object):
         return 'mapred_input_format_class' in os.environ
 
 
-def freeze(self):
+def freeze():
     extra_files = []
     pos = 3
     # Any file with -Z is added to the tar

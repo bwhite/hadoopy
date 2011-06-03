@@ -37,8 +37,8 @@ class TestWordcountHadoop(unittest.TestCase):
         cmd = 'hadoop fs -put %s %s' % (fn,  in_path)
         subprocess.check_call(cmd.split())
         # Don't let the file split, CDH3 has a bug and will try to split gz's
-        hadoopy.launch_frozen(in_path, out_path, 'wc.py', jobconfs='mapred.min.split.size=100000000')
-        wc = dict(hadoopy.cat(out_path))
+        hadoopy.launch_frozen(in_path, out_path, 'wc.py', jobconfs='mapred.min.split.size=100000000', combiner=True)
+        wc = dict(hadoopy.readtb(out_path))
         self.assertEqual(wc['the'], 1664)
         self.assertEqual(wc['Alice'], 221)
 
