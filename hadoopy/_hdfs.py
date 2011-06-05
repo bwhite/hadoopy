@@ -48,7 +48,6 @@ def _checked_hadoop_fs_command(cmd):
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         out, err = p.communicate()
-    print(cmd.split())
     rcode = p.returncode
     return rcode, out, err
 
