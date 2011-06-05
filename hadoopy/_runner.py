@@ -22,7 +22,9 @@ import subprocess
 import os
 import time
 import tempfile
+import shutil
 import hadoopy._freeze
+import select
 
 
 def _find_hstreaming():
@@ -78,8 +80,8 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         pretend: If true, only build the command and return.
         add_python: If true, use 'python script_name.py'
         config: If a string, set the hadoop config path
-        pipe: If true then call user code through a pipe to isolate it
-            and stop bugs when printing to stdout.  See project docs.
+        pipe: If true (default) then call user code through a pipe to isolate
+            it and stop bugs when printing to stdout.  See project docs.
         python_cmd: The python command to use. The default is "python".
             Can be used to override the system default python, e.g.
             python_cmd = "python2.6"
@@ -229,8 +231,8 @@ def launch_frozen(in_name, out_name, script_path, temp_path='_hadoopy_temp',
         pretend: If true, only build the command and return.
         add_python: If true, use 'python script_name.py'
         config: If a string, set the hadoop config path
-        pipe: If true then call user code through a pipe to isolate it
-            and stop bugs when printing to stdout.  See project docs.
+        pipe: If true (default) then call user code through a pipe to isolate
+            it and stop bugs when printing to stdout.  See project docs.
         python_cmd: The python command to use. The default is "python".
             Can be used to override the system default python, e.g.
             python_cmd = "python2.6"
@@ -273,8 +275,8 @@ def launch_frozen(in_name, out_name, script_path, temp_path='_hadoopy_temp',
     return launch_cmd
 
 
-def launch_local(in_name, out_name, script_path, max_input=-1,
-                 **kw):
+def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, reducer=True,
+           combiner=False, files=(), cmdenvs=(), pipe=True, **kw):
     """A simple local emulation of hadoop
 
     This doesn't run hadoop and it doesn't support many advanced features, it
@@ -283,11 +285,12 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     This allows for small tasks to be run locally (primarily while debugging).
 
     Support
-    - Environmental variables (TODO)
-    - Map-only tasks (TODO)
-    - Combiner (TODO)
-    - Files (TODO)
-    - Display of stdout/stderr (TODO)
+    - Environmental variables
+    - Map-only tasks
+    - Combiner
+    - Files
+    - Pipe (see below)
+    - Display of stdout/stderr
 
     Args:
         in_name: Input path (string or list)
@@ -303,47 +306,63 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
             If string, the combiner is the value
         files: Extra files (other than the script) (string or list).
             NOTE: Hadoop copies the files into working directory
-        jobconfs: Extra jobconf parameters (string or list)
         cmdenvs: Extra cmdenv parameters (string or list)
-        pipe: If true then call user code through a pipe to isolate it
-            and stop bugs when printing to stdout.  See project docs.
-
-    Returns:
-        The hadoop command called.
-
-    Raises:
-        subprocess.CalledProcessError: Hadoop or Cxfreeze error.
-        OSError: Hadoop streaming or Cxfreeze not found.
+        pipe: If true (default) then call user code through a pipe to isolate
+            it and stop bugs when printing to stdout.  See project docs.
     """
-    # Run mapper
-    map_in_r_fd, map_in_w_fd = os.pipe()
-    map_out_r_fd, map_out_w_fd = os.pipe()
-    map_cmd = ('./%s map' % script_path).split()
+    # Copy files
+    if files:
+        if isinstance(files, str):
+            files = [files]
+        for f in files:
+            shutil.copy(f, os.path.basename(f))
+
+    # Setup env
     env = dict(os.environ)
     env['stream_map_input'] = 'typedbytes'
-    a = os.fdopen(map_in_r_fd, 'r')
-    b = os.fdopen(map_out_w_fd, 'w')
-    p = subprocess.Popen(map_cmd,
-                         stdin=a,
-                         stdout=b,
-                         close_fds=True,
-                         env=env)
-    a.close()
-    b.close()
-    with hadoopy.TypedBytesFile(read_fd=map_out_r_fd) as tbfp_r:
-        with hadoopy.TypedBytesFile(write_fd=map_in_w_fd) as tbfp_w:
-            for x in range(100):
-                tbfp_w.write((x, x))
-        for x in tbfp_r:
-            print('From[%s]' % str(x))
-    p.wait()
-    #with :
-    #    for num, kv in enumerate(hadoopy.readtb(in_name)):
-    #        if max_input >= 0 and max_input <= num:
-    #            break
-    #        print(num)
-    #        print(kv[0])
-    #        tbfp_w.write(kv)
-    #print('waiting')
-    #p.wait()
-    return
+    if cmdenvs:
+        if isinstance(cmdenvs, str):
+            cmdenvs = [cmdenvs]
+        for cmdenv in cmdenvs:
+            k, v = cmdenv.split('=', 1)
+            env[k] = v
+
+    def _run_task(task, kvs, env):
+        if pipe:
+            task = 'pipe %s' % task
+        in_r_fd, in_w_fd = os.pipe()
+        out_r_fd, out_w_fd = os.pipe()
+        cmd = ('./%s %s' % (script_path, task)).split()
+        a = os.fdopen(in_r_fd, 'r')
+        b = os.fdopen(out_w_fd, 'w')
+        p = subprocess.Popen(cmd,
+                             stdin=a,
+                             stdout=b,
+                             close_fds=True,
+                             env=env)
+        a.close()
+        b.close()
+        with hadoopy.TypedBytesFile(read_fd=out_r_fd) as tbfp_r:
+            with hadoopy.TypedBytesFile(write_fd=in_w_fd) as tbfp_w:
+                for num, kv in enumerate(kvs):
+                    if max_input >= 0 and max_input <= num:
+                        break
+                    # Use select to see if the buffer has anything in it
+                    # this minimizes the chance that the pipe will block
+                    while select.select([out_r_fd], [], [], 0)[0]:
+                        yield tbfp_r.next()
+                    tbfp_w.write(kv)
+            # Get any remaining values
+            for kv in tbfp_r:
+                yield kv
+        p.wait()
+    kvs = list(_run_task('map', hadoopy.readtb(in_name), env))
+    if reducer:
+        hadoopy.writetb(out_name, kvs)
+        return
+    if combiner:
+        kvs = hadoopy.Test.sort_kv(kvs)
+        kvs = list(_run_task('combine', kvs, env))
+    kvs = hadoopy.Test.sort_kv(kvs)
+    kvs = _run_task('reduce', kvs, env)
+    hadoopy.writetb(out_name, kvs)

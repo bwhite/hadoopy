@@ -199,7 +199,7 @@ def readtb(path, ignore_logs=True):
         write_fp = os.fdopen(write_fd, 'w')
         # TODO(brandyn): Make this work inside of a hadoop task like it did
         p = subprocess.Popen(cmd, stdout=write_fp,
-                             stderr=subprocess.PIPE)
+                             stderr=subprocess.PIPE, close_fds=True)
         write_fp.close()
         with hadoopy.TypedBytesFile(read_fd=read_fd) as tb_fp:
             for kv in tb_fp:

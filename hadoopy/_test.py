@@ -28,7 +28,8 @@ class Test(unittest.TestCase):
     def __init__(self, *args, **kw):
         super(Test, self).__init__(*args, **kw)
 
-    def sort_kv(self, kv):
+    @classmethod
+    def sort_kv(cls, kv):
         """Perform a stable sort on KeyValue pair keys
 
         Args:
@@ -41,7 +42,8 @@ class Test(unittest.TestCase):
         kv.sort(lambda x, y: cmp(x[0], y[0]))
         return kv
 
-    def groupby_kv(self, kv):
+    @classmethod
+    def groupby_kv(cls, kv):
         """Group sorted KeyValue pairs
 
         Args:
@@ -53,7 +55,8 @@ class Test(unittest.TestCase):
         return ((x, (z[1] for z in y))
                 for x, y in groupby(kv, itemgetter(0)))
 
-    def shuffle_kv(self, kv):
+    @classmethod
+    def shuffle_kv(cls, kv):
         """Given KeyValue pairs, sort, then group
 
         Args:
@@ -62,7 +65,7 @@ class Test(unittest.TestCase):
         Returns:
             Grouped KeyValue pairs in sorted order
         """
-        return self.groupby_kv(self.sort_kv(kv))
+        return cls.groupby_kv(cls.sort_kv(kv))
 
     def call_map(self, func, test_input):
         out = []
