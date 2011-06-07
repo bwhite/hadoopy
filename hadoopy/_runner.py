@@ -201,14 +201,23 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     return ' '.join(cmd)
 
 
-def launch_frozen(in_name, out_name, script_path, temp_path='_hadoopy_temp',
+def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
+                  temp_path='_hadoopy_temp',
                   **kw):
     """Freezes a script and then launches it.
+
+    This function will freeze your python program, and place it on HDFS
+    in 'temp_path'.  It will not remove it afterwards as they are typically
+    small, you can easily reuse/debug them, and to avoid any risks involved
+    with removing the file.
 
     Args:
         in_name: Input path (string or list)
         out_name: Output path
         script_path: Path to the script (e.g., script.py)
+        frozen_tar_path: If not None, use this path to a previously frozen
+            archive.  You can get such a path from the return value of this
+            function, it is particularly helpful in iterative programs.
         temp_path: HDFS path that we can use to store temporary files
             (default to _hadoopy_temp)
         mapper: If True, the mapper is "script.py map".
@@ -246,16 +255,17 @@ def launch_frozen(in_name, out_name, script_path, temp_path='_hadoopy_temp',
             prefixed to script_path with a / (default '' is current dir)
 
     Returns:
-        The hadoop command called.
+        Tuple of (hadoop_cmd, frozen_tar_path)
 
     Raises:
         subprocess.CalledProcessError: Hadoop or Cxfreeze error.
         OSError: Hadoop streaming or Cxfreeze not found.
     """
-    frozen_tar_path = temp_path + '/%f/_frozen.tar' % time.time()
-    freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar')
-    hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
-    hadoopy.put(freeze_fp.name, frozen_tar_path)
+    if not frozen_tar_path:
+        frozen_tar_path = temp_path + '/%f/_frozen.tar' % time.time()
+        freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar')
+        hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
+        hadoopy.put(freeze_fp.name, frozen_tar_path)
     if script_path.endswith('.py'):
         script_path = script_path[:-3]
     try:
@@ -272,7 +282,7 @@ def launch_frozen(in_name, out_name, script_path, temp_path='_hadoopy_temp',
     kw['jobconfs'] = jobconfs
     launch_cmd = launch(in_name, out_name, script_path,
                         script_dir='_frozen', **kw)
-    return launch_cmd
+    return (launch_cmd, frozen_tar_path)
 
 
 def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, reducer=True,
@@ -310,6 +320,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, redu
         pipe: If true (default) then call user code through a pipe to isolate
             it and stop bugs when printing to stdout.  See project docs.
     """
+    print('Hadoopy Local: In[%s] Out[%s] Script[%s]' % (in_name, out_name, script_path))
     # Copy files
     if files:
         if isinstance(files, str):
@@ -328,6 +339,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, redu
             env[k] = v
 
     def _run_task(task, kvs, env):
+        print('Running [%s]' % task)
         if pipe:
             task = 'pipe %s' % task
         in_r_fd, in_w_fd = os.pipe()
@@ -349,20 +361,26 @@ def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, redu
                         break
                     # Use select to see if the buffer has anything in it
                     # this minimizes the chance that the pipe will block
+                    print(num)
                     while select.select([out_r_fd], [], [], 0)[0]:
+                        print('Reading from fd early')
                         yield tbfp_r.next()
                     tbfp_w.write(kv)
             # Get any remaining values
             for kv in tbfp_r:
                 yield kv
         p.wait()
-    kvs = list(_run_task('map', hadoopy.readtb(in_name), env))
-    if reducer:
-        hadoopy.writetb(out_name, kvs)
-        return
-    if combiner:
+    try:
+        kvs = list(_run_task('map', hadoopy.readtb(in_name), env))
+        if not reducer:
+            hadoopy.writetb(out_name, kvs)
+            return
+        if combiner:
+            kvs = hadoopy.Test.sort_kv(kvs)
+            kvs = list(_run_task('combine', kvs, env))
         kvs = hadoopy.Test.sort_kv(kvs)
-        kvs = list(_run_task('combine', kvs, env))
-    kvs = hadoopy.Test.sort_kv(kvs)
-    kvs = _run_task('reduce', kvs, env)
-    hadoopy.writetb(out_name, kvs)
+        kvs = _run_task('reduce', kvs, env)
+        hadoopy.writetb(out_name, kvs)
+    except OSError, e:
+        print('Error: Ensure that [%s] is executable and starts with "#!/usr/bin/env python".' % script_path)
+        raise e

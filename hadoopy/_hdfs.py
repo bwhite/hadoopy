@@ -151,7 +151,14 @@ def ls(path):
 
 
 def writetb(path, kvs):
-    """Write typedbytes sequence file on local disk
+    """Write typedbytes sequence file on HDFS
+
+    Args:
+        path: HDFS path (str)
+        kvs: Iterator of (key, value)
+    
+    Raises:
+        IOError: An error occurred while saving the data.
     """
     read_fd, write_fd = os.pipe()
     read_fp = os.fdopen(read_fd, 'r')
@@ -161,8 +168,11 @@ def writetb(path, kvs):
     p = subprocess.Popen(cmd,
                          stdin=read_fp, close_fds=True,
                          stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    read_fp.close()
     with hadoopy.TypedBytesFile(write_fd=write_fd) as tb_fp:
         for kv in kvs:
+            if p.poll() is not None:
+                raise IOError('Child process quit while we were sending it data. STDOUT[%s] STDERR[%s]' % p.communicate())
             tb_fp.write(kv)
         tb_fp.flush()
     p.wait()
@@ -176,7 +186,7 @@ def readtb(path, ignore_logs=True):
     outputs from hadoop (e.g., _SUCCESS, _logs).
 
     Args:
-        path: A string (potentially with wildcards).
+        path: HDFS path (str)
         ignore_logs: If True, ignore all files who's name starts with an
             underscore.  Defaults to True.
 
