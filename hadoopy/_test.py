@@ -67,7 +67,8 @@ class Test(unittest.TestCase):
         """
         return cls.groupby_kv(cls.sort_kv(kv))
 
-    def call_map(self, func, test_input):
+    @classmethod
+    def call_map(cls, func, test_input):
         out = []
 
         def out_func(out_iter):
@@ -76,7 +77,8 @@ class Test(unittest.TestCase):
                                                 out_func, 'map')
         return out
 
-    def call_reduce(self, func, test_input):
+    @classmethod
+    def call_reduce(cls, func, test_input):
         out = []
 
         def out_func(out_iter):
