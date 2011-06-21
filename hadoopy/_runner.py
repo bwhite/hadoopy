@@ -390,10 +390,9 @@ def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, redu
                         break
                     # Use select to see if the buffer has anything in it
                     # this minimizes the chance that the pipe will block
-                    print(num)
-                    while select.select([out_r_fd], [], [], 0)[0]:
-                        print('Reading from fd early')
-                        yield tbfp_r.next()
+                    # TODO(brandyn): This is currently broken, fix it!
+                    #while select.select([out_r_fd], [], [], 0)[0]:
+                    #    yield tbfp_r.next()
                     tbfp_w.write(kv)
             # Get any remaining values
             for kv in tbfp_r:
