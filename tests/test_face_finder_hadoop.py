@@ -62,7 +62,7 @@ class TestFaceFinderHadoop(unittest.TestCase):
         cmd = 'hadoop fs -put %s %s' % (fn,  in_path)
         subprocess.check_call(cmd.split())
         hadoopy.launch_frozen(in_path, out_path, 'face_finder.py', reducer=False, files=['haarcascade_frontalface_default.xml'])
-        for num, (image_name, (image_data, faces)) in enumerate(hadoopy.cat(out_path)):
+        for num, (image_name, (image_data, faces)) in enumerate(hadoopy.readtb(out_path)):
             with open(self.out_path + 'img%.8d.jpg' % num, 'w') as fp:
                 fp.write(image_data)
 

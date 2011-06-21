@@ -53,7 +53,7 @@ class TestHDFS(unittest.TestCase):
         self.assertTrue(ls_output[0].endswith(self.file_path))
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
-    def test_cat(self):
+    def test_readtb(self):
         cat_output = [_ for _ in hadoopy.readtb(self.file_path)]
         line = (331, 'Title: Alice\'s Adventures in Wonderland')
         self.assertTrue(line in cat_output)
@@ -61,7 +61,7 @@ class TestHDFS(unittest.TestCase):
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_err(self):
         self.assertRaises(IOError, hadoopy.ls, self.nonsense_path)
-        self.assertRaises(IOError, hadoopy.cat(self.nonsense_path).next)
+        self.assertRaises(IOError, hadoopy.readtb(self.nonsense_path).next)
 
 
 if __name__ == '__main__':

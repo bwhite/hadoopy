@@ -49,7 +49,7 @@ def _find_hstreaming():
 
 def launch(in_name, out_name, script_path, mapper=True, reducer=True,
            combiner=False, partitioner=False, files=(), jobconfs=(),
-           cmdenvs=(), copy_script=True, hstreaming=None, name=None,
+           cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
            pretend=False, add_python=True, config=None, pipe=True,
            python_cmd="python", num_mappers=None, num_reducers=None,
@@ -68,6 +68,9 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
             If string, the combiner is the value
         partitioner: If True, the partitioner is the value.
         copy_script: If True, the script is added to the files list.
+        wait: If True, wait till the process is completed (default True)
+            this is useful if you want to run multiple jobs concurrently
+            by using the 'process' entry in the output.
         files: Extra files (other than the script) (string or list).
             NOTE: Hadoop copies the files into working directory
         jobconfs: Extra jobconf parameters (string or list)
@@ -95,12 +98,17 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
             prefixed to script_path with a / (default '' is current dir)
 
     Returns:
-        The hadoop command called.
+        Dictionary some of the following entries (depending on options) of
+        freeze_cmds: Freeze command(s) ran
+        hadoop_cmds: Hadoopy command(s) ran
+        process: subprocess.Popen object
+        output: Iterator of (key, value) pairs
 
     Raises:
         subprocess.CalledProcessError: Hadoop error.
         OSError: Hadoop streaming not found.
     """
+    out = {}
     try:
         hadoop_cmd = 'hadoop jar ' + hstreaming
     except TypeError:
@@ -196,9 +204,15 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     if not pretend:
         print('/\\%s%s Output%s/\\' % ('-' * 10, 'Hadoop', '-' * 10))
         print('hadoopy: Running[%s]' % (' '.join(cmd)))
-        subprocess.check_call(' '.join(cmd), shell=True)
+        process = subprocess.Popen(' '.join(cmd), shell=True)
+        out['process'] = process
+        if wait:
+            if process.wait():
+                raise subprocess.CalledProcessError(process.returncode, ' '.join(cmd))
         print('\\/%s%s Output%s\\/' % ('-' * 10, 'Hadoop', '-' * 10))
-    return ' '.join(cmd)
+        out['output'] = hadoopy.readtb(out_name)
+    out['hadoop_cmds'] = ' '.join(cmd)
+    return out
 
 
 def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
@@ -228,6 +242,9 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
             If string, the combiner is the value
         partitioner: If True, the partitioner is the value.
         copy_script: If True, the script is added to the files list.
+        wait: If True, wait till the process is completed (default True)
+            this is useful if you want to run multiple jobs concurrently
+            by using the 'process' entry in the output.
         files: Extra files (other than the script) (string or list).
             NOTE: Hadoop copies the files into working directory
         jobconfs: Extra jobconf parameters (string or list)
@@ -255,7 +272,11 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
             prefixed to script_path with a / (default '' is current dir)
 
     Returns:
-        Tuple of (hadoop_cmd, frozen_tar_path)
+        Dictionary some of the following entries (depending on options) of
+        freeze_cmds: Freeze command(s) ran
+        hadoop_cmds: Hadoopy command(s) ran
+        process: subprocess.Popen object
+        output: Iterator of (key, value) pairs
 
     Raises:
         subprocess.CalledProcessError: Hadoop or Cxfreeze error.
@@ -264,7 +285,7 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     if not frozen_tar_path:
         frozen_tar_path = temp_path + '/%f/_frozen.tar' % time.time()
         freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar')
-        hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
+        cmds = hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
         hadoopy.put(freeze_fp.name, frozen_tar_path)
     if script_path.endswith('.py'):
         script_path = script_path[:-3]
@@ -280,9 +301,10 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     kw['copy_script'] = False
     kw['add_python'] = False
     kw['jobconfs'] = jobconfs
-    launch_cmd = launch(in_name, out_name, script_path,
-                        script_dir='_frozen', **kw)
-    return (launch_cmd, frozen_tar_path)
+    out = launch(in_name, out_name, script_path,
+                 script_dir='_frozen', **kw)
+    out['freeze_cmds'] = cmds
+    return out
 
 
 def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, reducer=True,
@@ -319,6 +341,13 @@ def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, redu
         cmdenvs: Extra cmdenv parameters (string or list)
         pipe: If true (default) then call user code through a pipe to isolate
             it and stop bugs when printing to stdout.  See project docs.
+    Returns:
+        Dictionary some of the following entries (depending on options) of
+        freeze_cmds: Freeze command(s) ran
+        hadoop_cmds: Hadoopy command(s) ran
+        process: subprocess.Popen object
+        output: Iterator of (key, value) pairs
+
     """
     print('Hadoopy Local: In[%s] Out[%s] Script[%s]' % (in_name, out_name, script_path))
     # Copy files

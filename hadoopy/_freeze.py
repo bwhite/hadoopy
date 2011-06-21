@@ -57,7 +57,7 @@ def _copytree(src, dst):
             shutil.copytree('%s/%s' % (src, file), '%s/%s' % (dst, file))
 
 
-def freeze(script_path, target_dir='frozen', verbose=False, **kw):
+def freeze(script_path, target_dir='frozen', verbose=True, **kw):
     """Wraps pyinstaller and provides an easy to use interface
 
     This requires that the Configure.py script has been run (this is run in
@@ -66,27 +66,33 @@ def freeze(script_path, target_dir='frozen', verbose=False, **kw):
     Args:
         script_path: Absolute path to python script to be frozen.
 
+    Returns:
+        List of freeze commands ran
+
     Raises:
         subprocess.CalledProcessError: Freeze error.
         OSError: Freeze not found.
     """
+    cmds = []
     if verbose:
         print('/\\%s%s Output%s/\\' % ('-' * 10, 'Pyinstaller', '-' * 10))
     pyinst_path = tempfile.mkdtemp()
     root_path = '%s/thirdparty/pyinstaller' % __path__[0]
     script_dir = os.path.dirname(script_path)
-    _run(('python %s/Makespec.py -o %s -C %s/config.dat -p %s %s' %
-          (root_path, pyinst_path, root_path, script_dir,
-           script_path)), verbose=verbose)
+    cur_cmd = 'python %s/Makespec.py -o %s -C %s/config.dat -p %s %s' % (root_path, pyinst_path, root_path, script_dir, script_path)
+    cmds.append(cur_cmd)
+    _run(cur_cmd, verbose=verbose)
     proj_name = os.path.basename(script_path)
     proj_name = proj_name[:proj_name.rfind('.')]  # Remove extension
     spec_path = '%s/%s.spec' % (pyinst_path, proj_name)
-    _run(('python %s/Build.py -y -o %s -C %s/config.dat %s' %
-          (root_path, pyinst_path, root_path, spec_path)), verbose=verbose)
+    cur_cmd = 'python %s/Build.py -y -o %s -C %s/config.dat %s' % (root_path, pyinst_path, root_path, spec_path)
+    cmds.append(cur_cmd)
+    _run(cur_cmd, verbose=verbose)
     _copytree('%s/dist/%s' % (pyinst_path, proj_name), target_dir)
     shutil.rmtree(pyinst_path)
     if verbose:
         print('\\/%s%s Output%s\\/' % ('-' * 10, 'Pyinstaller', '-' * 10))
+    return cmds
 
 
 def freeze_to_tar(script_path, freeze_fn, extra_files=None):
@@ -99,6 +105,9 @@ def freeze_to_tar(script_path, freeze_fn, extra_files=None):
         freeze_fn: Tar filename (must end in .tar or .tar.gz)
         extra_files: List of paths to add to the tar (default is None)
 
+    Returns:
+        List of freeze commands ran
+
     Raises:
         subprocess.CalledProcessError: freeze error.
         OSError: freeze not found.
@@ -107,7 +116,7 @@ def freeze_to_tar(script_path, freeze_fn, extra_files=None):
     if not extra_files:
         extra_files = []
     freeze_dir = tempfile.mkdtemp()
-    freeze(script_path, target_dir=freeze_dir)
+    cmds = freeze(script_path, target_dir=freeze_dir)
     if freeze_fn.endswith('.tar.gz'):
         mode = 'w|gz'
     elif freeze_fn.endswith('.tar'):
@@ -120,3 +129,4 @@ def freeze_to_tar(script_path, freeze_fn, extra_files=None):
         fp.add(x, arcname=os.path.basename(x))
     fp.close()
     shutil.rmtree(freeze_dir)
+    return cmds
