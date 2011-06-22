@@ -212,7 +212,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
                 raise subprocess.CalledProcessError(process.returncode, ' '.join(cmd))
         print('\\/%s%s Output%s\\/' % ('-' * 10, 'Hadoop', '-' * 10))
         out['output'] = hadoopy.readtb(out_name)
-    out['hadoop_cmds'] = ' '.join(cmd)
+    out['hadoop_cmds'] = [' '.join(cmd)]
     return out
 
 
