@@ -100,6 +100,7 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
     Returns:
         Dictionary some of the following entries (depending on options) of
         freeze_cmds: Freeze command(s) ran
+        frozen_tar_path: HDFS path to frozen file
         hadoop_cmds: Hadoopy command(s) ran
         process: subprocess.Popen object
         output: Iterator of (key, value) pairs
@@ -274,6 +275,7 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     Returns:
         Dictionary some of the following entries (depending on options) of
         freeze_cmds: Freeze command(s) ran
+        frozen_tar_path: HDFS path to frozen file
         hadoop_cmds: Hadoopy command(s) ran
         process: subprocess.Popen object
         output: Iterator of (key, value) pairs
@@ -304,6 +306,7 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     out = launch(in_name, out_name, script_path,
                  script_dir='_frozen', **kw)
     out['freeze_cmds'] = cmds
+    out['frozen_tar_path'] = frozen_tar_path
     return out
 
 
@@ -344,6 +347,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, redu
     Returns:
         Dictionary some of the following entries (depending on options) of
         freeze_cmds: Freeze command(s) ran
+        frozen_tar_path: HDFS path to frozen file
         hadoop_cmds: Hadoopy command(s) ran
         process: subprocess.Popen object
         output: Iterator of (key, value) pairs
