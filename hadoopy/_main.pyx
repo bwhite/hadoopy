@@ -47,8 +47,11 @@ cdef extern from "stdlib.h":
     void free(void *ptr)
 
 
-cdef extern from "stdio.h":
+cdef extern from "getdelim.h":
     ssize_t getdelim(char **lineptr, size_t *n, int delim, void *stream)
+
+cdef extern from "stdio.h":
+    #ssize_t getdelim(char **lineptr, size_t *n, int delim, void *stream)
     void *fdopen(int fd, char *mode)
     int fflush(void *stream)
     void *stdin

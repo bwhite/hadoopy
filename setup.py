@@ -93,7 +93,8 @@ if glibc_version and (glibc_version[0] == 2 and glibc_version[1] >= 9):
 
 # Since package_data doesn't handle directories, we find all of the files
 thirdparty_paths = map(_remove_prefix, _glob_recursive('hadoopy/thirdparty/*'))
-ext_modules = [Extension("_main", ["hadoopy/_main" + source_ext]),
+ext_modules = [Extension("_main", ["hadoopy/_main" + source_ext,
+                                   "hadoopy/getdelim.c"]),
                Extension("_typedbytes", ["hadoopy/_typedbytes" + source_ext],
                          extra_compile_args=tb_extra_args)]
 setup(name='hadoopy',
