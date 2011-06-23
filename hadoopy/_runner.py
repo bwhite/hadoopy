@@ -211,8 +211,12 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
             if process.wait():
                 raise subprocess.CalledProcessError(process.returncode, ' '.join(cmd))
         print('\\/%s%s Output%s\\/' % ('-' * 10, 'Hadoop', '-' * 10))
-        # NOTE(brandyn): Delays calling readtb
-        out['output'] = (x for x in hadoopy.readtb(out_name))
+        # NOTE(brandyn): Postpones calling readtb
+    
+        def _read_out():
+            for x in hadoopy.readtb(out_name):
+                yield x
+        out['output'] = _read_out()
     out['hadoop_cmds'] = [' '.join(cmd)]
     return out
 
