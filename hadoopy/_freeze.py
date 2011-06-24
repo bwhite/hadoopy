@@ -39,7 +39,7 @@ def _run(path, verbose=False):
     p = subprocess.Popen(path.split(), stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
     stderr, stdout = p.communicate()
-    if verbose:
+    if verbose or p.returncode != 0:
         print('stdout[%s] stderr[%s]' % (stdout, stderr))
 
 
@@ -60,7 +60,7 @@ def _copytree(src, dst):
                 raise e
 
 
-def freeze(script_path, target_dir='frozen', verbose=True, **kw):
+def freeze(script_path, target_dir='frozen', verbose=False, **kw):
     """Wraps pyinstaller and provides an easy to use interface
 
     This requires that the Configure.py script has been run (this is run in
