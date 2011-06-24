@@ -53,8 +53,11 @@ def _copytree(src, dst):
     for file in os.listdir(src):
         try:
             shutil.copy2('%s/%s' % (src, file), '%s/%s' % (dst, file))
-        except IOError:
-            shutil.copytree('%s/%s' % (src, file), '%s/%s' % (dst, file))
+        except IOError, e:
+            try:
+                shutil.copytree('%s/%s' % (src, file), '%s/%s' % (dst, file))
+            except OSError:  # Not a directory, reraise copy2 exception
+                raise e
 
 
 def freeze(script_path, target_dir='frozen', verbose=True, **kw):
