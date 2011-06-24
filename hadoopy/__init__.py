@@ -26,3 +26,4 @@ from _typedbytes import TypedBytesFile
 import _typedbytes
 import _main
 from _main import GroupedValues
+from _freeze import freeze_script

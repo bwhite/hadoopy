@@ -291,10 +291,9 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     """
     cmds = []
     if not frozen_tar_path:
-        frozen_tar_path = temp_path + '/%f/_frozen.tar' % time.time()
-        freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar')
-        cmds = hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
-        hadoopy.put(freeze_fp.name, frozen_tar_path)
+        freeze_out = hadoopy.freeze_script(script_path)
+        frozen_tar_path = freeze_out['frozen_tar_path']
+        cmds += freeze_out['cmds']
     if script_path.endswith('.py'):
         script_path = script_path[:-3]
     try:

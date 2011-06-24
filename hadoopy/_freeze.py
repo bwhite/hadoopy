@@ -26,6 +26,8 @@ import subprocess
 import tarfile
 import glob
 import tempfile
+import hadoopy
+import time
 from . import __path__
 
 
@@ -58,6 +60,26 @@ def _copytree(src, dst):
                 shutil.copytree('%s/%s' % (src, file), '%s/%s' % (dst, file))
             except OSError:  # Not a directory, reraise copy2 exception
                 raise e
+
+
+def freeze_script(script_path, temp_path='_hadoopy_temp'):
+    """Freezes a script, puts it on hdfs, and gives you the path
+
+    'frozen_tar_path' can be given to launch_frozen and it will use that
+    instead of making its own, this is useful for repeated calls.
+
+    Args:
+        script_path: Path to a hadoopy script
+        temp_path: HDFS temporary path (default is '_hadoopy_temp')
+
+    Returns:
+        {'cmds': commands_ran, 'frozen_tar_path': frozen_tar_path}
+    """
+    frozen_tar_path = temp_path + '/%f/_frozen.tar' % time.time()
+    freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar')
+    cmds = hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
+    hadoopy.put(freeze_fp.name, frozen_tar_path)
+    return {'cms': cmds, 'frozen_tar_path': frozen_tar_path}
 
 
 def freeze(script_path, target_dir='frozen', verbose=False, **kw):
