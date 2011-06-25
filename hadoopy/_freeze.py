@@ -79,7 +79,7 @@ def freeze_script(script_path, temp_path='_hadoopy_temp'):
     freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar')
     cmds = hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
     hadoopy.put(freeze_fp.name, frozen_tar_path)
-    return {'cms': cmds, 'frozen_tar_path': frozen_tar_path}
+    return {'cmds': cmds, 'frozen_tar_path': frozen_tar_path}
 
 
 def freeze(script_path, target_dir='frozen', verbose=False, **kw):
