@@ -434,10 +434,13 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
                                    os.dup(sys.stdout.fileno()))
             slave_stdin = open('/dev/null', 'r')
             slave_stdout = os.fdopen(os.dup(sys.stderr.fileno()), 'w')
+            retcode = 0
             try:
-                subprocess.call(cmd.split(), stdout=slave_stdout, stdin=slave_stdin)
+                retcode = subprocess.call(cmd.split(), stdout=slave_stdout, stdin=slave_stdin)
             except OSError:  # If we can't find the file, check the local dir
-                subprocess.call(('./' + cmd).split(), stdout=slave_stdout, stdin=slave_stdin)
+                retcode = subprocess.call(('./' + cmd).split(), stdout=slave_stdout, stdin=slave_stdin)
+            if retcode:
+                sys.exit(retcode)
         elif sys.argv[1] in ['map', 'reduce', 'combine']:
             ret = HadoopyTask(mapper, reducer, combiner, *sys.argv[1:]).run()
         else:
