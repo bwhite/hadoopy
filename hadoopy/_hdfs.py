@@ -17,13 +17,9 @@
 __author__ = 'Brandyn A. White <bwhite@cs.umd.edu>'
 __license__ = 'GPL V3'
 
-import sys
-
 import subprocess
-import tempfile
 import re
 import os
-import multiprocessing
 import hadoopy
 from hadoopy._runner import _find_hstreaming
 
@@ -37,19 +33,23 @@ def _cleaned_hadoop_stderr(hdfs_stderr):
             yield line
         
 
-def _checked_hadoop_fs_command(cmd):
+def _hadoop_fs_command(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, java_mem_mb=100):
+    env = dict(os.environ)
+    env['HADOOP_OPTS'] = "-Xmx%dm" % java_mem_mb
+    p = subprocess.Popen(cmd, env=env, shell=True, close_fds=True,
+                         stdin=stdin,
+                         stdout=stdout,
+                         stderr=stderr)
+    return p
 
-    p = subprocess.Popen(cmd.split(), env={}, shell=True,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    out, err = p.communicate()
-    if p.returncode:
-        p = subprocess.Popen(cmd.split(),
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        out, err = p.communicate()
+
+def _checked_hadoop_fs_command(cmd, *args, **kw):
+    p = _hadoop_fs_command(cmd, *args, **kw)
+    stdout, stderr = p.communicate()
     rcode = p.returncode
-    return rcode, out, err
+    if rcode is not 0:
+        raise IOError('Ran[%s]: %s' % (cmd, stderr))
+    return rcode, stdout, stderr
 
 
 def exists(path):
@@ -61,9 +61,11 @@ def exists(path):
     Return:
         True if the path exists, False otherwise.
     """
-    shellcmd = "hadoop fs -stat %s"
-    rval = _checked_hadoop_fs_command(shellcmd % (path))[0]
-    return bool(int(rval == 0))
+    cmd = "hadoop fs -stat %s"
+    p = _hadoop_fs_command(cmd % (path))
+    p.communicate()
+    rcode = p.returncode
+    return bool(int(rcode == 0))
     
 
 def rm(path):
@@ -75,10 +77,8 @@ def rm(path):
     Raises:
         IOError: If unsuccessful
     """
-    shellcmd = "hadoop fs -rmr %s" % (path)
-    rval, out, err = _checked_hadoop_fs_command(shellcmd)
-    if rval is not 0:
-        raise IOError('Ran[%s]: %s' % (shellcmd, err))
+    cmd = "hadoop fs -rmr %s" % (path)
+    rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
 
 
 def put(local_path, hdfs_path):
@@ -91,10 +91,8 @@ def put(local_path, hdfs_path):
     Raises:
         IOError: If unsuccessful
     """
-    shellcmd = "hadoop fs -put %s %s" % (local_path, hdfs_path)
-    rval, out, err = _checked_hadoop_fs_command(shellcmd)
-    if rval is not 0:
-        raise IOError('Ran[%s]: %s' % (shellcmd, err))
+    cmd = "hadoop fs -put %s %s" % (local_path, hdfs_path)
+    rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
 
 
 def get(hdfs_path, local_path):
@@ -107,10 +105,8 @@ def get(hdfs_path, local_path):
     Raises:
         IOError: If unsuccessful
     """
-    shellcmd = "hadoop fs -get %s %s" % (hdfs_path, local_path)
-    rval, out, err = _checked_hadoop_fs_command(shellcmd)
-    if rval is not 0:
-        raise IOError('Ran[%s]: %s' % (shellcmd, err))
+    cmd = "hadoop fs -get %s %s" % (hdfs_path, local_path)
+    rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
 
 
 def ls(path):
@@ -125,27 +121,9 @@ def ls(path):
     Raises:
         IOError: An error occurred listing the directory (e.g., not available).
     """
-    try:
-        # This one works while inside of a running job
-        # One of the environmental variables set in a job breaks
-        # normal execution, resulting in permission denied on the .pid
-        p = subprocess.Popen('hadoop fs -ls %s' % path, env={},
-                             shell=True, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        out, err = p.communicate()
-        if p.returncode:
-            raise IOError
-    except IOError:
-        # This one works otherwise
-        p = subprocess.Popen('hadoop fs -ls %s' % path,
-                              shell=True, stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
-        out, err = p.communicate()
-        if p.returncode:
-            raise IOError('Ran[%s]: %s' % (path, err))
-
+    rcode, stdout, stderr = _checked_hadoop_fs_command('hadoop fs -ls %s' % path)
     found_line = lambda x: re.search('Found [0-9]+ items$', x)
-    out = [x.split(' ')[-1] for x in out.split('\n')
+    out = [x.split(' ')[-1] for x in stdout.split('\n')
            if x and not found_line(x)]
     return out
 
@@ -163,11 +141,8 @@ def writetb(path, kvs):
     read_fd, write_fd = os.pipe()
     read_fp = os.fdopen(read_fd, 'r')
     hstreaming = _find_hstreaming()
-    cmd = ('hadoop jar %s loadtb %s' % (hstreaming, path)).split()
-    # TODO(brandyn): Make this work inside of a hadoop task like it did
-    p = subprocess.Popen(cmd,
-                         stdin=read_fp, close_fds=True,
-                         stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    cmd = 'hadoop jar %s loadtb %s' % (hstreaming, path)
+    p = _hadoop_fs_command(cmd, stdin=read_fp)
     read_fp.close()
     with hadoopy.TypedBytesFile(write_fd=write_fd) as tb_fp:
         for kv in kvs:
@@ -203,12 +178,10 @@ def readtb(path, ignore_logs=True):
         keep_file = lambda x: os.path.basename(x)[0] != '_'
         all_paths = filter(keep_file, all_paths)
     for cur_path in all_paths:
-        cmd = ('hadoop jar %s dumptb %s' % (hstreaming, cur_path)).split()
+        cmd = 'hadoop jar %s dumptb %s' % (hstreaming, cur_path)
         read_fd, write_fd = os.pipe()
         write_fp = os.fdopen(write_fd, 'w')
-        # TODO(brandyn): Make this work inside of a hadoop task like it did
-        p = subprocess.Popen(cmd, stdout=write_fp,
-                             stderr=subprocess.PIPE, close_fds=True)
+        p = _hadoop_fs_command(cmd, stdout=write_fp)
         write_fp.close()
         with hadoopy.TypedBytesFile(read_fd=read_fd) as tb_fp:
             for kv in tb_fp:
