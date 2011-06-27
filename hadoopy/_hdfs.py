@@ -61,15 +61,73 @@ def exists(path):
     Return:
         True if the path exists, False otherwise.
     """
-    cmd = "hadoop fs -stat %s"
+    cmd = "hadoop fs -test -e %s"
     p = _hadoop_fs_command(cmd % (path))
     p.communicate()
     rcode = p.returncode
     return bool(int(rcode == 0))
-    
 
-def rm(path):
-    """Remove a file if it exists.
+
+def isdir(path):
+    """Check if a path is a directory
+    
+    Args:
+        path: A string for the path.  This should not have any wildcards.
+        
+    Return:
+        True if the path is a directory, False otherwise.
+    """
+    cmd = "hadoop fs -test -d %s"
+    p = _hadoop_fs_command(cmd % (path))
+    p.communicate()
+    rcode = p.returncode
+    return bool(int(rcode == 0))
+
+
+def isempty(path):
+    """Check if a path has zero length
+    
+    Args:
+        path: A string for the path.  This should not have any wildcards.
+        
+    Return:
+        True if the path has zero length, False otherwise.
+    """
+    cmd = "hadoop fs -test -z %s"
+    p = _hadoop_fs_command(cmd % (path))
+    p.communicate()
+    rcode = p.returncode
+    return bool(int(rcode == 0))
+
+
+def abspath(path):
+    """Return the absolute path to a file and canonicalize it
+
+    Path is returned without a trailing slash and without redundant slashes.
+    
+    Args:
+        path: A string for the path.  This should not have any wildcards.
+        
+    Return:
+        Absolute path to the file
+
+    Raises:
+        IOError: If unsuccessful
+    """
+    # FIXME(brandyn): User's home directory must exist
+    if path[0] == '/':
+        return os.path.abspath(path)
+    try:
+        home_dir = hadoopy.ls('.')[0].rsplit('/', 1)[0]
+    except IOError, e:
+        if not exists('.'):
+            raise IOError("Home directory doesn't exist")
+        raise e
+    return os.path.abspath(os.path.join(home_dir, path))
+
+
+def rmr(path):
+    """Remove a file if it exists (recursive)
     
     Args:
         path: A string (potentially with wildcards).

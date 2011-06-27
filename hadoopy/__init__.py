@@ -18,7 +18,7 @@ __author__ = 'Brandyn A. White <bwhite@cs.umd.edu>'
 __license__ = 'GPL V3'
 
 from _runner import launch, launch_frozen, launch_local
-from _hdfs import get, put, readtb, writetb, ls, exists, rm
+from _hdfs import get, put, readtb, writetb, ls, exists, rmr, isempty, abspath, isdir
 from _main import run, print_doc_quit
 from _reporter import status, counter
 from _test import Test
