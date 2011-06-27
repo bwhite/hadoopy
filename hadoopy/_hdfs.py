@@ -100,10 +100,14 @@ def isempty(path):
     return bool(int(rcode == 0))
 
 
+_USER_HOME_DIR = None  # Cache for user's home directory
+
+
 def abspath(path):
     """Return the absolute path to a file and canonicalize it
 
     Path is returned without a trailing slash and without redundant slashes.
+    Caches the user's home directory.
     
     Args:
         path: A string for the path.  This should not have any wildcards.
@@ -114,16 +118,18 @@ def abspath(path):
     Raises:
         IOError: If unsuccessful
     """
+    global _USER_HOME_DIR
     # FIXME(brandyn): User's home directory must exist
     if path[0] == '/':
         return os.path.abspath(path)
-    try:
-        home_dir = hadoopy.ls('.')[0].rsplit('/', 1)[0]
-    except IOError, e:
-        if not exists('.'):
-            raise IOError("Home directory doesn't exist")
-        raise e
-    return os.path.abspath(os.path.join(home_dir, path))
+    if _USER_HOME_DIR is None:
+        try:
+            _USER_HOME_DIR = hadoopy.ls('.')[0].rsplit('/', 1)[0]
+        except IOError, e:
+            if not exists('.'):
+                raise IOError("Home directory doesn't exist")
+            raise e
+    return os.path.abspath(os.path.join(_USER_HOME_DIR, path))
 
 
 def rmr(path):
