@@ -217,15 +217,16 @@ def writetb(path, kvs):
     p.wait()
 
 
-def readtb(path, ignore_logs=True):
+def readtb(paths, ignore_logs=True):
     """Read typedbytes sequence files on HDFS (with optional compression).
 
     By default, ignores files who's names start with an underscore '_' as they
     are log files.  This allows you to cat a directory that may be a variety of
-    outputs from hadoop (e.g., _SUCCESS, _logs).
+    outputs from hadoop (e.g., _SUCCESS, _logs).  This works on directories and
+    files.
 
     Args:
-        path: HDFS path (str)
+        paths: HDFS path (str) or paths (iterator)
         ignore_logs: If True, ignore all files who's name starts with an
             underscore.  Defaults to True.
 
@@ -236,18 +237,21 @@ def readtb(path, ignore_logs=True):
         IOError: An error occurred listing the directory (e.g., not available).
     """
     hstreaming = _find_hstreaming()
-    all_paths = ls(path)
-    if ignore_logs:
-        # Ignore any files that start with an underscore
-        keep_file = lambda x: os.path.basename(x)[0] != '_'
-        all_paths = filter(keep_file, all_paths)
-    for cur_path in all_paths:
-        cmd = 'hadoop jar %s dumptb %s' % (hstreaming, cur_path)
-        read_fd, write_fd = os.pipe()
-        write_fp = os.fdopen(write_fd, 'w')
-        p = _hadoop_fs_command(cmd, stdout=write_fp)
-        write_fp.close()
-        with hadoopy.TypedBytesFile(read_fd=read_fd) as tb_fp:
-            for kv in tb_fp:
-                yield kv
-        p.wait()
+    if isinstance(paths, str):
+        paths = [paths]
+    for root_path in paths:
+        all_paths = ls(root_path)
+        if ignore_logs:
+            # Ignore any files that start with an underscore
+            keep_file = lambda x: os.path.basename(x)[0] != '_'
+            all_paths = filter(keep_file, all_paths)
+        for cur_path in all_paths:
+            cmd = 'hadoop jar %s dumptb %s' % (hstreaming, cur_path)
+            read_fd, write_fd = os.pipe()
+            write_fp = os.fdopen(write_fd, 'w')
+            p = _hadoop_fs_command(cmd, stdout=write_fp)
+            write_fp.close()
+            with hadoopy.TypedBytesFile(read_fd=read_fd) as tb_fp:
+                for kv in tb_fp:
+                    yield kv
+            p.wait()
