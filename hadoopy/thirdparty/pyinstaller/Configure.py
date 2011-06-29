@@ -31,11 +31,7 @@ import mf
 import bindepend
 import Build
 
-HOME = ''  # Changed(brandyn)
-try:
-    os.makedirs('support')  # Changed(brandyn)
-except OSError:
-    pass
+HOME = os.path.dirname(sys.argv[0])
 
 iswin = sys.platform[:3] == 'win'
 is24 = hasattr(sys, "version_info") and sys.version_info[:2] >= (2,4)
