@@ -82,7 +82,7 @@ def freeze_script(script_path, temp_path='_hadoopy_temp'):
     return {'cmds': cmds, 'frozen_tar_path': frozen_tar_path}
 
 
-def freeze(script_path, target_dir='frozen', verbose=False, **kw):
+def freeze(script_path, target_dir='frozen', verbose=True, **kw):
     """Wraps pyinstaller and provides an easy to use interface
 
     This requires that the Configure.py script has been run (this is run in
@@ -102,21 +102,27 @@ def freeze(script_path, target_dir='frozen', verbose=False, **kw):
     if verbose:
         print('/\\%s%s Output%s/\\' % ('-' * 10, 'Pyinstaller', '-' * 10))
     pyinst_path = tempfile.mkdtemp()
+    orig_dir = os.path.abspath('.')
     root_path = '%s/thirdparty/pyinstaller' % __path__[0]
-    script_dir = os.path.dirname(script_path)
-    cur_cmd = 'python %s/Makespec.py -o %s -C %s/config.dat -p %s %s' % (root_path, pyinst_path, root_path, script_dir, script_path)
+    script_dir = os.path.abspath(os.path.dirname(script_path))
+    os.chdir(pyinst_path)
+    cur_cmd = 'python %s/Configure.py' % (root_path)
+    cmds.append(cur_cmd)
+    _run(cur_cmd, verbose=verbose)
+    cur_cmd = 'python %s/Makespec.py -o %s -C %s/config.dat -p %s %s' % (root_path, pyinst_path, pyinst_path, script_dir, script_path)
     cmds.append(cur_cmd)
     _run(cur_cmd, verbose=verbose)
     proj_name = os.path.basename(script_path)
     proj_name = proj_name[:proj_name.rfind('.')]  # Remove extension
     spec_path = '%s/%s.spec' % (pyinst_path, proj_name)
-    cur_cmd = 'python %s/Build.py -y -o %s -C %s/config.dat %s' % (root_path, pyinst_path, root_path, spec_path)
+    cur_cmd = 'python %s/Build.py -y -o %s -C %s/config.dat %s' % (root_path, pyinst_path, pyinst_path, spec_path)
     cmds.append(cur_cmd)
     _run(cur_cmd, verbose=verbose)
     _copytree('%s/dist/%s' % (pyinst_path, proj_name), target_dir)
     shutil.rmtree(pyinst_path)
     if verbose:
         print('\\/%s%s Output%s\\/' % ('-' * 10, 'Pyinstaller', '-' * 10))
+    os.chdir(orig_dir)
     return cmds
 
 

@@ -31,11 +31,22 @@ import mf
 import bindepend
 import Build
 
-HOME = os.path.dirname(sys.argv[0])
+HOME = ''  # Changed(brandyn)
+try:
+    os.makedirs('support')  # Changed(brandyn)
+except OSError:
+    pass
 
 iswin = sys.platform[:3] == 'win'
 is24 = hasattr(sys, "version_info") and sys.version_info[:2] >= (2,4)
 cygwin = sys.platform == 'cygwin'
+
+if sys.platform == 'darwin' and Build.architecture() == '64bit':
+    print "ERROR: PyInstaller does not support Python 64-bit on Mac OSX"
+    print "Try using the 32-bit version of Python, by setting"
+    print "VERSIONER_PYTHON_PREFER_32_BIT=yes in the environment"
+    sys.exit(2)
+
 
 def find_EXE_dependencies(config):
     global target_platform, target_iswin
