@@ -43,7 +43,7 @@ TUPLETYPE = type((None,))
 UNCOMPRESSED, COMPRESSED = range(2)
 
 # todo: use pkg_resources here
-HOMEPATH = os.path.dirname(sys.argv[0])
+HOMEPATH = ''
 SPEC = None
 SPECPATH = None
 BUILDPATH = None
