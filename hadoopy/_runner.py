@@ -20,11 +20,12 @@ __license__ = 'GPL V3'
 
 import subprocess
 import os
-import time
-import tempfile
 import shutil
 import hadoopy._freeze
 import select
+import sys
+import json
+import tempfile
 
 
 def _find_hstreaming():
@@ -47,8 +48,13 @@ def _find_hstreaming():
     return p.communicate()[0].split('\n')[0]
 
 
-def launch(in_name, out_name, script_path, mapper=True, reducer=True,
-           combiner=False, partitioner=False, files=(), jobconfs=(),
+def _parse_info(script_path, python_cmd='python'):
+    p = subprocess.Popen([python_cmd, script_path, 'info'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    return json.loads(stdout)
+
+
+def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs=(),
            cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
            pretend=False, add_python=True, config=None, pipe=True,
@@ -60,12 +66,6 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         in_name: Input path (string or list)
         out_name: Output path
         script_path: Path to the script (e.g., script.py)
-        mapper: If True, the mapper is "script.py map".
-            If string, the mapper is the value
-        reducer: If True (default), the reducer is "script.py reduce".
-            If string, the reducer is the value
-        combiner: If True, the combiner is "script.py combine" (default False).
-            If string, the combiner is the value
         partitioner: If True, the partitioner is the value.
         copy_script: If True, the script is added to the files list.
         wait: If True, wait till the process is completed (default True)
@@ -121,13 +121,14 @@ def launch(in_name, out_name, script_path, mapper=True, reducer=True,
         script_name = os.path.basename(script_path)
     if script_dir:
         script_name = ''.join([script_dir, '/', script_name])
-    if mapper == True:
+    script_info = _parse_info(script_path, python_cmd)
+    if 'map' in script_info['tasks']:
         c = 'pipe map' if pipe else 'map'
         mapper = ' '.join((script_name, c))
-    if reducer == True:
+    if 'reduce' in script_info['tasks']:
         c = 'pipe reduce' if pipe else 'reduce'
         reducer = ' '.join((script_name, c))
-    if combiner == True:
+    if 'combine' in script_info['tasks']:
         c = 'pipe combine' if pipe else 'combine'
         combiner = ' '.join((script_name, c))
     cmd = ('%s -output %s' % (hadoop_cmd, out_name)).split()
@@ -240,12 +241,6 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
             function, it is particularly helpful in iterative programs.
         temp_path: HDFS path that we can use to store temporary files
             (default to _hadoopy_temp)
-        mapper: If True, the mapper is "script.py map".
-            If string, the mapper is the value
-        reducer: If True (default), the reducer is "script.py reduce".
-            If string, the reducer is the value
-        combiner: If True, the combiner is "script.py combine" (default False).
-            If string, the combiner is the value
         partitioner: If True, the partitioner is the value.
         copy_script: If True, the script is added to the files list.
         wait: If True, wait till the process is completed (default True)
@@ -315,14 +310,15 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     return out
 
 
-def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, reducer=True,
-           combiner=False, files=(), cmdenvs=(), pipe=True, **kw):
+def launch_local(in_name, out_name, script_path, max_input=-1,
+                 files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True, **kw):
     """A simple local emulation of hadoop
 
     This doesn't run hadoop and it doesn't support many advanced features, it
     is intended for simple debugging.  The input/output is read from HDFS and
     they must be TypedBytes in SequenceFiles.  The output is stored on HDFS.
     This allows for small tasks to be run locally (primarily while debugging).
+    A temporary working directory is used and removed.
 
     Support
     - Environmental variables
@@ -333,22 +329,25 @@ def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, redu
     - Display of stdout/stderr
 
     Args:
-        in_name: Input path (string or list)
-        out_name: Output path
+        in_name: Input path (string or list of strings) or Iterator of (key, value).
+            If it is an iterator then no input is taken from HDFS.
+        out_name: Output path or None.  If None then output is not placed on
+            HDFS, it is available through the 'output' key of the return value.
         script_path: Path to the script (e.g., script.py)
         max_input: Maximum number of Mapper inputs, if < 0 (default) then
             unlimited.
-        mapper: If True, the mapper is "script.py map".
-            If string, the mapper is the value
-        reducer: If True (default), the reducer is "script.py reduce".
-            If string, the reducer is the value
-        combiner: If True, the combiner is "script.py combine" (default False).
-            If string, the combiner is the value
         files: Extra files (other than the script) (string or list).
             NOTE: Hadoop copies the files into working directory
         cmdenvs: Extra cmdenv parameters (string or list)
         pipe: If true (default) then call user code through a pipe to isolate
             it and stop bugs when printing to stdout.  See project docs.
+        python_cmd: The python command to use. The default is "python".
+            Can be used to override the system default python, e.g.
+            python_cmd = "python2.6"
+        remove_tempdir: If True (default), then rmtree the temporary dir, else
+            print its location.  Useful if you need to see temporary files or
+            how input files are copied.
+
     Returns:
         Dictionary some of the following entries (depending on options) of
         freeze_cmds: Freeze command(s) ran
@@ -359,13 +358,12 @@ def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, redu
 
     """
     print('Hadoopy Local: In[%s] Out[%s] Script[%s]' % (in_name, out_name, script_path))
-    # Copy files
+    script_path = os.path.abspath(script_path)
+    script_info = _parse_info(script_path, python_cmd)
     if files:
         if isinstance(files, str):
             files = [files]
-        for f in files:
-            shutil.copy(f, os.path.basename(f))
-
+        files = [os.path.abspath(f) for f in files]
     # Setup env
     env = dict(os.environ)
     env['stream_map_input'] = 'typedbytes'
@@ -378,11 +376,12 @@ def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, redu
 
     def _run_task(task, kvs, env):
         print('Running [%s]' % task)
+        sys.stdout.flush()
         if pipe:
             task = 'pipe %s' % task
         in_r_fd, in_w_fd = os.pipe()
         out_r_fd, out_w_fd = os.pipe()
-        cmd = ('./%s %s' % (script_path, task)).split()
+        cmd = ('%s %s %s' % (python_cmd, script_path, task)).split()
         a = os.fdopen(in_r_fd, 'r')
         b = os.fdopen(out_w_fd, 'w')
         p = subprocess.Popen(cmd,
@@ -393,31 +392,51 @@ def launch_local(in_name, out_name, script_path, max_input=-1, mapper=True, redu
         a.close()
         b.close()
         with hadoopy.TypedBytesFile(read_fd=out_r_fd) as tbfp_r:
-            with hadoopy.TypedBytesFile(write_fd=in_w_fd) as tbfp_w:
+            with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
                 for num, kv in enumerate(kvs):
                     if max_input >= 0 and max_input <= num:
                         break
                     # Use select to see if the buffer has anything in it
                     # this minimizes the chance that the pipe will block
-                    # TODO(brandyn): This is currently broken, fix it!
-                    #while select.select([out_r_fd], [], [], 0)[0]:
-                    #    yield tbfp_r.next()
+                    while select.select([out_r_fd], [], [], 0)[0]:
+                        yield tbfp_r.next()
                     tbfp_w.write(kv)
             # Get any remaining values
             for kv in tbfp_r:
                 yield kv
         p.wait()
+    orig_pwd = os.path.abspath('.')
+    new_pwd = tempfile.mkdtemp()
+    out = {}
     try:
-        kvs = list(_run_task('map', hadoopy.readtb(in_name), env))
-        if not reducer:
-            hadoopy.writetb(out_name, kvs)
-            return
-        if combiner:
+        os.chdir(new_pwd)
+        if files:
+            for f in files:
+                shutil.copy(f, os.path.basename(f))
+        if isinstance(in_name, str) or (in_name and isinstance(in_name, (list, tuple)) and isinstance(in_name[0], str)):
+            in_kvs = hadoopy.readtb(in_name)
+        else:
+            in_kvs = in_name
+        kvs = list(_run_task('map', in_kvs, env))
+        if 'reduce' in script_info['tasks']:
+            if 'combine' in script_info['tasks']:
+                kvs = hadoopy.Test.sort_kv(kvs)
+                kvs = list(_run_task('combine', kvs, env))
             kvs = hadoopy.Test.sort_kv(kvs)
-            kvs = list(_run_task('combine', kvs, env))
-        kvs = hadoopy.Test.sort_kv(kvs)
-        kvs = _run_task('reduce', kvs, env)
-        hadoopy.writetb(out_name, kvs)
+            kvs = _run_task('reduce', kvs, env)
     except OSError, e:
         print('Error: Ensure that [%s] is executable and starts with "#!/usr/bin/env python".' % script_path)
         raise e
+    else:
+        if out_name is not None:
+            hadoopy.writetb(out_name, kvs)
+            out['output'] = hadoopy.readtb(out_name)
+        else:
+            out['output'] = kvs
+        return out
+    finally:
+        os.chdir(orig_pwd)
+        if remove_tempdir:
+            shutil.rmtree(new_pwd)
+        else:
+            print('Temporary directory not removed[%s]' % new_pwd)

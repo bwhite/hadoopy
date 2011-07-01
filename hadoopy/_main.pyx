@@ -21,6 +21,7 @@ import sys
 import os
 import hadoopy
 import subprocess
+import json
 
 def change_dir():
     # Skip this process if the command used is pipe.  The child will still get
@@ -441,6 +442,17 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
                 retcode = subprocess.call(('./' + cmd).split(), stdout=slave_stdout, stdin=slave_stdin)
             if retcode:
                 sys.exit(retcode)
+        elif sys.argv[1] == 'info':
+            tasks = []
+            if mapper:
+                tasks.append('map')
+            if reducer:
+                tasks.append('reduce')
+            if combiner:
+                tasks.append('combine')
+            info = dict(kw)
+            info['tasks'] = tasks
+            print(json.dumps(info))
         elif sys.argv[1] in ['map', 'reduce', 'combine']:
             ret = HadoopyTask(mapper, reducer, combiner, *sys.argv[1:]).run()
         else:

@@ -519,7 +519,9 @@ cdef class TypedBytesFile(object):
         cdef void* _read_ptr
         cdef object _repr
         cdef object file_method
-        def __init__(self, fn=None, mode=None, read_fd=None, write_fd=None):
+        cdef int flush_writes
+        def __init__(self, fn=None, mode=None, read_fd=None, write_fd=None, flush_writes=False):
+            self.flush_writes = int(flush_writes)
             cdef char *fnc
             cdef char *modec
             self._repr = "TypedBytesFile(%s, %s, %s, %s)" % (repr(fn), repr(mode), repr(read_fd), repr(write_fd))
@@ -577,14 +579,18 @@ cdef class TypedBytesFile(object):
             if self._write_ptr == <void *>0:
                 raise ValueError("Write pointer not set!")
             __write_key_value_tb(self._write_ptr, kv)
+            if self.flush_writes:
+                self.flush()
 
         def writes(self, kvs):
             if self._write_ptr == <void *>0:
                 raise ValueError("Write pointer not set!")
             for kv in kvs:
                 __write_key_value_tb(self._write_ptr, kv)
+            if self.flush_writes:
+                self.flush()
 
-        def flush(self):
+        cpdef flush(self):
             if self._write_ptr:
                 fflush(self._write_ptr)
 
