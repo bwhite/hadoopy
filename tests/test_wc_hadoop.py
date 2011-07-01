@@ -35,7 +35,7 @@ class TestWordcountHadoop(unittest.TestCase):
         out_path = self.data_path + 'out-' + fn
         hadoopy.put(fn, in_path)
         # Don't let the file split, CDH3 has a bug and will try to split gz's
-        hadoopy.launch_frozen(in_path, out_path, 'wc.py', jobconfs='mapred.min.split.size=100000000', combiner=True)
+        hadoopy.launch_frozen(in_path, out_path, 'wc.py', jobconfs=['mapred.min.split.size=100000000', 'mapreduce.task.userlog.limit.kb=1000'], combiner=True)
         wc = dict(hadoopy.readtb(out_path))
         self.assertEqual(wc['the'], 1664)
         self.assertEqual(wc['Alice'], 221)

@@ -59,7 +59,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
            pretend=False, add_python=True, config=None, pipe=True,
            python_cmd="python", num_mappers=None, num_reducers=None,
-           script_dir='', **kw):
+           script_dir='', remove_ext=False, **kw):
     """Run Hadoop given the parameters
 
     Args:
@@ -96,6 +96,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
             do not specify this argument to hadoop streaming.
         script_dir: Where the script is relative to working dir, will be
             prefixed to script_path with a / (default '' is current dir)
+        remove_ext: If True, remove the script extension (default False)
 
     Returns:
         Dictionary some of the following entries (depending on options) of
@@ -115,10 +116,11 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     except TypeError:
         hadoop_cmd = 'hadoop jar ' + _find_hstreaming()
     job_name = os.path.basename(script_path)
+    script_name = os.path.basename(script_path)
+    if remove_ext:
+        script_name = script_name.rsplit('.', 1)[0]
     if add_python:
-        script_name = '%s %s' % (python_cmd, os.path.basename(script_path))
-    else:
-        script_name = os.path.basename(script_path)
+        script_name = '%s %s' % (python_cmd, script_name)
     if script_dir:
         script_name = ''.join([script_dir, '/', script_name])
     script_info = _parse_info(script_path, python_cmd)
@@ -128,9 +130,13 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     if 'reduce' in script_info['tasks']:
         c = 'pipe reduce' if pipe else 'reduce'
         reducer = ' '.join((script_name, c))
+    else:
+        reducer = None
     if 'combine' in script_info['tasks']:
         c = 'pipe combine' if pipe else 'combine'
         combiner = ' '.join((script_name, c))
+    else:
+        combiner = None
     cmd = ('%s -output %s' % (hadoop_cmd, out_name)).split()
     # Add inputs
     if isinstance(in_name, str):
@@ -213,7 +219,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
                 raise subprocess.CalledProcessError(process.returncode, ' '.join(cmd))
         print('\\/%s%s Output%s\\/' % ('-' * 10, 'Hadoop', '-' * 10))
         # NOTE(brandyn): Postpones calling readtb
-    
+
         def _read_out():
             for x in hadoopy.readtb(out_name):
                 yield x
@@ -269,8 +275,6 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
         num_reducers: The number of reducers to use, i.e. the
             argument given to 'numReduceTasks'. If None, then
             do not specify this argument to hadoop streaming.
-        script_dir: Where the script is relative to working dir, will be
-            prefixed to script_path with a / (default '' is current dir)
 
     Returns:
         Dictionary some of the following entries (depending on options) of
@@ -289,8 +293,6 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
         freeze_out = hadoopy.freeze_script(script_path)
         frozen_tar_path = freeze_out['frozen_tar_path']
         cmds += freeze_out['cmds']
-    if script_path.endswith('.py'):
-        script_path = script_path[:-3]
     try:
         jobconfs = kw['jobconfs']
     except KeyError:
@@ -304,7 +306,7 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     kw['add_python'] = False
     kw['jobconfs'] = jobconfs
     out = launch(in_name, out_name, script_path,
-                 script_dir='_frozen', **kw)
+                 script_dir='_frozen', remove_ext=True, **kw)
     out['freeze_cmds'] = cmds
     out['frozen_tar_path'] = frozen_tar_path
     return out
