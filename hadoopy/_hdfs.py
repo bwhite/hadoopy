@@ -217,7 +217,7 @@ def writetb(path, kvs):
     p.wait()
 
 
-def readtb(paths, ignore_logs=True):
+def readtb(paths, ignore_logs=True, num_procs=10):
     """Read typedbytes sequence files on HDFS (with optional compression).
 
     By default, ignores files who's names start with an underscore '_' as they
@@ -229,6 +229,7 @@ def readtb(paths, ignore_logs=True):
         paths: HDFS path (str) or paths (iterator)
         ignore_logs: If True, ignore all files who's name starts with an
             underscore.  Defaults to True.
+        num_procs: Number of reading procs to open (default 10)
 
     Returns:
         An iterator of key, value pairs.
@@ -236,22 +237,56 @@ def readtb(paths, ignore_logs=True):
     Raises:
         IOError: An error occurred listing the directory (e.g., not available).
     """
+    import select
     hstreaming = _find_hstreaming()
     if isinstance(paths, str):
         paths = [paths]
-    for root_path in paths:
-        all_paths = ls(root_path)
-        if ignore_logs:
-            # Ignore any files that start with an underscore
-            keep_file = lambda x: os.path.basename(x)[0] != '_'
-            all_paths = filter(keep_file, all_paths)
-        for cur_path in all_paths:
-            cmd = 'hadoop jar %s dumptb %s' % (hstreaming, cur_path)
-            read_fd, write_fd = os.pipe()
-            write_fp = os.fdopen(write_fd, 'w')
-            p = _hadoop_fs_command(cmd, stdout=write_fp)
-            write_fp.close()
-            with hadoopy.TypedBytesFile(read_fd=read_fd) as tb_fp:
-                for kv in tb_fp:
-                    yield kv
-            p.wait()
+    read_fds = set()
+    procs = {}
+    tb_fps = {}
+
+    def _open_tb(cur_path):
+        cmd = 'hadoop jar %s dumptb %s' % (hstreaming, cur_path)
+        read_fd, write_fd = os.pipe()
+        write_fp = os.fdopen(write_fd, 'w')
+        p = _hadoop_fs_command(cmd, stdout=write_fp)
+        write_fp.close()
+        read_fds.add(read_fd)
+        procs[read_fd] = p
+        tb_fps[read_fd] = hadoopy.TypedBytesFile(read_fd=read_fd)
+
+    def _path_gen():
+        for root_path in paths:
+            try:
+                all_paths = ls(root_path)
+            except IOError:
+                raise IOError("No such file or directory: '%s'" % root_path)
+            if ignore_logs:
+                # Ignore any files that start with an underscore
+                keep_file = lambda x: os.path.basename(x)[0] != '_'
+                all_paths = filter(keep_file, all_paths)
+            for cur_path in all_paths:
+                yield _open_tb(cur_path)
+
+    path_gen = _path_gen()
+    for x in range(num_procs):
+        try:
+            path_gen.next()
+        except (AttributeError, StopIteration):
+            path_gen = None
+    while read_fds:
+        cur_fds = select.select(read_fds, [], [])[0]
+        for read_fd in cur_fds:
+            p = procs[read_fd]
+            tp_fp = tb_fps[read_fd]
+            try:
+                yield tp_fp.next()
+            except StopIteration:
+                p.wait()
+                del procs[read_fd]
+                del tb_fps[read_fd]
+                read_fds.remove(read_fd)
+                try:
+                    path_gen.next()
+                except (AttributeError, StopIteration):
+                    path_gen = None
