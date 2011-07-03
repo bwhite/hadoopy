@@ -27,6 +27,10 @@ import sys
 import json
 import tempfile
 
+# These two globals are only used in the follow function
+WARNED_HADOOP_HOME = False
+HADOOP_STREAMING_PATH_CACHE = None
+
 
 def _find_hstreaming():
     """Finds the whole path to the hadoop streaming jar.
@@ -38,14 +42,21 @@ def _find_hstreaming():
         Full path to the hadoop streaming jar if found, else return an empty
         string.
     """
+    global WARNED_HADOOP_HOME, HADOOP_STREAMING_PATH_CACHE
+    if HADOOP_STREAMING_PATH_CACHE:
+        return HADOOP_STREAMING_PATH_CACHE
     try:
         search_root = os.environ['HADOOP_HOME']
     except KeyError:
         search_root = '/'
+        if not WARNED_HADOOP_HOME:
+            print('Hadoopy: Set the HADOOP_HOME environmental variable to your hadoop path to improve performance. (e.g., Put [export HADOOP_HOME="/home/user/hadoop-0.20.2+320"] in /home/user/.bashrc)')
+            WARNED_HADOOP_HOME = True
     cmd = 'find %s -name hadoop*streaming*.jar' % (search_root)
     p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
-    return p.communicate()[0].split('\n')[0]
+    HADOOP_STREAMING_PATH_CACHE = p.communicate()[0].split('\n')[0]
+    return HADOOP_STREAMING_PATH_CACHE
 
 
 def _parse_info(script_path, python_cmd='python'):

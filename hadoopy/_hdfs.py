@@ -85,7 +85,7 @@ def isdir(path):
 
 
 def isempty(path):
-    """Check if a path has zero length
+    """Check if a path has zero length (also true if it's a directory)
     
     Args:
         path: A string for the path.  This should not have any wildcards.

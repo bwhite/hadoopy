@@ -17,24 +17,38 @@
 __author__ =  'Brandyn A. White <bwhite@cs.umd.edu>'
 __license__ = 'GPL V3'
 
-import unittest
 import hadoopy
-import tempfile
 
 
-class Test(unittest.TestCase):
+def mapper(key, value):
+    """Emit each term with a count of 1.
 
-    def __init__(self, *args, **kw):
-        super(Test, self).__init__(*args, **kw)
+    Args:
+        key: unused
+        value: term
 
-    def test_int(self):
-        f = tempfile.NamedTemporaryFile()
-        kvs = [(0, 0), (-123, 123), (-1, 1), (-2**32, 2**32), (-2**64, 2**64),
-               (-2**128, 2**128), (-2**256, 2**256)]
-        for kv in kvs:
-            with hadoopy.TypedBytesFile(f.name, 'w') as fp:
-                fp.write(kv)
-            self.assertEquals(hadoopy.TypedBytesFile(f.name, 'r').next(), kv)
+    Yields:
+        A tuple in the form of (key, value)
+        key: term as string
+        value: count as int
+    """
+    yield value, 1
 
-if __name__ == '__main__':
-    unittest.main()
+
+def reducer(key, values):
+    """Sum up counts for each term.
+
+    Args:
+        key: term as string
+        values: counts as int
+
+    Yields:
+        A tuple in the form of (key, value)
+        key: term as string
+        value: count as int
+    """
+    yield key, sum(values)
+
+
+if __name__ == "__main__":
+    hadoopy.run(mapper, reducer, reducer, doc=__doc__)
