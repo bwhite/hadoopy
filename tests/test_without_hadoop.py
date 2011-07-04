@@ -22,6 +22,32 @@ import hadoopy
 import tempfile
 import subprocess
 import os
+import re
+
+
+def get_glibc_version():
+    """
+    Returns:
+        Version as a pair of ints (major, minor) or None
+    """
+    # TODO: Look into a nicer way to get the version
+    try:
+        out = subprocess.Popen(['ldd', '--version'],
+                               stdout=subprocess.PIPE).communicate()[0]
+    except OSError:
+        return
+    match = re.search('([0-9]+)\.([0-9]+)\.?[0-9]*', out)
+    try:
+        return map(int, match.groups())
+    except AttributeError:
+        return
+
+
+def has_endian():
+    glibc_version = get_glibc_version()
+    if glibc_version and (glibc_version[0] == 2 and glibc_version[1] >= 9):
+        return True
+
 
 class Test(unittest.TestCase):
 
@@ -37,6 +63,7 @@ class Test(unittest.TestCase):
                 fp.write(kv)
             self.assertEquals(hadoopy.TypedBytesFile(f.name, 'r').next(), kv)
 
+    @unittest.skipIf(not has_endian(), 'Needs endian.h which is in a newer glibc')
     def test_fail(self):
         subprocess.check_call('gcc -o endian_test endian_test.c -Wall -D FAIL_TEST'.split())
         try:
@@ -44,10 +71,12 @@ class Test(unittest.TestCase):
         except subprocess.CalledProcessError:
             pass
 
+    @unittest.skipIf(not has_endian(), 'Needs endian.h which is in a newer glibc')
     def test_conversion(self):
         subprocess.check_call('gcc -o endian_test endian_test.c -Wall'.split())
         subprocess.check_call('./endian_test')
 
+    @unittest.skipIf(not has_endian(), 'Needs endian.h which is in a newer glibc')
     def test_conversion_with_header(self):
         subprocess.check_call('gcc -o endian_test endian_test.c -Wall -D BYTECONVERSION_HASENDIAN_H'.split())
         subprocess.check_call('./endian_test')
