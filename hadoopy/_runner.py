@@ -126,7 +126,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
         hadoop_cmd = 'hadoop jar ' + hstreaming
     except TypeError:
         hadoop_cmd = 'hadoop jar ' + _find_hstreaming()
-    job_name = os.path.basename(script_path)
+    job_name = os.path.basename(script_path).rsplit('.', 1)[0]
     script_name = os.path.basename(script_path)
     if remove_ext:
         script_name = script_name.rsplit('.', 1)[0]

@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 # (C) Copyright 2010 Brandyn A. White
 #
@@ -25,7 +24,25 @@ import hadoopy
 import os
 import gzip
 import numpy as np
-from data_handling import load_from_umiacs
+import hashlib
+import urllib
+
+
+def load_from_umiacs(path, md5hash):
+    name = os.path.basename(path)
+    download = not os.path.exists(path)
+    if os.path.exists(path) and md5hash:
+        with open(path) as fp:
+            if hashlib.md5(fp.read()).hexdigest() != md5hash:
+                download = True
+    if download:
+        url = 'http://umiacs.umd.edu/~bwhite/%s' % name
+        print('Downloading [%s]' % url)
+        data = urllib.urlopen(url).read()
+        with open(path, 'w') as fp:
+            if md5hash:
+                assert(md5hash == hashlib.md5(data).hexdigest())
+            fp.write(data)
 
 
 def hadoop_installed():
@@ -96,6 +113,15 @@ class TestUsingHadoop(unittest.TestCase):
         os.makedirs(self.out_path)
         load_from_umiacs('face_finder-input-voctrainpart.tb',
                          'dbc50c02103221a499fc7cc77a5b61e9')
+
+    def tearDown(self):
+        if hadoopy.exists(self.data_path):
+            self.assertTrue(hadoopy.isempty(self.data_path))  # directories are empty
+            self.assertTrue(hadoopy.isdir(self.data_path))
+            hadoopy.rmr(self.data_path)
+        self.assertFalse(hadoopy.exists(self.data_path))
+        self.assertFalse(hadoopy.isdir(self.data_path))
+        self.assertFalse(hadoopy.isempty(self.data_path))
 
     # Face Finder test
     def _run_face(self, fn):
