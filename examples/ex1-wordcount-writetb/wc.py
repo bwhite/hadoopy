@@ -1,0 +1,1 @@
+../ex0-wordcount/wc.py

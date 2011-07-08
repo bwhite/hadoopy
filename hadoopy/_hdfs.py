@@ -165,7 +165,7 @@ def ls(path):
 
 
 def writetb(path, kvs):
-    """List files on HDFS.
+    """Write typedbytes sequence file to HDFS given an iterator of KeyValue pairs
 
     :param path: HDFS path (string)
     :param kvs: Iterator of (key, value)
