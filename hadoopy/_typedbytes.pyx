@@ -516,6 +516,7 @@ def write_tb(kv):
 
 cdef class TypedBytesFile(object):
     """TypedBytes interface
+
     :param fn: File path (default None)
     :param mode: Mode to open the file with (default None)
     :param read_fd: Read file descriptor (int) (default None)
