@@ -318,7 +318,7 @@ Most Hadoop streaming programs have to meticulously avoid printing to stdout as 
 
 That's a quick tour of Hadoopy.
 
-Job Driver API *(
+Job Driver API (Start Hadoop Jobs)
 -----------------
 
 ..  autofunction:: hadoopy.launch(in_name, out_name, script_path[, partitioner=False, files=(), jobconfs=(), cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, script_dir='', remove_ext=False, **kw])
@@ -361,5 +361,5 @@ Internal Classes
 ..  autoclass:: hadoopy.GroupedValues
     :members:
 
-..  autoclass:: hadoopy.TypedBytesFile
+..  autoclass:: hadoopy.TypedBytesFile(fn=None, mode=None, read_fd=None, write_fd=None, flush_writes=False)
     :members:
