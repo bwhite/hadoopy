@@ -321,17 +321,9 @@ That's a quick tour of Hadoopy.
 API
 ---
 
-..  autofunction:: hadoopy.run(mapper, reducer, combiner)
+..  autofunction:: hadoopy.run(mapper=None, reducer=None, combiner=None, **kw)
 
-..  function:: hadoopy.status(msg[, err=None])
-
-    Output a status message that is displayed in the Hadoop web interface
-
-    The status message will replace any other, if you want to append you must
-    do this yourself.
-
-    :param msg: String representing the status message
-    :param err: Func that outputs a string, if None then sys.stderr.write is used (default None)
+..  autofunction:: hadoopy.status(msg[, err=None])
 
 ..  function:: hadoopy.counter(group, counter[, amount=1, err=None])
 

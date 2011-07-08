@@ -47,9 +47,8 @@ def status(msg, err=None):
     The status message will replace any other, if you want to append you must
     do this yourself.
 
-    Args:
-        msg: String representing the status message
-        err: Func that outputs a string if None stderr is used (default None)
+    :param msg: String representing the status message
+    :param err: Func that outputs a string, if None then sys.stderr.write is used (default None)
     """
     if not err:
         err = _err
