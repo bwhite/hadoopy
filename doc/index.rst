@@ -319,7 +319,8 @@ Most Hadoop streaming programs have to meticulously avoid printing to stdout as 
 That's a quick tour of Hadoopy.
 
 Job Driver API
----
+--------------
+
 ..  autofunction:: hadoopy.launch(in_name, out_name, script_path[, partitioner=False, files=(), jobconfs=(), cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, script_dir='', remove_ext=False, **kw])
 
 ..  autofunction:: hadoopy.launch_frozen(in_name, out_name, script_path[, frozen_tar_path=None, temp_path='_hadoopy_temp', partitioner=False, wait=True, files=(), jobconfs=(), cmdenvs=(), hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, **kw])
@@ -328,7 +329,7 @@ Job Driver API
 
 
 Task API (used inside Hadoopy jobs)
----
+-----------------------------------
 
 ..  autofunction:: hadoopy.run(mapper=None, reducer=None, combiner=None, **kw)
 
@@ -337,7 +338,8 @@ Task API (used inside Hadoopy jobs)
 ..  autofunction:: hadoopy.counter(group, counter[, amount=1, err=None])
 
 HDFS API
----
+--------
+
 ..  autofunction:: hadoopy.readtb(paths[, ignore_logs=True, num_procs=10])
 ..  autofunction:: hadoopy.writetb(path, kvs)
 ..  autofunction:: hadoopy.abspath(path)
@@ -350,12 +352,14 @@ HDFS API
 ..  autofunction:: hadoopy.exists(path)
 
 Testing API
----
+-----------
+
 ..  autoclass:: hadoopy.Test
     :members:
 
 Internal Classes
----
+----------------
+
 ..  autoclass:: hadoopy.GroupedValues
     :members:
 
