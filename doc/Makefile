@@ -32,9 +32,9 @@ clean:
 
 # Modified by Brandyn: Put files in project root
 html:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) ../html/
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) ./html/
 	@echo
-	@echo "Build finished. The HTML pages are in ../html/"
+	@echo "Build finished. The HTML pages are in ./html/"
 
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
