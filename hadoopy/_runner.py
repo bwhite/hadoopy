@@ -96,13 +96,12 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :param script_dir: Where the script is relative to working dir, will be prefixed to script_path with a / (default '' is current dir)
     :param remove_ext: If True, remove the script extension (default False)
 
-    :rtype: Dictionary
-    :returns: Some of the following entries (depending on options) of
-        | freeze_cmds: Freeze command(s) ran
-        | frozen_tar_path: HDFS path to frozen file
-        | hadoop_cmds: Hadoopy command(s) ran
-        | process: subprocess.Popen object
-        | output: Iterator of (key, value) pairs
+    :rtype: Dictionary with some of the following entries (depending on options)
+    :returns: freeze_cmds: Freeze command(s) ran
+    :returns: frozen_tar_path: HDFS path to frozen file
+    :returns: hadoop_cmds: Hadoopy command(s) ran
+    :returns: process: subprocess.Popen object
+    :returns: output: Iterator of (key, value) pairs
     :raises: subprocess.CalledProcessError: Hadoop error.
     :raises: OSError: Hadoop streaming not found.
     """
