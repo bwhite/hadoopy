@@ -8,8 +8,7 @@ def mapper(k, v):
     global PRINTED, COUNTER
     if not PRINTED and os.environ['TEST_ENV']:
         print('Loud and clear[%s]' % os.environ['TEST_ENV'])
-        with open('test_file') as fp:
-            print(fp.read())
+        assert(os.path.exists('wc-input-alice.tb'))  # Test that the file came along
         PRINTED = True
     yield k, 1
 
