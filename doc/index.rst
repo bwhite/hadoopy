@@ -321,7 +321,7 @@ That's a quick tour of Hadoopy.
 API
 ---
 
-..  autofunction:: hadoopy.run
+..  autofunction:: hadoopy.run(mapper, reducer, combiner)
 
 ..  function:: hadoopy.status(msg[, err=None])
 
