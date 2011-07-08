@@ -318,8 +318,8 @@ Most Hadoop streaming programs have to meticulously avoid printing to stdout as 
 
 That's a quick tour of Hadoopy.
 
-Job Driver API
---------------
+Job Driver API *(
+-----------------
 
 ..  autofunction:: hadoopy.launch(in_name, out_name, script_path[, partitioner=False, files=(), jobconfs=(), cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, script_dir='', remove_ext=False, **kw])
 
@@ -332,13 +332,11 @@ Task API (used inside Hadoopy jobs)
 -----------------------------------
 
 ..  autofunction:: hadoopy.run(mapper=None, reducer=None, combiner=None, **kw)
-
 ..  autofunction:: hadoopy.status(msg[, err=None])
-
 ..  autofunction:: hadoopy.counter(group, counter[, amount=1, err=None])
 
-HDFS API
---------
+HDFS API (Usable locally and in Hadoopy jobs)
+-----------
 
 ..  autofunction:: hadoopy.readtb(paths[, ignore_logs=True, num_procs=10])
 ..  autofunction:: hadoopy.writetb(path, kvs)
