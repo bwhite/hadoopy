@@ -320,10 +320,8 @@ That's a quick tour of Hadoopy.
 
 API
 ---
-.. automodule:: hadoopy
 
-..  function:: hadoopy.run(mapper=None[, reducer=None, combiner=None, **kw])
-    Empty
+..  autofunction:: hadoopy.run
 
 ..  function:: hadoopy.status(msg[, err=None])
 
