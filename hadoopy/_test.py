@@ -64,7 +64,7 @@ class Test(unittest.TestCase):
 
         :param func: Mapper function or class
         :param test_input: Iterator of KeyValue pairs
-        :returns: Mapper output
+        :returns: List of KeyValue pairs from the mapper
         """
         out = []
 
@@ -79,8 +79,8 @@ class Test(unittest.TestCase):
         """Given KeyValue pairs, sort, then group
 
         :param func: Reducer function or class
-        :param test_input: Iterator of Grouped KeyValue pairs
-        :returns: Reducer output
+        :param test_input: Iterator of Grouped KeyValue pairs (e.g., from groupby_kv or shuffle_kv)
+        :returns: List of KeyValue pairs from the reducer
         """
         out = []
 
