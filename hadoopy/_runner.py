@@ -299,6 +299,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     A temporary working directory is used and removed.
 
     Support
+
     * Environmental variables
     * Map-only tasks
     * Combiner
