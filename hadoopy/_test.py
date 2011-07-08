@@ -32,11 +32,8 @@ class Test(unittest.TestCase):
     def sort_kv(cls, kv):
         """Perform a stable sort on KeyValue pair keys
 
-        Args:
-            kv: Iterator of KeyValue pairs
-
-        Returns:
-            Grouped KeyValue pairs in sorted order
+        :param kv: Iterator of KeyValue pairs
+        :returns: Grouped KeyValue pairs in sorted order
         """
         kv = list(kv)
         kv.sort(lambda x, y: cmp(x[0], y[0]))
@@ -46,11 +43,8 @@ class Test(unittest.TestCase):
     def groupby_kv(cls, kv):
         """Group sorted KeyValue pairs
 
-        Args:
-            kv: Iterator of KeyValue pairs
-
-        Returns:
-            Grouped KeyValue pairs in sorted order
+        :param kv: Iterator of KeyValue pairs
+        :returns: Grouped KeyValue pairs in sorted order
         """
         return ((x, (z[1] for z in y))
                 for x, y in groupby(kv, itemgetter(0)))
@@ -59,16 +53,19 @@ class Test(unittest.TestCase):
     def shuffle_kv(cls, kv):
         """Given KeyValue pairs, sort, then group
 
-        Args:
-            kv: Iterator of KeyValue pairs
-
-        Returns:
-            Grouped KeyValue pairs in sorted order
+        :param kv: Iterator of KeyValue pairs
+        :returns: Grouped KeyValue pairs in sorted order
         """
         return cls.groupby_kv(cls.sort_kv(kv))
 
     @classmethod
     def call_map(cls, func, test_input):
+        """Given KeyValue pairs, sort, then group
+
+        :param func: Mapper function or class
+        :param test_input: Iterator of KeyValue pairs
+        :returns: Mapper output
+        """
         out = []
 
         def out_func(out_iter):
@@ -79,6 +76,12 @@ class Test(unittest.TestCase):
 
     @classmethod
     def call_reduce(cls, func, test_input):
+        """Given KeyValue pairs, sort, then group
+
+        :param func: Reducer function or class
+        :param test_input: Iterator of Grouped KeyValue pairs
+        :returns: Reducer output
+        """
         out = []
 
         def out_func(out_iter):
