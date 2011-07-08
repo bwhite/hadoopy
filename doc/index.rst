@@ -318,7 +318,16 @@ Most Hadoop streaming programs have to meticulously avoid printing to stdout as 
 
 That's a quick tour of Hadoopy.
 
-API
+Job Driver API
+---
+..  autofunction:: hadoopy.launch(in_name, out_name, script_path[, partitioner=False, files=(), jobconfs=(), cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, script_dir='', remove_ext=False, **kw])
+
+..  autofunction:: hadoopy.launch_frozen(in_name, out_name, script_path[, frozen_tar_path=None, temp_path='_hadoopy_temp', partitioner=False, wait=True, files=(), jobconfs=(), cmdenvs=(), hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, **kw])
+
+..  autofunction:: hadoopy.launch_local(in_name, out_name, script_path[, max_input=-1, files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True, **kw])
+
+
+Task API (used inside Hadoopy jobs)
 ---
 
 ..  autofunction:: hadoopy.run(mapper=None, reducer=None, combiner=None, **kw)
@@ -327,34 +336,28 @@ API
 
 ..  autofunction:: hadoopy.counter(group, counter[, amount=1, err=None])
 
-..  autofunction:: hadoopy.launch(in_name, out_name, script_path[, partitioner=False, files=(), jobconfs=(), cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, script_dir='', remove_ext=False, **kw])
+HDFS API
+---
+..  autofunction:: hadoopy.readtb(paths[, ignore_logs=True, num_procs=10])
+..  autofunction:: hadoopy.writetb(path, kvs)
+..  autofunction:: hadoopy.abspath(path)
+..  autofunction:: hadoopy.ls(path)
+..  autofunction:: hadoopy.get(hdfs_path, local_path)
+..  autofunction:: hadoopy.put(local_path, hdfs_path)
+..  autofunction:: hadoopy.rmr(path)
+..  autofunction:: hadoopy.isempty(path)
+..  autofunction:: hadoopy.isdir(path)
+..  autofunction:: hadoopy.exists(path)
 
-..  autofunction:: hadoopy.launch_frozen(in_name, out_name, script_path[, frozen_tar_path=None, temp_path='_hadoopy_temp', partitioner=False, wait=True, files=(), jobconfs=(), cmdenvs=(), hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, **kw])
-
-..  autofunction:: hadoopy.launch_local(in_name, out_name, script_path[, max_input=-1, files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True, **kw])
-
-..  function:: hadoopy.ls(path)
-
-    List files on HDFS.
-
-    :param path: A string (potentially with wildcards).
-    :rtype: A list of strings representing HDFS paths.
-    :raises: IOError: An error occurred listing the directory (e.g., not available).
-
-
-..  autofunction:: hadoopy.readtb(path[, procs=10])
-
-    Read typedbytes sequence files on HDFS (with optional compression).
-
-    :param path: A string (potentially with wildcards).
-    :param procs: Number of processes to use.
-    :rtype: An iterator of key, value pairs.
-    :raises: IOError: An error occurred listing the directory (e.g., not available).
-
-
-..  autoclass:: hadoopy.GroupedValues
-    :members:
+Testing API
+---
 ..  autoclass:: hadoopy.Test
     :members:
+
+Internal Classes
+---
+..  autoclass:: hadoopy.GroupedValues
+    :members:
+
 ..  autoclass:: hadoopy.TypedBytesFile
     :members:

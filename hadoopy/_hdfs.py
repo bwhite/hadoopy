@@ -54,12 +54,9 @@ def _checked_hadoop_fs_command(cmd, *args, **kw):
 
 def exists(path):
     """Check if a file exists.
-    
-    Args:
-        path: A string for the path.  This should not have any wildcards.
-        
-    Return:
-        True if the path exists, False otherwise.
+
+    :param path: A string for the path.  This should not have any wildcards.
+    :returns: True if the path exists, False otherwise.
     """
     cmd = "hadoop fs -test -e %s"
     p = _hadoop_fs_command(cmd % (path))
@@ -70,12 +67,9 @@ def exists(path):
 
 def isdir(path):
     """Check if a path is a directory
-    
-    Args:
-        path: A string for the path.  This should not have any wildcards.
-        
-    Return:
-        True if the path is a directory, False otherwise.
+
+    :param path: A string for the path.  This should not have any wildcards.
+    :returns: True if the path is a directory, False otherwise.
     """
     cmd = "hadoop fs -test -d %s"
     p = _hadoop_fs_command(cmd % (path))
@@ -86,12 +80,9 @@ def isdir(path):
 
 def isempty(path):
     """Check if a path has zero length (also true if it's a directory)
-    
-    Args:
-        path: A string for the path.  This should not have any wildcards.
-        
-    Return:
-        True if the path has zero length, False otherwise.
+
+    :param path: A string for the path.  This should not have any wildcards.
+    :returns: True if the path has zero length, False otherwise.
     """
     cmd = "hadoop fs -test -z %s"
     p = _hadoop_fs_command(cmd % (path))
@@ -108,15 +99,10 @@ def abspath(path):
 
     Path is returned without a trailing slash and without redundant slashes.
     Caches the user's home directory.
-    
-    Args:
-        path: A string for the path.  This should not have any wildcards.
-        
-    Return:
-        Absolute path to the file
 
-    Raises:
-        IOError: If unsuccessful
+    :param path: A string for the path.  This should not have any wildcards.
+    :returns Absolute path to the file
+    :raises IOError: If unsuccessful
     """
     global _USER_HOME_DIR
     # FIXME(brandyn): User's home directory must exist
@@ -134,12 +120,9 @@ def abspath(path):
 
 def rmr(path):
     """Remove a file if it exists (recursive)
-    
-    Args:
-        path: A string (potentially with wildcards).
 
-    Raises:
-        IOError: If unsuccessful
+    :param path: A string (potentially with wildcards).
+    :raises IOError: If unsuccessful
     """
     cmd = "hadoop fs -rmr %s" % (path)
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
@@ -148,12 +131,9 @@ def rmr(path):
 def put(local_path, hdfs_path):
     """Put a file on hdfs
     
-    Args:
-        local_path: Source (str)
-        hdfs_path: Destrination (str)
-
-    Raises:
-        IOError: If unsuccessful
+    :param local_path: Source (str)
+    :param hdfs_path: Destrination (str)
+    :raises: IOError: If unsuccessful
     """
     cmd = "hadoop fs -put %s %s" % (local_path, hdfs_path)
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
@@ -161,13 +141,10 @@ def put(local_path, hdfs_path):
 
 def get(hdfs_path, local_path):
     """Get a file from hdfs
-    
-    Args:
-        hdfs_path: Destrination (str)
-        local_path: Source (str)
 
-    Raises:
-        IOError: If unsuccessful
+    :param hdfs_path: Destination (str)
+    :param local_path: Source (str)
+    :raises: IOError: If unsuccessful
     """
     cmd = "hadoop fs -get %s %s" % (hdfs_path, local_path)
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
@@ -176,14 +153,9 @@ def get(hdfs_path, local_path):
 def ls(path):
     """List files on HDFS.
 
-    Args:
-        path: A string (potentially with wildcards).
-
-    Returns:
-        A list of strings representing HDFS paths.
-
-    Raises:
-        IOError: An error occurred listing the directory (e.g., not available).
+    :param path: A string (potentially with wildcards).
+    :rtype: A list of strings representing HDFS paths.
+    :raises: IOError: An error occurred listing the directory (e.g., not available).
     """
     rcode, stdout, stderr = _checked_hadoop_fs_command('hadoop fs -ls %s' % path)
     found_line = lambda x: re.search('Found [0-9]+ items$', x)
@@ -193,14 +165,11 @@ def ls(path):
 
 
 def writetb(path, kvs):
-    """Write typedbytes sequence file on HDFS
+    """List files on HDFS.
 
-    Args:
-        path: HDFS path (str)
-        kvs: Iterator of (key, value)
-    
-    Raises:
-        IOError: An error occurred while saving the data.
+    :param path: HDFS path (string)
+    :param kvs: Iterator of (key, value)
+    :raises: IOError: An error occurred while saving the data.
     """
     read_fd, write_fd = os.pipe()
     read_fp = os.fdopen(read_fd, 'r')
@@ -223,19 +192,14 @@ def readtb(paths, ignore_logs=True, num_procs=10):
     By default, ignores files who's names start with an underscore '_' as they
     are log files.  This allows you to cat a directory that may be a variety of
     outputs from hadoop (e.g., _SUCCESS, _logs).  This works on directories and
-    files.
+    files.  The KV pairs may be interleaved between files
+    (they are read in parallel).
 
-    Args:
-        paths: HDFS path (str) or paths (iterator)
-        ignore_logs: If True, ignore all files who's name starts with an
-            underscore.  Defaults to True.
-        num_procs: Number of reading procs to open (default 10)
-
-    Returns:
-        An iterator of key, value pairs.
-
-    Raises:
-        IOError: An error occurred listing the directory (e.g., not available).
+    :param paths: HDFS path (str) or paths (iterator)
+    :param ignore_logs: If True, ignore all files who's name starts with an underscore.  Defaults to True.
+    :param num_procs: Number of reading procs to open (default 10)
+    :returns: An iterator of key, value pairs.
+    :raises: IOError: An error occurred reading the directory (e.g., not available).
     """
     import select
     hstreaming = _find_hstreaming()

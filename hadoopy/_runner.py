@@ -293,10 +293,10 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     """A simple local emulation of hadoop
 
     This doesn't run hadoop and it doesn't support many advanced features, it
-    is intended for simple debugging.  The input/output is read from HDFS and
-    they must be TypedBytes in SequenceFiles.  The output is stored on HDFS.
-    This allows for small tasks to be run locally (primarily while debugging).
-    A temporary working directory is used and removed.
+    is intended for simple debugging.  The input/output uses HDFS if an
+    HDFS path is given. This allows for small tasks to be run locally
+    (primarily while debugging). A temporary working directory is used and
+    removed.
 
     Support
 
@@ -306,6 +306,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     * Files
     * Pipe (see below)
     * Display of stdout/stderr
+    * Iterator of KV pairs as input or output (bypassing HDFS)
 
     :param in_name: Input path (string or list of strings) or Iterator of (key, value).  If it is an iterator then no input is taken from HDFS.
     :param out_name: Output path or None.  If None then output is not placed on HDFS, it is available through the 'output' key of the return value.
