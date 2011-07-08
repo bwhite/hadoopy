@@ -327,34 +327,11 @@ API
 
 ..  autofunction:: hadoopy.counter(group, counter[, amount=1, err=None])
 
-..  autofunction:: hadoopy.launch(in_name, out_name, script_path[, partitioner=False, files=(), jobconfs=(), cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, pretend=False, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, script_dir='', remove_ext=False, **kw])
+..  autofunction:: hadoopy.launch(in_name, out_name, script_path[, partitioner=False, files=(), jobconfs=(), cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, script_dir='', remove_ext=False, **kw])
 
-..  function:: hadoopy.launch_frozen(in_name, out_name, script_path[, mapper=True, reducer=True, combiner=False, partitioner=False, files=(), jobconfs=(), cmdenvs=(), copy_script=True, hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, pretend=False, add_python=True, config=None, verbose=False, **kw])
+..  autofunction:: hadoopy.launch_frozen(in_name, out_name, script_path[, frozen_tar_path=None, temp_path='_hadoopy_temp', partitioner=False, wait=True, files=(), jobconfs=(), cmdenvs=(), hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, **kw])
 
-    Freezes a script and then launches it.
-
-    :param in_name: Input path (string or list)
-    :param out_name: Output path
-    :param script_path: Path to the script (e.g., script.py)
-    :param mapper: If True, the mapper is "script.py map".  If string, the mapper is the value
-    :param reducer: If True (default), the reducer is "script.py reduce".  If string, the reducer is the value
-    :param combiner: If True, the combiner is "script.py combine" (default False).  If string, the combiner is the value
-    :param partitioner: If True, the partitioner is the value.
-    :param copy_script: If True, the script is added to the files list.
-    :param files: Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory
-    :param jobconfs: Extra jobconf parameters (string or list)
-    :param cmdenvs: Extra cmdenv parameters (string or list)
-    :param hstreaming: The full hadoop streaming path to call.
-    :param use_typedbytes: If True (default), use typedbytes IO.
-    :param use_seqoutput: True (default), output sequence file. If False, output is text.
-    :param use_autoinput: If True (default), sets the input format to auto.
-    :param pretend: If true, only build the command and return.
-    :param add_python: If true, use 'python script_name.py'
-    :param config: If a string, set the hadoop config path
-    :param verbose: If true, output to stdout all command results.
-    :rtype: The hadoop command called.
-    :raises: subprocess.CalledProcessError: Hadoop or freeze error.
-    :raises: OSError: Hadoop streaming or freeze not found.
+..  autofunction:: hadoopy.launch_local(in_name, out_name, script_path[, max_input=-1, files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True, **kw])
 
 ..  function:: hadoopy.ls(path)
 

@@ -68,7 +68,7 @@ def _parse_info(script_path, python_cmd='python'):
 def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs=(),
            cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
-           pretend=False, add_python=True, config=None, pipe=True,
+           add_python=True, config=None, pipe=True,
            python_cmd="python", num_mappers=None, num_reducers=None,
            script_dir='', remove_ext=False, **kw):
     """Run Hadoop given the parameters
@@ -77,20 +77,21 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :param out_name: Output path
     :param script_path: Path to the script (e.g., script.py)
     :param partitioner: If True, the partitioner is the value.
-    :param copy_script: If True, the script is added to the files list.
-    :param wait: If True, wait till the process is completed (default True) this is useful if you want to run multiple jobs concurrently by using the 'process' entry in the output.
     :param files: Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory
     :param jobconfs: Extra jobconf parameters (string or list)
     :param cmdenvs: Extra cmdenv parameters (string or list)
+    :param copy_script: If True, the script is added to the files list.
+    :param wait: If True, wait till the process is completed (default True) this is useful if you want to run multiple jobs concurrently by using the 'process' entry in the output.
     :param hstreaming: The full hadoop streaming path to call.
+    :param name: Set the job name to this (default None, job name is the script name)
     :param use_typedbytes: If True (default), use typedbytes IO.
     :param use_seqoutput: True (default), output sequence file. If False, output is text.
     :param use_autoinput: If True (default), sets the input format to auto.
-    :param pretend: If true, only build the command and return.
     :param add_python: If true, use 'python script_name.py'
     :param config: If a string, set the hadoop config path
     :param pipe: If true (default) then call user code through a pipe to isolate it and stop bugs when printing to stdout.  See project docs.
     :param python_cmd: The python command to use. The default is "python". Can be used to override the system default python, e.g. python_cmd = "python2.6"
+
     :param num_mappers: The number of mappers to use, i.e. the argument given to 'numMapTasks'. If None, then do not specify this argument to hadoop streaming.
     :param num_reducers: The number of reducers to use, i.e. the argument given to 'numReduceTasks'. If None, then do not specify this argument to hadoop streaming.
     :param script_dir: Where the script is relative to working dir, will be prefixed to script_path with a / (default '' is current dir)
@@ -204,20 +205,19 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     if config:
         cmd += ['--config', config]
     # Run command and wait till it has completed
-    if not pretend:
-        print('/\\%s%s Output%s/\\' % ('-' * 10, 'Hadoop', '-' * 10))
-        print('hadoopy: Running[%s]' % (' '.join(cmd)))
-        process = subprocess.Popen(' '.join(cmd), shell=True)
-        out['process'] = process
-        if wait:
-            if process.wait():
-                raise subprocess.CalledProcessError(process.returncode, ' '.join(cmd))
-        print('\\/%s%s Output%s\\/' % ('-' * 10, 'Hadoop', '-' * 10))
-        # NOTE(brandyn): Postpones calling readtb
+    print('/\\%s%s Output%s/\\' % ('-' * 10, 'Hadoop', '-' * 10))
+    print('hadoopy: Running[%s]' % (' '.join(cmd)))
+    process = subprocess.Popen(' '.join(cmd), shell=True)
+    out['process'] = process
+    if wait:
+        if process.wait():
+            raise subprocess.CalledProcessError(process.returncode, ' '.join(cmd))
+    print('\\/%s%s Output%s\\/' % ('-' * 10, 'Hadoop', '-' * 10))
+    # NOTE(brandyn): Postpones calling readtb
 
-        def _read_out():
-            for x in hadoopy.readtb(out_name):
-                yield x
+    def _read_out():
+        for x in hadoopy.readtb(out_name):
+            yield x
         out['output'] = _read_out()
     out['hadoop_cmds'] = [' '.join(cmd)]
     return out
@@ -233,55 +233,36 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     small, you can easily reuse/debug them, and to avoid any risks involved
     with removing the file.
 
-    Args:
-        in_name: Input path (string or list)
-        out_name: Output path
-        script_path: Path to the script (e.g., script.py)
-        frozen_tar_path: If not None, use this path to a previously frozen
-            archive.  You can get such a path from the return value of this
-            function, it is particularly helpful in iterative programs.
-        temp_path: HDFS path that we can use to store temporary files
-            (default to _hadoopy_temp)
-        partitioner: If True, the partitioner is the value.
-        copy_script: If True, the script is added to the files list.
-        wait: If True, wait till the process is completed (default True)
-            this is useful if you want to run multiple jobs concurrently
-            by using the 'process' entry in the output.
-        files: Extra files (other than the script) (string or list).
-            NOTE: Hadoop copies the files into working directory
-        jobconfs: Extra jobconf parameters (string or list)
-        cmdenvs: Extra cmdenv parameters (string or list)
-        hstreaming: The full hadoop streaming path to call.
-        use_typedbytes: If True (default), use typedbytes IO.
-        use_seqoutput: True (default), output sequence file. If False, output
-            is text.
-        use_autoinput: If True (default), sets the input format to auto.
-        pretend: If true, only build the command and return.
-        add_python: If true, use 'python script_name.py'
-        config: If a string, set the hadoop config path
-        pipe: If true (default) then call user code through a pipe to isolate
-            it and stop bugs when printing to stdout.  See project docs.
-        python_cmd: The python command to use. The default is "python".
-            Can be used to override the system default python, e.g.
-            python_cmd = "python2.6"
-        num_mappers: The number of mappers to use, i.e. the
-            argument given to 'numMapTasks'. If None, then
-            do not specify this argument to hadoop streaming.
-        num_reducers: The number of reducers to use, i.e. the
-            argument given to 'numReduceTasks'. If None, then
-            do not specify this argument to hadoop streaming.
+    :param in_name: Input path (string or list)
+    :param out_name: Output path
+    :param script_path: Path to the script (e.g., script.py)
+    :param frozen_tar_path: If not None, use this path to a previously frozen archive.  You can get such a path from the return value of this function, it is particularly helpful in iterative programs.
+    :param temp_path: HDFS path that we can use to store temporary files (default to _hadoopy_temp)
+    :param partitioner: If True, the partitioner is the value.
+    :param wait: If True, wait till the process is completed (default True) this is useful if you want to run multiple jobs concurrently by using the 'process' entry in the output.
+    :param files: Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory
+    :param jobconfs: Extra jobconf parameters (string or list)
+    :param cmdenvs: Extra cmdenv parameters (string or list)
+    :param hstreaming: The full hadoop streaming path to call.
+    :param name: Set the job name to this (default None, job name is the script name)
+    :param use_typedbytes: If True (default), use typedbytes IO.
+    :param use_seqoutput: True (default), output sequence file. If False, output is text.
+    :param use_autoinput: If True (default), sets the input format to auto.
+    :param config: If a string, set the hadoop config path
+    :param pipe: If true (default) then call user code through a pipe to isolate it and stop bugs when printing to stdout.  See project docs.
+    :param python_cmd: The python command to use. The default is "python". Can be used to override the system default python, e.g. python_cmd = "python2.6"
 
-    Returns:
-        Dictionary some of the following entries (depending on options) of
-        freeze_cmds: Freeze command(s) ran
-        frozen_tar_path: HDFS path to frozen file
-        hadoop_cmds: Hadoopy command(s) ran
-        process: subprocess.Popen object
-        output: Iterator of (key, value) pairs
+    :param num_mappers: The number of mappers to use, i.e. the argument given to 'numMapTasks'. If None, then do not specify this argument to hadoop streaming.
+    :param num_reducers: The number of reducers to use, i.e. the argument given to 'numReduceTasks'. If None, then do not specify this argument to hadoop streaming.
 
-    Raises:
-        subprocess.CalledProcessError: Hadoop or Cxfreeze error.
-        OSError: Hadoop streaming or Cxfreeze not found.
+    :rtype: Dictionary with some of the following entries (depending on options)
+    :returns: freeze_cmds: Freeze command(s) ran
+    :returns: frozen_tar_path: HDFS path to frozen file
+    :returns: hadoop_cmds: Hadoopy command(s) ran
+    :returns: process: subprocess.Popen object
+    :returns: output: Iterator of (key, value) pairs
+    :raises: subprocess.CalledProcessError: Hadoop error.
+    :raises: OSError: Hadoop streaming not found.
     """
     cmds = []
     if not frozen_tar_path:
@@ -318,41 +299,30 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     A temporary working directory is used and removed.
 
     Support
-    - Environmental variables
-    - Map-only tasks
-    - Combiner
-    - Files
-    - Pipe (see below)
-    - Display of stdout/stderr
+    * Environmental variables
+    * Map-only tasks
+    * Combiner
+    * Files
+    * Pipe (see below)
+    * Display of stdout/stderr
 
-    Args:
-        in_name: Input path (string or list of strings) or Iterator of (key, value).
-            If it is an iterator then no input is taken from HDFS.
-        out_name: Output path or None.  If None then output is not placed on
-            HDFS, it is available through the 'output' key of the return value.
-        script_path: Path to the script (e.g., script.py)
-        max_input: Maximum number of Mapper inputs, if < 0 (default) then
-            unlimited.
-        files: Extra files (other than the script) (string or list).
-            NOTE: Hadoop copies the files into working directory
-        cmdenvs: Extra cmdenv parameters (string or list)
-        pipe: If true (default) then call user code through a pipe to isolate
-            it and stop bugs when printing to stdout.  See project docs.
-        python_cmd: The python command to use. The default is "python".
-            Can be used to override the system default python, e.g.
-            python_cmd = "python2.6"
-        remove_tempdir: If True (default), then rmtree the temporary dir, else
-            print its location.  Useful if you need to see temporary files or
-            how input files are copied.
-
-    Returns:
-        Dictionary some of the following entries (depending on options) of
-        freeze_cmds: Freeze command(s) ran
-        frozen_tar_path: HDFS path to frozen file
-        hadoop_cmds: Hadoopy command(s) ran
-        process: subprocess.Popen object
-        output: Iterator of (key, value) pairs
-
+    :param in_name: Input path (string or list of strings) or Iterator of (key, value).  If it is an iterator then no input is taken from HDFS.
+    :param out_name: Output path or None.  If None then output is not placed on HDFS, it is available through the 'output' key of the return value.
+    :param script_path: Path to the script (e.g., script.py)
+    :param max_input: Maximum number of Mapper inputs, if < 0 (default) then unlimited.
+    :param files: Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory
+    :param cmdenvs: Extra cmdenv parameters (string or list)
+    :param pipe: If true (default) then call user code through a pipe to isolate it and stop bugs when printing to stdout.  See project docs.
+    :param python_cmd: The python command to use. The default is "python".  Can be used to override the system default python, e.g. python_cmd = "python2.6"
+    :param remove_tempdir: If True (default), then rmtree the temporary dir, else print its location.  Useful if you need to see temporary files or how input files are copied.
+    :rtype: Dictionary with some of the following entries (depending on options)
+    :returns: freeze_cmds: Freeze command(s) ran
+    :returns: frozen_tar_path: HDFS path to frozen file
+    :returns: hadoop_cmds: Hadoopy command(s) ran
+    :returns: process: subprocess.Popen object
+    :returns: output: Iterator of (key, value) pairs
+    :raises: subprocess.CalledProcessError: Hadoop error.
+    :raises: OSError: Hadoop streaming not found.
     """
     print('Hadoopy Local: In[%s] Out[%s] Script[%s]' % (in_name, out_name, script_path))
     script_path = os.path.abspath(script_path)
