@@ -325,19 +325,9 @@ API
 
 ..  autofunction:: hadoopy.status(msg[, err=None])
 
-..  function:: hadoopy.counter(group, counter[, amount=1, err=None])
+..  autofunction:: hadoopy.counter(group, counter[, amount=1, err=None])
 
-    Output a counter update that is displayed in the Hadoop web interface
-
-    Counters are useful for quickly identifying the number of times an error
-    occurred, current progress, or coarse statistics.
-
-    :param group: Counter group
-    :param counter: Counter name
-    :param amount: Value to add (default 1)
-    :param err: Func that outputs a string, if None then sys.stderr.write is used (default None)
-
-..  function:: hadoopy.launch(in_name, out_name, script_path[, mapper=True, reducer=True, combiner=False, partitioner=False, files=(), jobconfs=(), cmdenvs=(), copy_script=True, hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, pretend=False, add_python=True, config=None, **kw])
+..  autofunction:: hadoopy.launch(in_name, out_name, script_path[, partitioner=False, files=(), jobconfs=(), cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, pretend=False, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, script_dir='', remove_ext=False, **kw])
     
     Run Hadoop given the parameters
 

@@ -30,11 +30,10 @@ def counter(group, counter, amount=1, err=None):
     Counters are useful for quickly identifying the number of times an error
     occurred, current progress, or coarse statistics.
 
-    Args:
-        group: Counter group
-        counter: Counter name
-        amount: Value to add (default 1)
-        err: Func that outputs a string if None stderr is used (default None)
+    :param group: Counter group
+    :param counter: Counter name
+    :param amount: Value to add (default 1)
+    :param err: Func that outputs a string, if None then sys.stderr.write is used (default None)
     """
     if not err:
         err = _err

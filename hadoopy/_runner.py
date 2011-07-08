@@ -73,53 +73,33 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
            script_dir='', remove_ext=False, **kw):
     """Run Hadoop given the parameters
 
-    Args:
-        in_name: Input path (string or list)
-        out_name: Output path
-        script_path: Path to the script (e.g., script.py)
-        partitioner: If True, the partitioner is the value.
-        copy_script: If True, the script is added to the files list.
-        wait: If True, wait till the process is completed (default True)
-            this is useful if you want to run multiple jobs concurrently
-            by using the 'process' entry in the output.
-        files: Extra files (other than the script) (string or list).
-            NOTE: Hadoop copies the files into working directory
-        jobconfs: Extra jobconf parameters (string or list)
-        cmdenvs: Extra cmdenv parameters (string or list)
-        hstreaming: The full hadoop streaming path to call.
-        use_typedbytes: If True (default), use typedbytes IO.
-        use_seqoutput: True (default), output sequence file. If False, output
-            is text.
-        use_autoinput: If True (default), sets the input format to auto.
-        pretend: If true, only build the command and return.
-        add_python: If true, use 'python script_name.py'
-        config: If a string, set the hadoop config path
-        pipe: If true (default) then call user code through a pipe to isolate
-            it and stop bugs when printing to stdout.  See project docs.
-        python_cmd: The python command to use. The default is "python".
-            Can be used to override the system default python, e.g.
-            python_cmd = "python2.6"
-        num_mappers: The number of mappers to use, i.e. the
-            argument given to 'numMapTasks'. If None, then
-            do not specify this argument to hadoop streaming.
-        num_reducers: The number of reducers to use, i.e. the
-            argument given to 'numReduceTasks'. If None, then
-            do not specify this argument to hadoop streaming.
-        script_dir: Where the script is relative to working dir, will be
-            prefixed to script_path with a / (default '' is current dir)
-        remove_ext: If True, remove the script extension (default False)
+    :param in_name: Input path (string or list)
+    :param out_name: Output path
+    :param script_path: Path to the script (e.g., script.py)
+    :param partitioner: If True, the partitioner is the value.
+    :param copy_script: If True, the script is added to the files list.
+    :param wait: If True, wait till the process is completed (default True) this is useful if you want to run multiple jobs concurrently by using the 'process' entry in the output.
+    :param files: Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory
+    :param jobconfs: Extra jobconf parameters (string or list)
+    :param cmdenvs: Extra cmdenv parameters (string or list)
+    :param hstreaming: The full hadoop streaming path to call.
+    :param use_typedbytes: If True (default), use typedbytes IO.
+    :param use_seqoutput: True (default), output sequence file. If False, output is text.
+    :param use_autoinput: If True (default), sets the input format to auto.
+    :param pretend: If true, only build the command and return.
+    :param add_python: If true, use 'python script_name.py'
+    :param config: If a string, set the hadoop config path
+    :param pipe: If true (default) then call user code through a pipe to isolate it and stop bugs when printing to stdout.  See project docs.
+    :param python_cmd: The python command to use. The default is "python". Can be used to override the system default python, e.g. python_cmd = "python2.6"
+    :param num_mappers: The number of mappers to use, i.e. the argument given to 'numMapTasks'. If None, then do not specify this argument to hadoop streaming.
+    :param num_reducers: The number of reducers to use, i.e. the argument given to 'numReduceTasks'. If None, then do not specify this argument to hadoop streaming.
+    :param script_dir: Where the script is relative to working dir, will be prefixed to script_path with a / (default '' is current dir)
+    :param remove_ext: If True, remove the script extension (default False)
 
-    Returns:
-        Dictionary some of the following entries (depending on options) of
-        freeze_cmds: Freeze command(s) ran
-        frozen_tar_path: HDFS path to frozen file
-        hadoop_cmds: Hadoopy command(s) ran
-        process: subprocess.Popen object
-        output: Iterator of (key, value) pairs
-
-    Raises:
-        subprocess.CalledProcessError: Hadoop error.
-        OSError: Hadoop streaming not found.
+    :rtype: Dictionary
+    :returns: Some of the following entries (depending on options) of freeze_cmds: Freeze command(s) ran, frozen_tar_path: HDFS path to frozen file, hadoop_cmds: Hadoopy command(s) ran, process: subprocess.Popen object, and output: Iterator of (key, value) pairs.
+    :raises: subprocess.CalledProcessError: Hadoop error.
+    :raises: OSError: Hadoop streaming not found.
     """
     out = {}
     try:
