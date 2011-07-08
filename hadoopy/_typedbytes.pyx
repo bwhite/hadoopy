@@ -515,84 +515,91 @@ def write_tb(kv):
 
 
 cdef class TypedBytesFile(object):
-        cdef void* _write_ptr
-        cdef void* _read_ptr
-        cdef object _repr
-        cdef object file_method
-        cdef int flush_writes
-        def __init__(self, fn=None, mode=None, read_fd=None, write_fd=None, flush_writes=False):
-            self.flush_writes = int(flush_writes)
-            cdef char *fnc
-            cdef char *modec
-            self._repr = "TypedBytesFile(%s, %s, %s, %s)" % (repr(fn), repr(mode), repr(read_fd), repr(write_fd))
-            if fn:
-                self.file_method = 'fn'
-                if mode == None:
-                    mode = 'r'
-                fnc = PyString_AsString(fn)
-                modec = PyString_AsString(mode)
-                self._write_ptr = self._read_ptr = fopen(fnc, modec)
-                if self._write_ptr == NULL:
-                    raise IOError('Cannot open file [%s]' % fn)
-            elif read_fd != None or write_fd != None:
-                self.file_method = 'readwritefds'
-                self._read_ptr = fdopen(read_fd, 'r') if read_fd != None else <void *>0
-                self._write_ptr = fdopen(write_fd, 'w') if write_fd != None else <void *>0
-            else:
-                self.file_method = 'stdinout'
-                self._write_ptr = stdout
-                self._read_ptr = stdin
+    """TypedBytes interface
+    :param fn: File path (default None)
+    :param mode: Mode to open the file with (default None)
+    :param read_fd: Read file descriptor (int) (default None)
+    :param write_fd: Write file descriptor (int) (default None)
+    :param flush_writes: If True then flush the buffer for every write (default False)
+    """
+    cdef void* _write_ptr
+    cdef void* _read_ptr
+    cdef object _repr
+    cdef object file_method
+    cdef int flush_writes
+    def __init__(self, fn=None, mode=None, read_fd=None, write_fd=None, flush_writes=False):
+        self.flush_writes = int(flush_writes)
+        cdef char *fnc
+        cdef char *modec
+        self._repr = "TypedBytesFile(%s, %s, %s, %s)" % (repr(fn), repr(mode), repr(read_fd), repr(write_fd))
+        if fn:
+            self.file_method = 'fn'
+            if mode == None:
+                mode = 'r'
+            fnc = PyString_AsString(fn)
+            modec = PyString_AsString(mode)
+            self._write_ptr = self._read_ptr = fopen(fnc, modec)
+            if self._write_ptr == NULL:
+                raise IOError('Cannot open file [%s]' % fn)
+        elif read_fd != None or write_fd != None:
+            self.file_method = 'readwritefds'
+            self._read_ptr = fdopen(read_fd, 'r') if read_fd != None else <void *>0
+            self._write_ptr = fdopen(write_fd, 'w') if write_fd != None else <void *>0
+        else:
+            self.file_method = 'stdinout'
+            self._write_ptr = stdout
+            self._read_ptr = stdin
 
-        cdef _close(self):
-            self.flush()
-            if self.file_method == 'readwritefds':
-                if self._write_ptr:
-                    fclose(self._write_ptr)
-                if self._read_ptr:
-                    fclose(self._read_ptr)
-            elif self.file_method == 'stdinout':
-                fclose(self._write_ptr)
-            self._write_ptr = NULL
-            self._read_ptr = NULL
-
-        def __repr__(self):
-            return self._repr
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, type, value, traceback):
-            self._close()
-
-        def __del__(self):
-            self._close()
-
-        def __iter__(self):
-            return self
-
-        def __next__(self):
-            if self._read_ptr == <void *>0:
-                raise ValueError("Read pointer not set!")
-            return __read_key_value_tb(self._read_ptr)
-
-        def write(self, kv):
-            if self._write_ptr == <void *>0:
-                raise ValueError("Write pointer not set!")
-            __write_key_value_tb(self._write_ptr, kv)
-            if self.flush_writes:
-                self.flush()
-
-        def writes(self, kvs):
-            if self._write_ptr == <void *>0:
-                raise ValueError("Write pointer not set!")
-            for kv in kvs:
-                __write_key_value_tb(self._write_ptr, kv)
-            if self.flush_writes:
-                self.flush()
-
-        cpdef flush(self):
+    cdef _close(self):
+        self.flush()
+        if self.file_method == 'readwritefds':
             if self._write_ptr:
-                fflush(self._write_ptr)
+                fclose(self._write_ptr)
+            if self._read_ptr:
+                fclose(self._read_ptr)
+        elif self.file_method == 'stdinout':
+            fclose(self._write_ptr)
+        self._write_ptr = NULL
+        self._read_ptr = NULL
 
-        def close(self):
-            self._close()
+    def __repr__(self):
+        return self._repr
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self._close()
+
+    def __del__(self):
+        self._close()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self._read_ptr == <void *>0:
+            raise ValueError("Read pointer not set!")
+        return __read_key_value_tb(self._read_ptr)
+
+    def write(self, kv):
+        if self._write_ptr == <void *>0:
+            raise ValueError("Write pointer not set!")
+        __write_key_value_tb(self._write_ptr, kv)
+        if self.flush_writes:
+            self.flush()
+
+    def writes(self, kvs):
+        if self._write_ptr == <void *>0:
+            raise ValueError("Write pointer not set!")
+        for kv in kvs:
+            __write_key_value_tb(self._write_ptr, kv)
+        if self.flush_writes:
+            self.flush()
+
+    cpdef flush(self):
+        if self._write_ptr:
+            fflush(self._write_ptr)
+
+    def close(self):
+        self._close()
