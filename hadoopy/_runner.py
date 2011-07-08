@@ -98,11 +98,11 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
 
     :rtype: Dictionary
     :returns: Some of the following entries (depending on options) of
-        freeze_cmds: Freeze command(s) ran
-        frozen_tar_path: HDFS path to frozen file
-        hadoop_cmds: Hadoopy command(s) ran
-        process: subprocess.Popen object
-        output: Iterator of (key, value) pairs
+        | freeze_cmds: Freeze command(s) ran
+        | frozen_tar_path: HDFS path to frozen file
+        | hadoop_cmds: Hadoopy command(s) ran
+        | process: subprocess.Popen object
+        | output: Iterator of (key, value) pairs
     :raises: subprocess.CalledProcessError: Hadoop error.
     :raises: OSError: Hadoop streaming not found.
     """
