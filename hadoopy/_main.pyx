@@ -388,7 +388,12 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
         Freeze the script to a tar file specified by <tar_path>.  The extension
         may be .tar or .tar.gz.  All files are placed in the root of the tar.
         Files specified with -Z will be added to the tar root.
-    
+    python script.py info
+        Prints a json object containing 'tasks' which is a list of tasks which
+        can include 'map', 'combine', and 'reduce'.  Also contains 'doc' which is
+        the provided documentation through the doc argument to the run function.
+        The tasks correspond to provided inputs to the run function.
+
     Specification of mapper/reducer/combiner
         Input Key/Value Types
             For TypedBytes, the type will be the decoded typed
@@ -429,8 +434,11 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
     """
     ret = 0
     if len(sys.argv) >= 2:
-        if sys.argv[1] == 'freeze' and len(sys.argv) > 2:
-            ret = freeze()
+        if sys.argv[1] == 'freeze':
+            if len(sys.argv) > 2:
+                ret = freeze()
+            else:
+                print('Usage: python script.py freeze <tar_path> <-Z add_file0 -Z add_file1...>')
         elif sys.argv[1] == 'pipe' and len(sys.argv) == 3:
             cmd = '%s %s %d %d' % (sys.argv[0],
                                    sys.argv[2],
