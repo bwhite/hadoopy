@@ -252,13 +252,13 @@ class TestUsingHadoop(unittest.TestCase):
 
     def test_local(self):
         out_path = '%s/local_test/%f' % (self.data_path, time.time())
-        hadoopy.launch_local('/user/brandyn/flickr_hash_data', out_path, 'local.py', max_input=1000,
+        hadoopy.put('wc-input-alice.tb', out_path + '/wc-input-alice.tb')
+        hadoopy.launch_local(out_path + '/wc-input-alice.tb', out_path + '/out', 'local.py', max_input=1000,
                              cmdenvs=['TEST_ENV=10'],
                              files=['mytest_dir/test_file'])
         hadoopy.launch_local(((1000 * 'a', 10000000 * 'b') for x in range(100)), None, 'local.py', max_input=10000,
                              cmdenvs=['TEST_ENV=10'],
                              files=['mytest_dir/test_file'])
-
 
 
 if __name__ == '__main__':
