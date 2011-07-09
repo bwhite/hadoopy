@@ -146,6 +146,7 @@ class TestUsingHadoop(unittest.TestCase):
         fn = 'out-%f-%s' % (time.time(), orig_fn)
         in_path = self.data_path + fn
         out_path = self.data_path + fn + '.out'
+        print(os.path.abspath('.'))
         hadoopy.put(orig_fn, in_path)
         # We also do a few hdfs checks here
         self.assertEquals(len(hadoopy.ls(in_path)), 1)
