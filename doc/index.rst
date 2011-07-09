@@ -219,7 +219,8 @@ Now it's gone
       File "<stdin>", line 1, in <module>
     ImportError: No module named hadoopy
 
-The rest of the nodes were cleaned up the same way.  We modify the command, note that we now get the output from freeze at the top ::
+The rest of the nodes were cleaned up the same way.  We modify the command, note that we now get the output from freeze at the top
+
     >>> out = hadoopy.launch_frozen('playground/wc-input-alice.txt', 'playground/out_frozen/', 'wc.py')
     /\----------Hadoop Output----------/\
     hadoopy: Running[hadoop jar /hadoop-0.20.2+320/contrib/streaming/hadoop-streaming-0.20.2+320.jar -output playground/out_frozen/ -input playground/wc-input-alice.txt -mapper "_frozen/wc pipe map" -reducer "_frozen/wc pipe reduce" -jobconf "mapred.cache.archives=_hadoopy_temp/1310088192.511625/_frozen.tar#_frozen" -jobconf "mapreduce.job.cache.archives=_hadoopy_temp/1310088192.511625/_frozen.tar#_frozen" -jobconf mapred.job.name=wc -io typedbytes -outputformat org.apache.hadoop.mapred.SequenceFileOutputFormat -inputformat AutoInputFormat]
@@ -313,13 +314,34 @@ You can determine if a job provides map/reduce/combine functionality and get its
     >>> python wc.py info
     {"doc": "Hadoopy Wordcount Demo", "tasks": ["map", "reduce"]}
 
-
-Most Hadoop streaming programs have to meticulously avoid printing to stdout as it will interfere with the connection to Hadoop streaming.  Hadoopy uses a technique I refer to as 'pipe hopping' where a launcher remaps the stdin/stdout of the client program to be null and stderr respectively, and communication happens over file descriptors which correspond to the true stdout/stdin that Hadoop streaming communicates with.  This is transparent to the user but the end result is more useful error messages when exceptions are thrown (as opposed to generic Java errors) and the ability to use print statements like normal.
-
 That's a quick tour of Hadoopy.
 
+Using Stdout/Stderr in Hadoopy Jobs (Pipe Hopping)
+--------------------------------------------------
+
+Hadoop streaming implements the standard Mapper/Reducer classes and simply opens 3 pipes to a streaming program (stdout, stderr, and stdin).  The first issue is how is data encoded?  The standard is to separate keys and values with a tab and each key/value pair with a newline; however, this is really a bad way to have to work as you have to ensure that your output never contains tabs or newlines.  Moreover, serializing everything to an escaped string is inefficient and tends to hurt interoperability of jobs as everyone has their own solution to encoding.  The solution (part of CDH2+) is to use TypedBytes which is an encoding format for basic types (int, float, dictionary, list, string, etc.) which is fast, standardized, and simple.  Hadoopy has its own implementation and it is particularly fast.
+
+TypedBytes doesn't solve the issue of client code outputting to stdout, it actually makes it worse as the resulting output is interpreted as TypedBytes which can have very complex effects.  Most Hadoop streaming programs have to meticulously avoid printing to stdout as it will interfere with the connection to Hadoop streaming.  Hadoopy uses a technique I refer to as 'pipe hopping' where a launcher remaps the stdin/stdout of the client program to be null and stderr respectively, and communication happens over file descriptors which correspond to the true stdout/stdin that Hadoop streaming communicates with.  This is transparent to the user but the end result is more useful error messages when exceptions are thrown (as opposed to generic Java errors) and the ability to use print statements like normal.  This is a general solution to the problem and if other library writers (for python or other languages) would like a minimum working example of this technique I have one available.
+
+This technique is on by default and can be disabled by passing pipe=False to the launch command of your choice.
+
+
+Hadoopy Flow: Automatic Job-Level Parallization
+-----------------------------------------------
+
+Once you get past the wordcount examples and you have a few scripts you use regularly, the next level of complexity is managing a workflow of jobs.  The simplest way of doing this is to put a few sequential launch statements in a python script and run it.  This is fine for simple workflows but you miss out on two abilities: re-execution of previous workflows by re-using outputs (e.g., when tweaking one job in a flow) and parallel execution of jobs in a flow.  I've had some fairly complex flows and previously the best solution I could find was using Oozie_ with a several thousand line XML file.  Once setup, this ran jobs in parallel and re-execute the workflow by skipping previous nodes; however, it is another server you have to setup and making that XML file takes a lot of the fun out of using Python in the first place (it could be more code than your actual task).  While Hadoopy is fully compatible with Oozie, it certainly seems lacking for the kind of short turn-around scripts most users want to make.
+
+In solving this problem, our goal was to avoid specifying the dependencies (often as a DAG) as they are inherent in the code itself.  Hadoopy Flow solves both of these problems by keeping track of all HDFS outputs your program intends to create and following your program order.  By doing this, if we see a 'launch' command we run it in a 'greenlet', note the output path of the job, and continue with the rest of the program.  If none of the job's inputs depend on any outputs that are pending (i.e., outputs that will materialize from previous jobs/hdfs commands) then we can safely start the job.  This is entirely safe because if the program worked before Hadoopy Flow, then it will work now as those inputs must exist as nothing prior to the job could have created it.  When a job completes, we notify dependent jobs/hdfs commands and if all of their inputs are available they are executed.  The same goes for HDFS commands such as readtb and writetb (most but not all HDFS commands are supported, see Hadoopy Flow for more info).  If you try to read from a file that another job will eventually output to but it hasn't finished yet, then the execution will block at that point until the necessary data is available.
+
+So it sounds pretty magical, but it wouldn't be worth it if you have to rewrite all of your code.  To use Hadoopy Flow, all that you have to do is add 'import hadoopy_flow' before you import Hadoopy, and it will automatically parallelize your code.  It monkey patches Hadoopy (i.e., wraps the calls at run time) and the rest of your code can be unmodified.  All of the code is just a few hundred lines in one file, if you are familiar with greenlets then it might take you 10 minutes to fully understand it (which I recommend if you are going to use it regularly).
+
+Re-execution is another important feature that Hadoopy Flow addresses and it does so trivially.  If after importing Hadoopy Flow you use 'hadoopy_flow.USE_EXISTING = True', then when paths already exist we simply skip the task/command that would have output to them.  This is useful if you run a workflow, a job crashes, we fix the bug, delete the bad job's output, and re-run the workflow.  All previous jobs will be skipped and jobs that don't have their outputs on HDFS are executed like normal.  This simple addition makes iterative development using Hadoop a lot more fun and effective as tweaks generally happen at the end of the workflow and you can easily waste hours recomputing results or hacking your workflow apart to short circuit it.
+
+.. _Oozie: http://yahoo.github.com/oozie/releases/3.0.0/
+
+
 Job Driver API (Start Hadoop Jobs)
------------------
+----------------------------------
 
 ..  autofunction:: hadoopy.launch(in_name, out_name, script_path[, partitioner=False, files=(), jobconfs=(), cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, script_dir='', remove_ext=False, **kw])
 
