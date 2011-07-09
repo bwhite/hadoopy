@@ -316,7 +316,7 @@ You can determine if a job provides map/reduce/combine functionality and get its
 
 That's a quick tour of Hadoopy.
 
-Using Stdout/Stderr in Hadoopy Jobs (Pipe Hopping)
+Pipe Hopping: Using Stdout/Stderr in Hadoopy Jobs
 --------------------------------------------------
 
 Hadoop streaming implements the standard Mapper/Reducer classes and simply opens 3 pipes to a streaming program (stdout, stderr, and stdin).  The first issue is how is data encoded?  The standard is to separate keys and values with a tab and each key/value pair with a newline; however, this is really a bad way to have to work as you have to ensure that your output never contains tabs or newlines.  Moreover, serializing everything to an escaped string is inefficient and tends to hurt interoperability of jobs as everyone has their own solution to encoding.  The solution (part of CDH2+) is to use TypedBytes which is an encoding format for basic types (int, float, dictionary, list, string, etc.) which is fast, standardized, and simple.  Hadoopy has its own implementation and it is particularly fast.
@@ -335,7 +335,7 @@ In solving this problem, our goal was to avoid specifying the dependencies (ofte
 
 So it sounds pretty magical, but it wouldn't be worth it if you have to rewrite all of your code.  To use Hadoopy Flow, all that you have to do is add 'import hadoopy_flow' before you import Hadoopy, and it will automatically parallelize your code.  It monkey patches Hadoopy (i.e., wraps the calls at run time) and the rest of your code can be unmodified.  All of the code is just a few hundred lines in one file, if you are familiar with greenlets then it might take you 10 minutes to fully understand it (which I recommend if you are going to use it regularly).
 
-Re-execution is another important feature that Hadoopy Flow addresses and it does so trivially.  If after importing Hadoopy Flow you use 'hadoopy_flow.USE_EXISTING = True', then when paths already exist we simply skip the task/command that would have output to them.  This is useful if you run a workflow, a job crashes, we fix the bug, delete the bad job's output, and re-run the workflow.  All previous jobs will be skipped and jobs that don't have their outputs on HDFS are executed like normal.  This simple addition makes iterative development using Hadoop a lot more fun and effective as tweaks generally happen at the end of the workflow and you can easily waste hours recomputing results or hacking your workflow apart to short circuit it.
+Re-execution is another important feature that Hadoopy Flow addresses and it does so trivially.  If after importing Hadoopy Flow you use 'hadoopy_flow.USE_EXISTING = True', then when paths already exist we simply skip the task/command that would have output to them.  This is useful if you run a workflow, a job crashes, fix the bug, delete the bad job's output, and re-run the workflow.  All previous jobs will be skipped and jobs that don't have their outputs on HDFS are executed like normal.  This simple addition makes iterative development using Hadoop a lot more fun and effective as tweaks generally happen at the end of the workflow and you can easily waste hours recomputing results or hacking your workflow apart to short circuit it.
 
 .. _Oozie: http://yahoo.github.com/oozie/releases/3.0.0/
 
