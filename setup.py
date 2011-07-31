@@ -90,6 +90,6 @@ setup(name='hadoopy',
       package_data={'hadoopy': thirdparty_paths},
       author='Brandyn A. White',
       author_email='bwhite@dappervision.com',
-      license='GPL',
+      license='GPLv3',
       url='https://github.com/bwhite/hadoopy',
       ext_modules=ext_modules)
