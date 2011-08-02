@@ -164,12 +164,12 @@ def ls(path):
     return out
 
 
-def writetb(path, kvs, java_mem_mb=100):
+def writetb(path, kvs, java_mem_mb=256):
     """Write typedbytes sequence file to HDFS given an iterator of KeyValue pairs
 
     :param path: HDFS path (string)
     :param kvs: Iterator of (key, value)
-    :param java_mem_mb: Integer of java heap size in MB (default 100)
+    :param java_mem_mb: Integer of java heap size in MB (default 256)
     :raises: IOError: An error occurred while saving the data.
     """
     read_fd, write_fd = os.pipe()
