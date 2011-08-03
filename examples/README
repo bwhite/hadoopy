@@ -1,0 +1,44 @@
+Hadoopy Examples
+Brandyn White <bwhite@dappervision.com>
+
+The examples are grouped by requirements and background.  The background is intended to give you a sense of what is recommended, don't let it scare you off.
+
+ex0 - Basic examples without Hadoop (everything is run locally)
+Requirements: Hadoopy, Python 2.6+, Linux/OS X
+Background: Basic knowledge of MapReduce (TODO link to resources), Syntactic understanding of Python
+
+ex1 - Basic examples with Hadoop (interacts with HDFS and Hadoop)
+Requirements: ex0 + CDH2/3
+Background: ex0 + basic understanding of Hadoop job execution and HDFS
+
+ex2 - Basic examples with Hadoop (interacts with HDFS and Hadoop)
+Requirements: ex0 + CDH2/3 on a Hadoop Cluster
+Background: ex1
+
+ex3 - Basic examples with Hadoop using a Whirr cluster
+Requirements: ex0 + Whirr, Amazon AWS Account, a few $
+Background: ex1 + familiarity with Amazon AWS
+
+ex4 - Intermediate examples with Hadoop
+Requirements: ex2 or ex3
+Background: ex1 + understanding of Hadoop design patterns (TODO link to Jimmy's Book)
+
+ex5 - Image processing + Computer Vision with Hadoop
+Requirements: (ex2 or ex3) + Python Imaging Library (PIL), OpenCV
+Background: ex1 + familiarity with PIL and OpenCV
+
+ex6 - Automated parallel job execution with Hadoopy Flow
+Requirements: (ex2 or ex3) + Hadoopy Flow, gevent
+Background: ex1 + familiarity with 'greenlets', dataflow
+
+ex7 - Using Hadoopy with the Oozie job execution engine
+Requirements: (ex2 or ex3) + Oozie
+Background: ex1 + familiarity with Oozie
+
+ex8 - Using Hadoopy with the Avro serialization format
+Requirements: (ex2 or ex3) + Avro
+Background: ex1 + familiarity with Avro
+
+ex9 - Mixing Java Hadoop code with Hadoopy
+Requirements: (ex2 or ex3) + JDK
+Background: ex1 + familiarity with Java
