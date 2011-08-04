@@ -128,11 +128,22 @@ def rmr(path):
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
 
 
+def mv(hdfs_src, hdfs_dst):
+    """Put a file on hdfs
+    
+    :param hdfs_src: Source (str)
+    :param hdfs_dst: Destination (str)
+    :raises: IOError: If unsuccessful
+    """
+    cmd = "hadoop fs -mv %s %s" % (hdfs_src, hdfs_dst)
+    rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
+
+
 def put(local_path, hdfs_path):
     """Put a file on hdfs
     
     :param local_path: Source (str)
-    :param hdfs_path: Destrination (str)
+    :param hdfs_path: Destination (str)
     :raises: IOError: If unsuccessful
     """
     cmd = "hadoop fs -put %s %s" % (local_path, hdfs_path)
@@ -187,7 +198,7 @@ def writetb(path, kvs, java_mem_mb=256):
     p.wait()
 
 
-def readtb(paths, ignore_logs=True, num_procs=10):
+def readtb(paths, num_procs=10, java_mem_mb=256, ignore_logs=True):
     """Read typedbytes sequence files on HDFS (with optional compression).
 
     By default, ignores files who's names start with an underscore '_' as they
@@ -197,8 +208,9 @@ def readtb(paths, ignore_logs=True, num_procs=10):
     (they are read in parallel).
 
     :param paths: HDFS path (str) or paths (iterator)
-    :param ignore_logs: If True, ignore all files who's name starts with an underscore.  Defaults to True.
     :param num_procs: Number of reading procs to open (default 10)
+    :param java_mem_mb: Integer of java heap size in MB (default 256)
+    :param ignore_logs: If True, ignore all files who's name starts with an underscore.  Defaults to True.
     :returns: An iterator of key, value pairs.
     :raises: IOError: An error occurred reading the directory (e.g., not available).
     """
@@ -214,7 +226,7 @@ def readtb(paths, ignore_logs=True, num_procs=10):
         cmd = 'hadoop jar %s dumptb %s' % (hstreaming, cur_path)
         read_fd, write_fd = os.pipe()
         write_fp = os.fdopen(write_fd, 'w')
-        p = _hadoop_fs_command(cmd, stdout=write_fp)
+        p = _hadoop_fs_command(cmd, stdout=write_fp, java_mem_mb=java_mem_mb)
         write_fp.close()
         read_fds.add(read_fd)
         procs[read_fd] = p

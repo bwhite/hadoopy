@@ -28,6 +28,7 @@ import glob
 import tempfile
 import hadoopy
 import time
+import hashlib
 from . import __path__
 
 
@@ -62,11 +63,32 @@ def _copytree(src, dst):
                 raise e
 
 
+def _md5_file(fn, block_size=1048576):
+    """Builds the MD5 of a file block by block
+
+    Args:
+        fn: File path
+        block_size: Size of the blocks to consider (default 1048576)
+
+    Returns:
+        File MD5
+    """
+    h = hashlib.md5()
+    with open(fn) as fp:
+        h.update(fp.read(block_size))
+    return h.hexdigest()
+
+
 def freeze_script(script_path, temp_path='_hadoopy_temp'):
     """Freezes a script, puts it on hdfs, and gives you the path
 
     'frozen_tar_path' can be given to launch_frozen and it will use that
-    instead of making its own, this is useful for repeated calls.
+    instead of making its own, this is useful for repeated calls.  If a
+    file with the same md5 already exists in the temp_path, it is used
+    instead of putting a new copy there to avoid the file transfer.  The
+    files are put into a temporary file based on the timestamp first, then
+    moved to a location that is only a function of their md5 to prevent partial
+    files.
 
     Args:
         script_path: Path to a hadoopy script
@@ -75,10 +97,20 @@ def freeze_script(script_path, temp_path='_hadoopy_temp'):
     Returns:
         {'cmds': commands_ran, 'frozen_tar_path': frozen_tar_path}
     """
-    frozen_tar_path = temp_path + '/%f/_frozen.tar' % time.time()
+    tmp_frozen_tar_path = temp_path + '/%f.tar' % time.time()
     freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar')
     cmds = hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
-    hadoopy.put(freeze_fp.name, frozen_tar_path)
+    md5 = _md5_file(freeze_fp.name)
+    frozen_tar_path = temp_path + '/%s.tar' % md5
+    if hadoopy.exists(frozen_tar_path):
+        return {'cmds': cmds, 'frozen_tar_path': frozen_tar_path}
+    hadoopy.put(freeze_fp.name, tmp_frozen_tar_path)
+    try:
+        hadoopy.mv(tmp_frozen_tar_path, frozen_tar_path)
+    except IOError, e:
+        if hadoopy.exists(frozen_tar_path):  # Check again
+            return {'cmds': cmds, 'frozen_tar_path': frozen_tar_path}
+        raise e
     return {'cmds': cmds, 'frozen_tar_path': frozen_tar_path}
 
 
