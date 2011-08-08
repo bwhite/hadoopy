@@ -75,7 +75,10 @@ def _md5_file(fn, block_size=1048576):
     """
     h = hashlib.md5()
     with open(fn) as fp:
-        h.update(fp.read(block_size))
+        d = 1
+        while d:
+            d = fp.read(block_size)
+            h.update(d)
     return h.hexdigest()
 
 
