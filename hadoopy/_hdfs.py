@@ -262,6 +262,8 @@ def readtb(paths, num_procs=10, java_mem_mb=256, ignore_logs=True):
                 p.wait()
                 del procs[read_fd]
                 del tb_fps[read_fd]
+                del p
+                os.close(read_fd)
                 read_fds.remove(read_fd)
                 try:
                     path_gen.next()
