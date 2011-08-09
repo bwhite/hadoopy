@@ -1,44 +1,40 @@
 Hadoopy Examples
 Brandyn White <bwhite@dappervision.com>
 
-The examples are grouped by requirements and background.  The background is intended to give you a sense of what is recommended, don't let it scare you off.
+The examples are grouped by requirements and background into 'levels'.  The background is intended to give you a sense of what is recommended, don't let it scare you off.
 
-ex0 - Basic examples without Hadoop (everything is run locally)
+L0 - Basic examples without Hadoop (everything is run locally)
 Requirements: Hadoopy, Python 2.6+, Linux/OS X
 Background: Basic knowledge of MapReduce (TODO link to resources), Syntactic understanding of Python
 
-ex1 - Basic examples with Hadoop (interacts with HDFS and Hadoop)
-Requirements: ex0 + CDH2/3
-Background: ex0 + basic understanding of Hadoop job execution and HDFS
+L1 - Basic examples with Hadoop (interacts with HDFS and Hadoop)
+Requirements: L0 + CDH2/3
+Background: L0 + basic understanding of Hadoop job execution and HDFS
 
-ex2 - Basic examples with Hadoop (interacts with HDFS and Hadoop)
-Requirements: ex0 + CDH2/3 on a Hadoop Cluster
-Background: ex1
+L2 - Basic examples with Hadoop using a Whirr cluster
+Requirements: L0 + Whirr, Amazon AWS Account, a few $
+Background: L0 + familiarity with Amazon AWS
 
-ex3 - Basic examples with Hadoop using a Whirr cluster
-Requirements: ex0 + Whirr, Amazon AWS Account, a few $
-Background: ex1 + familiarity with Amazon AWS
+L3 - Intermediate examples with Hadoop
+Requirements: L1 or L2
+Background: L0 + understanding of Hadoop design patterns (TODO link to Jimmy's Book)
 
-ex4 - Intermediate examples with Hadoop
-Requirements: ex2 or ex3
-Background: ex1 + understanding of Hadoop design patterns (TODO link to Jimmy's Book)
+L4 - Image processing + Computer Vision with Hadoop
+Requirements: (L1 or L2) + Python Imaging Library (PIL), OpenCV
+Background: L0 + familiarity with PIL and OpenCV
 
-ex5 - Image processing + Computer Vision with Hadoop
-Requirements: (ex2 or ex3) + Python Imaging Library (PIL), OpenCV
-Background: ex1 + familiarity with PIL and OpenCV
+L5 - Automated parallel job execution with Hadoopy Flow
+Requirements: (L1 or L2) + Hadoopy Flow, gevent
+Background: L0 + familiarity with 'greenlets', dataflow
 
-ex6 - Automated parallel job execution with Hadoopy Flow
-Requirements: (ex2 or ex3) + Hadoopy Flow, gevent
-Background: ex1 + familiarity with 'greenlets', dataflow
+L6 - Mixing Java Hadoop code with Hadoopy
+Requirements: (L1 or L2) + JDK
+Background: L0 + familiarity with Java
 
-ex7 - Using Hadoopy with the Oozie job execution engine
-Requirements: (ex2 or ex3) + Oozie
-Background: ex1 + familiarity with Oozie
+L7 - Using Hadoopy with the Oozie job execution engine
+Requirements: (L1 or L2) + Oozie
+Background: L0 + familiarity with Oozie
 
-ex8 - Using Hadoopy with the Avro serialization format
-Requirements: (ex2 or ex3) + Avro
-Background: ex1 + familiarity with Avro
-
-ex9 - Mixing Java Hadoop code with Hadoopy
-Requirements: (ex2 or ex3) + JDK
-Background: ex1 + familiarity with Java
+L8 - Using Hadoopy with the Avro serialization format
+Requirements: (L1 or L2) + Avro
+Background: L0 + familiarity with Avro

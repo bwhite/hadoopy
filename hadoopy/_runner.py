@@ -26,6 +26,7 @@ import select
 import sys
 import json
 import tempfile
+import stat
 
 # These two globals are only used in the follow function
 WARNED_HADOOP_HOME = False
@@ -326,13 +327,14 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     :raises: subprocess.CalledProcessError: Hadoop error.
     :raises: OSError: Hadoop streaming not found.
     """
-    print('Hadoopy Local: In[%s] Out[%s] Script[%s]' % (in_name, out_name, script_path))
-    script_path = os.path.abspath(script_path)
     script_info = _parse_info(script_path, python_cmd)
     if files:
         if isinstance(files, str):
             files = [files]
-        files = [os.path.abspath(f) for f in files]
+    else:
+        files = []
+    files.append(script_path)
+    files = [os.path.abspath(f) for f in files]
     # Setup env
     env = dict(os.environ)
     env['stream_map_input'] = 'typedbytes'
@@ -378,10 +380,12 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     new_pwd = tempfile.mkdtemp()
     out = {}
     try:
+        print('Hadoopy: Launch local changing current directory to [%s]' % new_pwd)
         os.chdir(new_pwd)
         if files:
             for f in files:
                 shutil.copy(f, os.path.basename(f))
+        os.chmod(script_path, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
         if isinstance(in_name, str) or (in_name and isinstance(in_name, (list, tuple)) and isinstance(in_name[0], str)):
             in_kvs = hadoopy.readtb(in_name)
         else:
@@ -394,14 +398,14 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
             kvs = hadoopy.Test.sort_kv(kvs)
             kvs = _run_task('reduce', kvs, env)
     except OSError, e:
-        print('Error: Ensure that [%s] is executable and starts with "#!/usr/bin/env python".' % script_path)
+        print('Error: Ensure that [%s] starts with "#!/usr/bin/env python".' % script_path)
         raise e
     else:
         if out_name is not None:
             hadoopy.writetb(out_name, kvs)
             out['output'] = hadoopy.readtb(out_name)
         else:
-            out['output'] = kvs
+            out['output'] = iter(list(kvs))  # TODO(brandyn): Potential problem if using large values, fixes changing dir early
         return out
     finally:
         os.chdir(orig_pwd)

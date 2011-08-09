@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# (C) Copyright 2010 Brandyn A. White
+# (C) Copyright 2011 Brandyn A. White
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,8 +13,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""Hadoopy Wordcount Demo"""
 
-__author__ =  'Brandyn A. White <bwhite@cs.umd.edu>'
+__author__ = 'Brandyn A. White <bwhite@dappervision.com>'
 __license__ = 'GPL V3'
 
 import hadoopy
