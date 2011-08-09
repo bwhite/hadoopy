@@ -10,16 +10,15 @@ import os
 # Setup paths
 input_path = os.path.abspath('../../data/wc-input-alice.txt')
 
-# Tokenize the input into an iterator of (word_num, word).  'word_num' is the key
-# and word is the value; however, in wc.py only the value is used.  Notice that
+# Read input as an iterator of (line_num, line).  'line_num' is the key
+# and line is the value; however, in wc.py only the value is used.  Notice that
 # using a generator in this form produces the (key, value) pairs lazily.
-def tokenize(fn):
-    word_count = 0
+def get_lines(fn):
+    line_count = 0
     with open(fn) as fp:
         for line in fp:
-            for word in line.strip().split():
-                yield word_count, word.lower()
-                word_count += 1
+            yield line_count, line[:-1]
+            line_count += 1
 
 # Launch the job.  Hadoopy provides 3 ways of launching a job.
 # 1. launch: The job is run like a standard Hadoop streaming python script
@@ -46,10 +45,10 @@ def tokenize(fn):
 # form they are provided.  All base types are serialized very efficiently and they fall back to Pickle
 # for types not supported by TypedBytes.  If this is confusing, just know that you can input/output
 # anything you can pickle and Hadoopy does things in a fast way.
-output_kvs = hadoopy.launch_local(tokenize(input_path), None, 'wc.py')['output']
+output_kvs = hadoopy.launch_local(get_lines(input_path), None, 'wc.py')['output']
 
 # Analyze the output.  The output is an iterator of (word, count) where word is a string and count
 # is an integer.
 word_counts = dict(output_kvs)
-for probe_word in ['the', 'alice', 'tree']:
+for probe_word in ['the', 'Alice', 'tree']:
     print('word_counts[%s] = %d' % (probe_word, word_counts[probe_word]))

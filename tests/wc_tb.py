@@ -1,1 +1,1 @@
-../examples/ex0-wordcount/wc.py
+../examples/l0-basic-without-hadoop/ex0-wordcount/wc.py

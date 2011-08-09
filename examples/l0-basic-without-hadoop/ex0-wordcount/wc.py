@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# (C) Copyright 2011 Brandyn A. White
+# (C) Copyright 2010 Brandyn A. White
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,43 +13,47 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 """Hadoopy Wordcount Demo"""
 
-__author__ = 'Brandyn A. White <bwhite@dappervision.com>'
+__author__ =  'Brandyn A. White <bwhite@cs.umd.edu>'
 __license__ = 'GPL V3'
 
 import hadoopy
 
 
 def mapper(key, value):
-    """Emit each term with a count of 1.
+    """Take in a byte offset and a line, emit word counts.
 
     Args:
-        key: unused
-        value: term
+        key: byte offset
+        value: line as a string
 
     Yields:
         A tuple in the form of (key, value)
-        key: term as string
-        value: count as int
+        key: word (string)
+        value: count (int)
     """
-    yield value, 1
+    for word in value.split():
+        yield word, 1
 
 
 def reducer(key, values):
-    """Sum up counts for each term.
+    """Take in an iterator of counts for a word, sum them, and return the sum.
 
     Args:
-        key: term as string
-        values: counts as int
+        key: word (string)
+        values: counts (int)
 
     Yields:
         A tuple in the form of (key, value)
-        key: term as string
-        value: count as int
+        key: word (string)
+        value: count (int)
     """
-    yield key, sum(values)
-
+    accum = 0
+    for count in values:
+        accum += int(count)
+    yield key, accum
 
 if __name__ == "__main__":
     hadoopy.run(mapper, reducer, reducer, doc=__doc__)
