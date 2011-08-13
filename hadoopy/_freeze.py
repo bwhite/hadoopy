@@ -100,7 +100,7 @@ def freeze_script(script_path, temp_path='_hadoopy_temp'):
     Returns:
         {'cmds': commands_ran, 'frozen_tar_path': frozen_tar_path}
     """
-    tmp_frozen_tar_path = temp_path + '/%f.tar' % time.time()
+    tmp_frozen_tar_path = hadoopy.abspath(temp_path) + '/%f.tar' % time.time()
     freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar')
     cmds = hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
     md5 = _md5_file(freeze_fp.name)
