@@ -244,28 +244,33 @@ def readtb(paths, num_procs=10, java_mem_mb=256, ignore_logs=True):
                 all_paths = filter(keep_file, all_paths)
             for cur_path in all_paths:
                 yield _open_tb(cur_path)
-
-    path_gen = _path_gen()
-    for x in range(num_procs):
-        try:
-            path_gen.next()
-        except (AttributeError, StopIteration):
-            path_gen = None
-    while read_fds:
-        cur_fds = select.select(read_fds, [], [])[0]
-        for read_fd in cur_fds:
-            p = procs[read_fd]
-            tp_fp = tb_fps[read_fd]
+    try:
+        path_gen = _path_gen()
+        for x in range(num_procs):
             try:
-                yield tp_fp.next()
-            except StopIteration:
-                p.wait()
-                del procs[read_fd]
-                del tb_fps[read_fd]
-                del p
-                os.close(read_fd)
-                read_fds.remove(read_fd)
+                path_gen.next()
+            except (AttributeError, StopIteration):
+                path_gen = None
+        while read_fds:
+            cur_fds = select.select(read_fds, [], [])[0]
+            for read_fd in cur_fds:
+                p = procs[read_fd]
+                tp_fp = tb_fps[read_fd]
                 try:
-                    path_gen.next()
-                except (AttributeError, StopIteration):
-                    path_gen = None
+                    yield tp_fp.next()
+                except StopIteration:
+                    p.wait()
+                    del procs[read_fd]
+                    del tb_fps[read_fd]
+                    del p
+                    os.close(read_fd)
+                    read_fds.remove(read_fd)
+                    try:
+                        path_gen.next()
+                    except (AttributeError, StopIteration):
+                        path_gen = None
+    finally:
+        # Cleanup outstanding procs
+        for p in procs.values():
+            p.kill()
+            p.wait()
