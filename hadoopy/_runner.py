@@ -267,7 +267,7 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     """
     cmds = []
     if not frozen_tar_path:
-        freeze_out = hadoopy.freeze_script(script_path)
+        freeze_out = hadoopy.freeze_script(script_path, temp_path=temp_path)
         frozen_tar_path = freeze_out['frozen_tar_path']
         cmds += freeze_out['cmds']
     try:
@@ -355,27 +355,30 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
         cmd = ('%s %s %s' % (python_cmd, script_path, task)).split()
         a = os.fdopen(in_r_fd, 'r')
         b = os.fdopen(out_w_fd, 'w')
-        p = subprocess.Popen(cmd,
-                             stdin=a,
-                             stdout=b,
-                             close_fds=True,
-                             env=env)
-        a.close()
-        b.close()
-        with hadoopy.TypedBytesFile(read_fd=out_r_fd) as tbfp_r:
-            with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
-                for num, kv in enumerate(kvs):
-                    if max_input >= 0 and max_input <= num:
-                        break
-                    # Use select to see if the buffer has anything in it
-                    # this minimizes the chance that the pipe will block
-                    while select.select([out_r_fd], [], [], 0)[0]:
-                        yield tbfp_r.next()
-                    tbfp_w.write(kv)
-            # Get any remaining values
-            for kv in tbfp_r:
-                yield kv
-        p.wait()
+        try:
+            p = subprocess.Popen(cmd,
+                                 stdin=a,
+                                 stdout=b,
+                                 close_fds=True,
+                                 env=env)
+            a.close()
+            b.close()
+            with hadoopy.TypedBytesFile(read_fd=out_r_fd) as tbfp_r:
+                with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
+                    for num, kv in enumerate(kvs):
+                        if max_input >= 0 and max_input <= num:
+                            break
+                        # Use select to see if the buffer has anything in it
+                        # this minimizes the chance that the pipe will block
+                        while select.select([out_r_fd], [], [], 0)[0]:
+                            yield tbfp_r.next()
+                        tbfp_w.write(kv)
+                # Get any remaining values
+                for kv in tbfp_r:
+                    yield kv
+        finally:
+            p.kill()
+            p.wait()
     orig_pwd = os.path.abspath('.')
     new_pwd = tempfile.mkdtemp()
     out = {}
