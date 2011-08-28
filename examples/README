@@ -1,11 +1,13 @@
 Hadoopy Examples
 Brandyn White <bwhite@dappervision.com>
 
-The examples are grouped by requirements and background into 'levels'.  The background is intended to give you a sense of what is recommended, don't let it scare you off.
+The examples are grouped by requirements and background into 'levels'.  The background is intended to give you a sense of what is recommended, don't let it scare you off.  Each exercise is listed below with one of 'TODO' (incomplete or not started), 'Untested' (almost done but still rough), or 'Tested' (completed and integrated into the automated tests in test_examples.py).
 
 L0 - Basic examples without Hadoop (everything is run locally)
 Requirements: Hadoopy, Python 2.6+, Linux/OS X
 Background: Basic knowledge of MapReduce (TODO link to resources), Syntactic understanding of Python
+    ex0 - Tested
+
 
 L1 - Basic examples with Hadoop (interacts with HDFS and Hadoop)
 Requirements: L0 + CDH2/3
