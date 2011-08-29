@@ -14,4 +14,7 @@ hadoopy.writetb(input_path, input_data)
 hadoopy.launch_frozen(input_path, output_path, 'wc.py')
 
 # Read the first KV pair
-print(hadoopy.readtb(output_path).next())
+word_counts = dict(hadoopy.readtb(output_path))
+for probe_word, expected_count in [('the', 6), ('Lorem', 4), ('of', 4)]:
+    print('word_counts[%s] = %d' % (probe_word, word_counts[probe_word]))
+    assert expected_count == word_counts[probe_word]
