@@ -138,9 +138,9 @@ class TestUsingHadoop(unittest.TestCase):
     @unittest.skipIf(not pil_and_cv_installed(), 'PIL or OpenCV not installed')
     def test_face(self):
         with open('haarcascade_frontalface_default.xml', 'w') as fp:
-            o = gzip.GzipFile('haarcascade_frontalface_default.xml.gz').read()
+            o = gzip.GzipFile('../examples/data/haarcascade_frontalface_default.xml.gz').read()
             fp.write(o)
-        self._run_face('face_finder-input-voctrainpart.tb')
+        self._run_face('../examples/data/face_finder-input-voctrainpart.tb')
 
     def _run_wc(self, orig_fn, launcher=hadoopy.launch_frozen):
         fn = 'out-%f-%s' % (time.time(), orig_fn)
