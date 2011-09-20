@@ -212,14 +212,6 @@ class TestUsingHadoop(unittest.TestCase):
         self._run_hdfs('wc-input-alice.tb')
         self._run_hdfs('wc-input-alice.txt.gz')
 
-    @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
-    def test_err(self):
-        nonsense_path = 'sdfskjdfksjdkfjskdfksjdfksdkfjskdjfksjdk'
-        self.assertFalse(hadoopy.exists(nonsense_path))
-        self.assertEquals(hadoopy.abspath(nonsense_path).rsplit('/')[-1], nonsense_path)
-        self.assertRaises(IOError, hadoopy.ls, nonsense_path)
-        self.assertRaises(IOError, hadoopy.readtb(nonsense_path).next)
-
     def _readtb(self, reader, path):
         out = []
         st = time.time()
@@ -260,6 +252,15 @@ class TestUsingHadoop(unittest.TestCase):
         hadoopy.launch_local(((1000 * 'a', 10000000 * 'b') for x in range(100)), None, 'local.py', max_input=10000,
                              cmdenvs=['TEST_ENV=10'],
                              files=['wc-input-alice.tb'])
+
+    @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
+    def test_err(self):
+        nonsense_path = 'sdfskjdfksjdkfjskdfksjdfksdkfjskdjfksjdk'
+        self.assertFalse(hadoopy.exists(nonsense_path))
+        self.assertEquals(hadoopy.abspath(nonsense_path).rsplit('/')[-1], nonsense_path)
+        self.assertRaises(IOError, hadoopy.ls, nonsense_path)
+        self.assertRaises(IOError, hadoopy.readtb(nonsense_path).next)
+
 
 
 if __name__ == '__main__':

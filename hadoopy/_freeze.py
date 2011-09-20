@@ -137,25 +137,28 @@ def freeze(script_path, target_dir='frozen', verbose=False, **kw):
     if verbose:
         print('/\\%s%s Output%s/\\' % ('-' * 10, 'Pyinstaller', '-' * 10))
     pyinst_path = tempfile.mkdtemp()
-    orig_pyinst_path = '%s/thirdparty/pyinstaller' % __path__[0]
-    root_path = pyinst_path + '/pyinstaller'
-    # Copy pyinstaller to the working directory as it assumes local paths
-    shutil.copytree(orig_pyinst_path, root_path)
-    script_dir = os.path.dirname(script_path)
-    cur_cmd = 'python -O %s/Configure.py' % (root_path)
-    cmds.append(cur_cmd)
-    _run(cur_cmd, verbose=verbose)
-    cur_cmd = 'python -O %s/Makespec.py -o %s -C %s/config.dat -p %s %s' % (root_path, pyinst_path, root_path, script_dir, script_path)
-    cmds.append(cur_cmd)
-    _run(cur_cmd, verbose=verbose)
-    proj_name = os.path.basename(script_path)
-    proj_name = proj_name[:proj_name.rfind('.')]  # Remove extension
-    spec_path = '%s/%s.spec' % (pyinst_path, proj_name)
-    cur_cmd = 'python -O %s/Build.py -y -o %s -C %s/config.dat %s' % (root_path, pyinst_path, root_path, spec_path)
-    cmds.append(cur_cmd)
-    _run(cur_cmd, verbose=verbose)
-    _copytree('%s/dist/%s' % (pyinst_path, proj_name), target_dir)
-    shutil.rmtree(pyinst_path)
+    try:
+        orig_pyinst_path = '%s/thirdparty/pyinstaller' % __path__[0]
+        root_path = pyinst_path + '/pyinstaller'
+        # Copy pyinstaller to the working directory as it assumes local paths
+        # TODO(brandyn): See if there is a way around this
+        shutil.copytree(orig_pyinst_path, root_path)
+        script_dir = os.path.dirname(script_path)
+        cur_cmd = 'python -O %s/Configure.py' % (root_path)
+        cmds.append(cur_cmd)
+        _run(cur_cmd, verbose=verbose)
+        cur_cmd = 'python -O %s/Makespec.py -o %s -C %s/config.dat -p %s %s' % (root_path, pyinst_path, root_path, script_dir, script_path)
+        cmds.append(cur_cmd)
+        _run(cur_cmd, verbose=verbose)
+        proj_name = os.path.basename(script_path)
+        proj_name = proj_name[:proj_name.rfind('.')]  # Remove extension
+        spec_path = '%s/%s.spec' % (pyinst_path, proj_name)
+        cur_cmd = 'python -O %s/Build.py -y -o %s -C %s/config.dat %s' % (root_path, pyinst_path, root_path, spec_path)
+        cmds.append(cur_cmd)
+        _run(cur_cmd, verbose=verbose)
+        _copytree('%s/dist/%s' % (pyinst_path, proj_name), target_dir)
+    finally:
+        shutil.rmtree(pyinst_path)
     if verbose:
         print('\\/%s%s Output%s\\/' % ('-' * 10, 'Pyinstaller', '-' * 10))
     return cmds
@@ -182,17 +185,18 @@ def freeze_to_tar(script_path, freeze_fn, extra_files=None):
     if not extra_files:
         extra_files = []
     freeze_dir = tempfile.mkdtemp()
-    cmds = freeze(script_path, target_dir=freeze_dir)
-    if freeze_fn.endswith('.tar.gz'):
-        mode = 'w|gz'
-    elif freeze_fn.endswith('.tar'):
-        mode = 'w'
-    else:
+    try:
+        cmds = freeze(script_path, target_dir=freeze_dir)
+        if freeze_fn.endswith('.tar.gz'):
+            mode = 'w|gz'
+        elif freeze_fn.endswith('.tar'):
+            mode = 'w'
+        else:
+            raise NameError('[%s] must end in .tar or .tar.gz' % freeze_fn)
+        fp = tarfile.open(freeze_fn, mode)
+        for x in glob.glob('%s/*' % freeze_dir) + extra_files:
+            fp.add(x, arcname=os.path.basename(x))
+        fp.close()
+    finally:
         shutil.rmtree(freeze_dir)
-        raise NameError('[%s] must end in .tar or .tar.gz' % freeze_fn)
-    fp = tarfile.open(freeze_fn, mode)
-    for x in glob.glob('%s/*' % freeze_dir) + extra_files:
-        fp.add(x, arcname=os.path.basename(x))
-    fp.close()
-    shutil.rmtree(freeze_dir)
     return cmds

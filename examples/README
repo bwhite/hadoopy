@@ -6,13 +6,13 @@ The examples are grouped by requirements and background into 'levels'.  The back
 L0 - Basic examples without Hadoop (everything is run locally)
 Requirements: Hadoopy, Python 2.6+, Linux/OS X
 Background: Basic knowledge of MapReduce (TODO link to resources), Syntactic understanding of Python
-    ex0[Tested]
+    ex0[Tested]: Wordcount
 
 L1 - Basic examples with Hadoop (interacts with HDFS and Hadoop)
 Requirements: L0 + CDH2/3
 Background: L0 + basic understanding of Hadoop job execution and HDFS
-    ex0[Tested]
-    ex1[Tested]
+    ex0[Tested]: Wordcount
+    ex1[Tested]: Direct write to HDFS + Wordcount
 
 L2 - Basic examples with Hadoop using a Whirr cluster
 Requirements: L0 + Whirr, Amazon AWS Account, a few $

@@ -196,6 +196,8 @@ def writetb(path, kvs, java_mem_mb=256):
             tb_fp.write(kv)
         tb_fp.flush()
     p.wait()
+    if p.returncode is not 0:
+        raise IOError('writetb: Child returned [%d] Stderr[%s]' % (p.returncode, p.stderr.read()))
 
 
 def readtb(paths, num_procs=10, java_mem_mb=256, ignore_logs=True):
