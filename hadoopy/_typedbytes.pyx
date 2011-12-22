@@ -251,6 +251,23 @@ cdef inline _read_bytes(void *fp):
     return out
 
 
+cdef inline _read_unicode(void *fp):
+    """Read bytes
+
+    Code: 0
+    Format: <32-bit signed integer> <as many bytes as indicated by the integer>
+
+    Returns:
+        Python unicodoe
+    """
+    sz = _read_int(fp)
+    cdef char *bytes = <char*>malloc(sz)
+    fread(bytes, sz, 1, fp)  # = 1
+    out = PyString_FromStringAndSize(bytes, sz)
+    free(bytes)
+    return unicode(out, 'utf-8')
+
+
 cdef inline _write_bytes(void *fp, val):
     """Write bytes
 
@@ -258,10 +275,27 @@ cdef inline _write_bytes(void *fp, val):
     Format: <32-bit signed integer> <as many bytes as indicated by the integer>
 
     Args:
-        val: Python string (str or unicode)
+        val: Python string (str)
     """
     cdef char *bytes
     cdef Py_ssize_t sz
+    PyString_AsStringAndSize(val, &bytes, &sz)  # != -1
+    _raw_write_int(fp, sz)
+    fwrite(bytes, sz, 1, fp)  # = 1
+
+
+cdef inline _write_unicode(void *fp, val):
+    """Write bytes
+
+    Code: 0
+    Format: <32-bit signed integer> <as many bytes as indicated by the integer>
+
+    Args:
+        val: Python string (unicode)
+    """
+    cdef char *bytes
+    cdef Py_ssize_t sz
+    val = val.encode('utf-8')
     PyString_AsStringAndSize(val, &bytes, &sz)  # != -1
     _raw_write_int(fp, sz)
     fwrite(bytes, sz, 1, fp)  # = 1
@@ -446,7 +480,7 @@ cdef _write_tb_code(void *fp, val):
     elif type_code == 6:
         _write_double(fp, val)
     elif type_code == 7:
-        _write_string(fp, val)
+        _write_unicode(fp, val)
     elif type_code == 8:
         _write_vector(fp, val)
     elif type_code == 9:
@@ -477,7 +511,7 @@ cdef _read_tb_code(void *fp):
     elif type_code == 6:
         return _read_double(fp)
     elif type_code == 7:
-        return _read_bytes(fp)
+        return _read_unicode(fp)
     elif type_code == 8:
         return _read_vector(fp)
     elif type_code == 9:

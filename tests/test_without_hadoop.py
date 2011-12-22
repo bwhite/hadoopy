@@ -63,6 +63,15 @@ class Test(unittest.TestCase):
                 fp.write(kv)
             self.assertEquals(hadoopy.TypedBytesFile(f.name, 'r').next(), kv)
 
+    def test_unicode(self):
+        f = tempfile.NamedTemporaryFile()
+        self.assertEquals(unicode(u'\xe9'.encode('utf-8'), 'utf-8'), u'\xe9')
+        kvs = [(u'\xe9', u'\xe9')]
+        for kv in kvs:
+            with hadoopy.TypedBytesFile(f.name, 'w') as fp:
+                fp.write(kv)
+            self.assertEquals(hadoopy.TypedBytesFile(f.name, 'r').next(), kv)
+
     @unittest.skipIf(not has_endian(), 'Needs endian.h which is in a newer glibc')
     def test_fail(self):
         subprocess.check_call('gcc -o endian_test endian_test.c -Wall -D FAIL_TEST'.split())
