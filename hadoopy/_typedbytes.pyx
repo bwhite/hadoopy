@@ -514,7 +514,7 @@ cdef _read_tb_code(void *fp):
     elif type_code == 6:
         return _read_double(fp)
     elif type_code == 7:
-        return _read_string(fp)
+        return _read_bytes(fp)
     elif type_code == 8:
         return _read_vector(fp)
     elif type_code == 9:
