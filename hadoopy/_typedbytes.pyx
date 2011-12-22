@@ -251,10 +251,11 @@ cdef inline _read_bytes(void *fp):
     return out
 
 
+# NOTE(brandyn): This is currently unused to be compatible with Dumbo's typedbytes
 cdef inline _read_unicode(void *fp):
     """Read bytes
 
-    Code: 0
+    Code: 7
     Format: <32-bit signed integer> <as many bytes as indicated by the integer>
 
     Returns:
@@ -479,8 +480,6 @@ cdef _write_tb_code(void *fp, val):
         _write_long(fp, val)
     elif type_code == 6:
         _write_double(fp, val)
-    elif type_code == 7:
-        _write_unicode(fp, val)
     elif type_code == 8:
         _write_vector(fp, val)
     elif type_code == 9:
@@ -489,6 +488,10 @@ cdef _write_tb_code(void *fp, val):
         _write_map(fp, val)
     elif type_code == 100:
         _write_pickle(fp, val)
+    elif type_code == 7 and isinstance(val, unicode):
+        _write_unicode(fp, val)
+    elif type_code == 7:
+        _write_string(fp, val)
     else:
         raise IndexError('Bad index %d ' % type_code)
 
@@ -511,7 +514,7 @@ cdef _read_tb_code(void *fp):
     elif type_code == 6:
         return _read_double(fp)
     elif type_code == 7:
-        return _read_unicode(fp)
+        return _read_string(fp)
     elif type_code == 8:
         return _read_vector(fp)
     elif type_code == 9:
