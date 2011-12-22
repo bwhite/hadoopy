@@ -70,7 +70,8 @@ class Test(unittest.TestCase):
         for kv in kvs:
             with hadoopy.TypedBytesFile(f.name, 'w') as fp:
                 fp.write(kv)
-            self.assertEquals(hadoopy.TypedBytesFile(f.name, 'r').next(), kv)
+            k, v = hadoopy.TypedBytesFile(f.name, 'r').next()
+            self.assertEquals((unicode(k, 'utf-8'), unicode(v, 'utf-8')), kv)
 
     @unittest.skipIf(not has_endian(), 'Needs endian.h which is in a newer glibc')
     def test_fail(self):
