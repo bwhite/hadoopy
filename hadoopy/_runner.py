@@ -27,6 +27,7 @@ import sys
 import json
 import tempfile
 import stat
+import multiprocessing
 
 # These two globals are only used in the follow function
 WARNED_HADOOP_HOME = False
@@ -289,6 +290,16 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     return out
 
 
+def _local_reader(q, in_r_fd, in_w_fd, out_r_fd, out_w_fd):
+    os.close(in_r_fd)
+    os.close(in_w_fd)
+    os.close(out_w_fd)
+    with hadoopy.TypedBytesFile(read_fd=out_r_fd) as tbfp_r:
+        for kv in tbfp_r:
+            q.put(kv)
+    q.put(None)
+        
+
 def launch_local(in_name, out_name, script_path, max_input=-1,
                  files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True, **kw):
     """A simple local emulation of hadoop
@@ -355,6 +366,11 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
         cmd = ('%s %s %s' % (python_cmd, script_path, task)).split()
         a = os.fdopen(in_r_fd, 'r')
         b = os.fdopen(out_w_fd, 'w')
+        q = multiprocessing.Queue()
+        q_done = False
+        reader_process = multiprocessing.Process(target=_local_reader, args=(q, in_r_fd, in_w_fd, out_r_fd, out_w_fd))
+        reader_process.start()
+        os.close(out_r_fd)
         try:
             p = subprocess.Popen(cmd,
                                  stdin=a,
@@ -363,22 +379,34 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
                                  env=env)
             a.close()
             b.close()
-            with hadoopy.TypedBytesFile(read_fd=out_r_fd) as tbfp_r:
-                with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
-                    for num, kv in enumerate(kvs):
-                        if max_input >= 0 and max_input <= num:
-                            break
-                        # Use select to see if the buffer has anything in it
-                        # this minimizes the chance that the pipe will block
-                        while select.select([out_r_fd], [], [], 0)[0]:
-                            yield tbfp_r.next()
-                        tbfp_w.write(kv)
-                # Get any remaining values
-                for kv in tbfp_r:
-                    yield kv
+            # main =(in_fd)> p
+            # main <(out_fd)= p
+            with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
+                for num, kv in enumerate(kvs):
+                    if max_input >= 0 and max_input <= num:
+                        break
+                    # Use select to see if the buffer has anything in it
+                    # this minimizes the chance that the pipe will block
+                    while not q_done and not q.empty():
+                        out = q.get()
+                        if out is None:
+                            q_done = True
+                        else:
+                            yield out
+                    tbfp_w.write(kv)
+            # Get any remaining values
+            while not q_done:
+                out = q.get()
+                if out is None:
+                    q_done = True
+                else:
+                    yield out
         finally:
+            q.close()
+            reader_process.join()
             p.kill()
             p.wait()
+
     orig_pwd = os.path.abspath('.')
     new_pwd = tempfile.mkdtemp()
     out = {}

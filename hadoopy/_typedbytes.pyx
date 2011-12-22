@@ -491,7 +491,7 @@ cdef _write_tb_code(void *fp, val):
     elif type_code == 7 and isinstance(val, unicode):
         _write_unicode(fp, val)
     elif type_code == 7:
-        _write_string(fp, val)
+        _write_bytes(fp, val)
     else:
         raise IndexError('Bad index %d ' % type_code)
 
