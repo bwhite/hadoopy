@@ -28,6 +28,9 @@ Features
 - Reporting using status and counters (and print statements! no need to be scared of them in Hadoopy)
 - Supports design patterns in the Lin/Dyer book (http://www.umiacs.umd.edu/~jimmylin/book.html)
 
+Limitations
+- Hadoop Local currently unsupported due to a bug in Hadoop's handling of the distributed cache in this mode.  Use psuedo-distributed instead for now.  (https://github.com/bwhite/hadoopy/issues/40)
+
 Used in
 - A Case for Query by Image and Text Content: Searching Computer Help using Screenshots and Keywords (to appear in WWW'11)
 - Web-Scale Computer Vision using MapReduce for Multimedia Data Mining (at KDD'10)
