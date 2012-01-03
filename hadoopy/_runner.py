@@ -22,12 +22,12 @@ import subprocess
 import os
 import shutil
 import hadoopy._freeze
-import select
 import sys
 import json
 import tempfile
 import stat
 import multiprocessing
+import Queue
 
 # These two globals are only used in the follow function
 WARNED_HADOOP_HOME = False
@@ -290,18 +290,30 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     return out
 
 
-def _local_reader(q, in_r_fd, in_w_fd, out_r_fd, out_w_fd):
+def _local_reader(worker_queue_maxsize, q_recv, q_send, in_r_fd, in_w_fd, out_r_fd, out_w_fd):
     os.close(in_r_fd)
     os.close(in_w_fd)
     os.close(out_w_fd)
+    q = Queue.Queue()
     with hadoopy.TypedBytesFile(read_fd=out_r_fd) as tbfp_r:
-        for kv in tbfp_r:
-            q.put(kv)
-    q.put(None)
-        
+        for num, kv in enumerate(tbfp_r):
+            while True:
+                while not q_recv.poll(.001) and not q.empty():
+                    q_send.send(q.get())
+                try:
+                    q.put_nowait(kv)
+                except Queue.Full:
+                    continue
+                else:
+                    break
+    while not q.empty():
+        q_send.send(q.get())
+    q_send.close()
+
 
 def launch_local(in_name, out_name, script_path, max_input=-1,
-                 files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True, **kw):
+                 files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True,
+                 worker_queue_maxsize=0, **kw):
     """A simple local emulation of hadoop
 
     This doesn't run hadoop and it doesn't support many advanced features, it
@@ -329,6 +341,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     :param pipe: If true (default) then call user code through a pipe to isolate it and stop bugs when printing to stdout.  See project docs.
     :param python_cmd: The python command to use. The default is "python".  Can be used to override the system default python, e.g. python_cmd = "python2.6"
     :param remove_tempdir: If True (default), then rmtree the temporary dir, else print its location.  Useful if you need to see temporary files or how input files are copied.
+    :param worker_queue_maxsize: The number of elements the queue holding results from the worker task will hold (default 0 which is unlimited).
     :rtype: Dictionary with some of the following entries (depending on options)
     :returns: freeze_cmds: Freeze command(s) ran
     :returns: frozen_tar_path: HDFS path to frozen file
@@ -357,8 +370,8 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
             env[k] = v
 
     def _run_task(task, kvs, env):
-        print('Running [%s]' % task)
         sys.stdout.flush()
+        cur_max_input = max_input if task == 'map' else -1
         if pipe:
             task = 'pipe %s' % task
         in_r_fd, in_w_fd = os.pipe()
@@ -366,11 +379,11 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
         cmd = ('%s %s %s' % (python_cmd, script_path, task)).split()
         a = os.fdopen(in_r_fd, 'r')
         b = os.fdopen(out_w_fd, 'w')
-        q = multiprocessing.Queue()
-        q_done = False
-        reader_process = multiprocessing.Process(target=_local_reader, args=(q, in_r_fd, in_w_fd, out_r_fd, out_w_fd))
+        q_recv, q_send = multiprocessing.Pipe(True)
+        reader_process = multiprocessing.Process(target=_local_reader, args=(worker_queue_maxsize, q_recv, q_send, in_r_fd, in_w_fd, out_r_fd, out_w_fd))
         reader_process.start()
         os.close(out_r_fd)
+        q_send.close()
         try:
             p = subprocess.Popen(cmd,
                                  stdin=a,
@@ -383,26 +396,30 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
             # main <(out_fd)= p
             with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
                 for num, kv in enumerate(kvs):
-                    if max_input >= 0 and max_input <= num:
+                    if cur_max_input >= 0 and cur_max_input <= num:
                         break
+                    if reader_process.exitcode:
+                        raise EOFError('Reader process died[%s]' % reader_process.exitcode)
                     # Use select to see if the buffer has anything in it
                     # this minimizes the chance that the pipe will block
-                    while not q_done and not q.empty():
-                        out = q.get()
-                        if out is None:
-                            q_done = True
-                        else:
-                            yield out
+                    while q_recv.poll(.01):
+                        try:
+                            yield q_recv.recv()
+                        except EOFError:
+                            break
                     tbfp_w.write(kv)
             # Get any remaining values
-            while not q_done:
-                out = q.get()
-                if out is None:
-                    q_done = True
-                else:
-                    yield out
+            while True:
+                if reader_process.exitcode:
+                    raise EOFError('Reader process died[%s]' % reader_process.exitcode)
+                try:
+                    yield q_recv.recv()
+                except EOFError:
+                    break
+            print('********  Done with inputs and cleaned up')
         finally:
-            q.close()
+            print('Closing up shop')
+            q_recv.close()
             reader_process.join()
             p.kill()
             p.wait()
@@ -421,19 +438,26 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
             in_kvs = hadoopy.readtb(in_name)
         else:
             in_kvs = in_name
-        kvs = list(_run_task('map', in_kvs, env))
         if 'reduce' in script_info['tasks']:
+            kvs = list(_run_task('map', in_kvs, env))
             if 'combine' in script_info['tasks']:
+                print('COMBINER ----------------------------')
                 kvs = hadoopy.Test.sort_kv(kvs)
                 kvs = list(_run_task('combine', kvs, env))
+            print('REDUCER ----------------------------')
             kvs = hadoopy.Test.sort_kv(kvs)
             kvs = _run_task('reduce', kvs, env)
+        else:
+            print('********** MapOnly Task')
+            kvs = _run_task('map', in_kvs, env)
     except OSError, e:
         print('Error: Ensure that [%s] starts with "#!/usr/bin/env python".' % script_path)
         raise e
     else:
         if out_name is not None:
+            print('Start writing')
             hadoopy.writetb(out_name, kvs)
+            print('Done writing')
             out['output'] = hadoopy.readtb(out_name)
         else:
             out['output'] = iter(list(kvs))  # TODO(brandyn): Potential problem if using large values, fixes changing dir early
