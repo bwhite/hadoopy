@@ -468,5 +468,6 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
 
 
 def print_doc_quit(doc):
-    print(doc)
+    if doc is not None:
+        print(doc)
     sys.exit(1)

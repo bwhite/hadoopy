@@ -453,7 +453,7 @@ _out_types = {types.BooleanType: 2,
               types.IntType: 3,
               types.LongType: 4,
               types.FloatType:  6,
-              types.StringType: 7,
+              types.StringType: 0,
               types.UnicodeType: 7,
               types.TupleType: 8,
               types.ListType: 9,
@@ -472,7 +472,9 @@ cdef _write_tb_code(void *fp, val):
         type_code = 100
     fwrite(&type_code, 1, 1, fp)  # = 1
     # TODO Use a func pointer array
-    if type_code == 2:
+    if type_code == 0:
+        _write_bytes(fp, val)
+    elif type_code == 2:
         _write_bool(fp, val)
     elif type_code == 3:
         _write_int(fp, val)
@@ -488,10 +490,8 @@ cdef _write_tb_code(void *fp, val):
         _write_map(fp, val)
     elif type_code == 100:
         _write_pickle(fp, val)
-    elif type_code == 7 and isinstance(val, unicode):
+    elif type_code == 7:  #  and isinstance(val, unicode)
         _write_unicode(fp, val)
-    elif type_code == 7:
-        _write_bytes(fp, val)
     else:
         raise IndexError('Bad index %d ' % type_code)
 

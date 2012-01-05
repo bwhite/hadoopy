@@ -79,9 +79,9 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :param out_name: Output path
     :param script_path: Path to the script (e.g., script.py)
     :param partitioner: If True, the partitioner is the value.
-    :param files: Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory
-    :param jobconfs: Extra jobconf parameters (string or list)
-    :param cmdenvs: Extra cmdenv parameters (string or list)
+    :param files: Extra files (other than the script) (iterator).  NOTE: Hadoop copies the files into working directory
+    :param jobconfs: Extra jobconf parameters (iterator)
+    :param cmdenvs: Extra cmdenv parameters (iterator)
     :param copy_script: If True, the script is added to the files list.
     :param wait: If True, wait till the process is completed (default True) this is useful if you want to run multiple jobs concurrently by using the 'process' entry in the output.
     :param hstreaming: The full hadoop streaming path to call.
@@ -107,7 +107,10 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :returns: output: Iterator of (key, value) pairs
     :raises: subprocess.CalledProcessError: Hadoop error.
     :raises: OSError: Hadoop streaming not found.
+    :raises: TypeError: Input types are not correct.
     """
+    if isinstance(files, str) or isinstance(jobconfs, str) or isinstance(cmdenvs, str):
+        raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
     out = {}
     try:
         hadoop_cmd = 'hadoop jar ' + hstreaming
@@ -161,8 +164,6 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     if num_reducers:
         cmd += ['-numReduceTasks', "'%i'"%(int(num_reducers))]
     # Add files
-    if isinstance(files, str):
-        files = [files]
     if copy_script:
         files = list(files)
         files.append(script_path)
@@ -179,18 +180,14 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     for f in files:
         cmd += ['-file', f]
     # Add jobconfs
-    if isinstance(jobconfs, str):
-        jobconfs = [jobconfs]
+    jobconfs = list(jobconfs)
     if name == None:
-        jobconfs = list(jobconfs)
         jobconfs.append('mapred.job.name=%s' % (job_name))
     else:
         jobconfs.append('mapred.job.name=%s' % (str(name)))
     for jobconf in jobconfs:
         cmd += ['-jobconf', jobconf]
     # Add cmdenv
-    if isinstance(cmdenvs, str):
-        cmdenvs = [cmdenvs]
     for cmdenv in cmdenvs:
         cmd += ['-cmdenv', cmdenv]
     # Add IO
@@ -242,9 +239,9 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     :param temp_path: HDFS path that we can use to store temporary files (default to _hadoopy_temp)
     :param partitioner: If True, the partitioner is the value.
     :param wait: If True, wait till the process is completed (default True) this is useful if you want to run multiple jobs concurrently by using the 'process' entry in the output.
-    :param files: Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory
-    :param jobconfs: Extra jobconf parameters (string or list)
-    :param cmdenvs: Extra cmdenv parameters (string or list)
+    :param files: Extra files (other than the script) (iterator).  NOTE: Hadoop copies the files into working directory
+    :param jobconfs: Extra jobconf parameters (iterator)
+    :param cmdenvs: Extra cmdenv parameters (iterator)
     :param hstreaming: The full hadoop streaming path to call.
     :param name: Set the job name to this (default None, job name is the script name)
     :param use_typedbytes: If True (default), use typedbytes IO.
@@ -265,19 +262,21 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     :returns: output: Iterator of (key, value) pairs
     :raises: subprocess.CalledProcessError: Hadoop error.
     :raises: OSError: Hadoop streaming not found.
+    :raises: TypeError: Input types are not correct.
     """
+    if (('files' in kw and isinstance(kw['files'], str)) or
+        ('jobconfs' in kw and isinstance(kw['jobconfs'], str)) or
+        ('cmdenvs' in kw and isinstance(kw['cmdenvs'], str))):
+        raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
     cmds = []
     if not frozen_tar_path:
         freeze_out = hadoopy.freeze_script(script_path, temp_path=temp_path)
         frozen_tar_path = freeze_out['frozen_tar_path']
         cmds += freeze_out['cmds']
     try:
-        jobconfs = kw['jobconfs']
+        jobconfs = list(kw['jobconfs'])
     except KeyError:
         jobconfs = []
-    else:
-        if isinstance(jobconfs, str):
-            jobconfs = [jobconfs]
     jobconfs.append('"mapred.cache.archives=%s#_frozen"' % frozen_tar_path)
     jobconfs.append('"mapreduce.job.cache.archives=%s#_frozen"' % frozen_tar_path)
     kw['copy_script'] = False
@@ -336,8 +335,8 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     :param out_name: Output path or None.  If None then output is not placed on HDFS, it is available through the 'output' key of the return value.
     :param script_path: Path to the script (e.g., script.py)
     :param max_input: Maximum number of Mapper inputs, if < 0 (default) then unlimited.
-    :param files: Extra files (other than the script) (string or list).  NOTE: Hadoop copies the files into working directory
-    :param cmdenvs: Extra cmdenv parameters (string or list)
+    :param files: Extra files (other than the script) (iterator).  NOTE: Hadoop copies the files into working directory
+    :param cmdenvs: Extra cmdenv parameters (iterator)
     :param pipe: If true (default) then call user code through a pipe to isolate it and stop bugs when printing to stdout.  See project docs.
     :param python_cmd: The python command to use. The default is "python".  Can be used to override the system default python, e.g. python_cmd = "python2.6"
     :param remove_tempdir: If True (default), then rmtree the temporary dir, else print its location.  Useful if you need to see temporary files or how input files are copied.
@@ -350,12 +349,13 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     :returns: output: Iterator of (key, value) pairs
     :raises: subprocess.CalledProcessError: Hadoop error.
     :raises: OSError: Hadoop streaming not found.
+    :raises: TypeError: Input types are not correct.
     """
+    if isinstance(files, str) or isinstance(cmdenvs, str) or ('cmdenvs' in kw and isinstance(kw['cmdenvs'], str)):
+        raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
+    print('Local[%s]' % script_path)
     script_info = _parse_info(script_path, python_cmd)
-    if files:
-        if isinstance(files, str):
-            files = [files]
-    else:
+    if not files:
         files = []
     files.append(script_path)
     files = [os.path.abspath(f) for f in files]
@@ -363,8 +363,6 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     env = dict(os.environ)
     env['stream_map_input'] = 'typedbytes'
     if cmdenvs:
-        if isinstance(cmdenvs, str):
-            cmdenvs = [cmdenvs]
         for cmdenv in cmdenvs:
             k, v = cmdenv.split('=', 1)
             env[k] = v
@@ -433,6 +431,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
         if files:
             for f in files:
                 shutil.copy(f, os.path.basename(f))
+        script_path = os.path.basename(script_path)
         os.chmod(script_path, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
         if isinstance(in_name, str) or (in_name and isinstance(in_name, (list, tuple)) and isinstance(in_name[0], str)):
             in_kvs = hadoopy.readtb(in_name)
