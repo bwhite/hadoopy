@@ -19,7 +19,7 @@ def _run_face(fn):
     out_path = hdfs_base_path + 'out-' + os.path.basename(fn)
     cmd = 'hadoop fs -put %s %s' % (fn, in_path)
     subprocess.check_call(cmd.split())
-    hadoopy.launch_frozen(in_path, out_path, 'face_finder.py', reducer=False, files=[data_path + 'haarcascade_frontalface_default.xml'])
+    hadoopy.launch_frozen(in_path, out_path, 'face_finder.py', files=[data_path + 'haarcascade_frontalface_default.xml'])
     local_out = 'out-%f' % cur_time
     try:
         os.makedirs(local_out)
