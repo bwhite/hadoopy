@@ -44,6 +44,7 @@ def _run(path, verbose=False):
     stderr, stdout = p.communicate()
     if verbose or p.returncode != 0:
         print('stdout[%s] stderr[%s]' % (stdout, stderr))
+    return p.returncode
 
 
 def _copytree(src, dst):
@@ -117,7 +118,57 @@ def freeze_script(script_path, temp_path='_hadoopy_temp'):
     return {'cmds': cmds, 'frozen_tar_path': frozen_tar_path}
 
 
+def _freeze_config(force=False, verbose=False):
+    from hadoopy.thirdparty.pyinstaller.PyInstaller import DEFAULT_CONFIGFILE
+    cmds = []
+    if force:
+        try:
+            os.remove(DEFAULT_CONFIGFILE)
+        except OSError:
+            pass
+    if not os.path.exists(DEFAULT_CONFIGFILE):
+        pyinst_path = '%s/thirdparty/pyinstaller' % __path__[0]
+        cur_cmd = 'python -O %s/utils/Configure.py' % (pyinst_path)
+        cmds.append(cur_cmd)
+        _run(cur_cmd, verbose=verbose)
+    return cmds
+
+
 def freeze(script_path, target_dir='frozen', verbose=False, **kw):
+    """Wraps pyinstaller and provides an easy to use interface
+
+    Args:
+        script_path: Absolute path to python script to be frozen.
+
+    Returns:
+        List of freeze commands ran
+
+    Raises:
+        subprocess.CalledProcessError: Freeze error.
+        OSError: Freeze not found.
+    """
+    cmds = []
+    if verbose:
+        print('/\\%s%s Output%s/\\' % ('-' * 10, 'Pyinstaller', '-' * 10))
+    orig_dir = os.path.abspath('.')
+    script_path = os.path.abspath(script_path)
+    try:
+        os.chdir(target_dir)
+        cmds += _freeze_config(verbose=verbose)
+        pyinst_path = '%s/thirdparty/pyinstaller' % __path__[0]
+        cur_cmd = 'python -O %s/pyinstaller.py %s --skip-configure' % (pyinst_path, script_path)
+        cmds.append(cur_cmd)
+        if _run(cur_cmd, verbose=verbose):  # If there is a problem, try removing the config and re-doing
+            _freeze_config(verbose=verbose, force=True)
+            _run(cur_cmd, verbose=verbose)
+    finally:
+        os.chdir(orig_dir)
+    if verbose:
+        print('\\/%s%s Output%s\\/' % ('-' * 10, 'Pyinstaller', '-' * 10))
+    return cmds
+
+
+def freeze_old(script_path, target_dir='frozen', verbose=False, **kw):
     """Wraps pyinstaller and provides an easy to use interface
 
     This requires that the Configure.py script has been run (this is run in
@@ -194,7 +245,9 @@ def freeze_to_tar(script_path, freeze_fn, extra_files=None):
         else:
             raise NameError('[%s] must end in .tar or .tar.gz' % freeze_fn)
         fp = tarfile.open(freeze_fn, mode)
-        for x in glob.glob('%s/*' % freeze_dir) + extra_files:
+        proj_name = os.path.basename(script_path)
+        proj_name = proj_name[:proj_name.rfind('.')]  # Remove extension
+        for x in glob.glob('%s/dist/%s/*' % (freeze_dir, proj_name)) + extra_files:
             fp.add(x, arcname=os.path.basename(x))
         fp.close()
     finally:
