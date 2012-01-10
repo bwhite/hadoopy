@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 import platform
+import sys
 
 import Utils
 import Options
@@ -45,18 +46,31 @@ def set_options(opt):
 
 def configure(conf):
 
+    def achitecture():
+        return '32bit'
+
     conf.env.NAME = 'default'
 
     opt = Options.options
     myplatform = Utils.detect_platform()
-    architecture = platform.architecture()[0] # 32bit or 64bit
-    Utils.pprint('CYAN', '%s-%s detected' % (platform.system(), architecture))
+
+    # on 64bit Mac function platform.architecture() returns 64bit even
+    # for 32bit Python. This is the workaround for this.
+    if myplatform == 'darwin' and sys.maxint <= 3**32:
+        myarch = '32bit'
+    else:
+        myarch = platform.architecture()[0] # 32bit or 64bit
+    conf.env.MYARCH = myarch
+
+    Utils.pprint('CYAN', '%s-%s detected' % (platform.system(), myarch))
+
+    if myplatform == 'darwin' and myarch == '64bit':
+        Utils.pprint('CYAN', 'WARNING: Building bootloader for Python 64-bit on Mac OSX')
+        Utils.pprint('CYAN', 'For 32b-bit bootloader try setting')
+        Utils.pprint('CYAN', 'VERSIONER_PYTHON_PREFER_32_BIT=yes in the environment')
 
     if myplatform.startswith('linux') and not opt.nolsb:
         Utils.pprint('CYAN', 'Building LSB bootloader.')
-
-    if myplatform.startswith('darwin'):
-        conf.env.MACOSX_DEPLOYMENT_TARGET = '10.4'
 
     ### C compiler
 
@@ -71,12 +85,15 @@ def configure(conf):
                 # msvc 8.0 (Visual Studio 2005)
                 # msvc 9.0 (Visual Studio 2008)
                 #conf.env['MSVC_VERSIONS'] = ['msvc 7.1', 'msvc 8.0', 'msvc 9.0']
-                if architecture == '32bit':
+                if myarch == '32bit':
                     conf.env['MSVC_TARGETS'] = ['x86', 'ia32']
-                elif architecture == '64bit':
+                elif myarch == '64bit':
                     conf.env['MSVC_TARGETS'] = ['x64', 'x86_amd64', 'intel64', 'em64t']
                 conf.check_tool('msvc')
                 conf.print_all_msvc_detected()
+                # Do not embed manifest file.
+                # Manifest file will be added in the phase of packaging python application.
+                conf.env.MSVC_MANIFEST = False
             except:
                 Utils.pprint('RED', 'GCC (MinGW) or MSVC compiler not found.')
                 exit(1)
@@ -148,6 +165,12 @@ def configure(conf):
         conf.env.append_value('CCDEFINES', 'WIN32')
         conf.env.append_value('CPPPATH', '../zlib')
 
+    if myplatform.startswith('sun'):
+        conf.env.append_value('CCDEFINES', 'SUNOS')
+
+    if myplatform.startswith('aix'):
+        conf.env.append_value('CCDEFINES', 'AIX')
+
     conf.env.append_value('CPPPATH', '../common')
 
 
@@ -177,24 +200,37 @@ def configure(conf):
         conf.env.append_value('CCFLAGS', '-mms-bitfields')
 
     elif myplatform.startswith('win') and conf.env.CC_NAME == 'msvc':
-        if architecture == '32bit':
+        if myarch == '32bit':
             conf.env.append_value('LINKFLAGS', '/MACHINE:X86')
-        elif architecture == '64bit':
+        elif myarch == '64bit':
             conf.env.append_value('LINKFLAGS', '/MACHINE:X64')
             # enable 64bit porting warnings
             conf.env.append_value('CCFLAGS', '/Wp64')
         # We use SEH exceptions in winmain.c; make sure they are activated.
         conf.env.append_value('CCFLAGS', '/EHa')
+    
+    # Compile with 64bit gcc 32bit binaries
+    if conf.env.CC_NAME == 'gcc':
+        if myarch == '32bit' and conf.check_cc(ccflags='-m32', msg='Checking for flags -m32'):
+            conf.env.append_value('CCFLAGS', '-m32')
+            if myplatform.startswith('darwin'):
+	        conf.env.append_value('LINKFLAGS', '-arch')
+	        conf.env.append_value('LINKFLAGS', 'i386')
+        elif myarch == '64bit':
+            conf.env.append_value('CCFLAGS', '-m64')
 
-    # link only with needed libraries
-    # XXX: -Wl,--as-needed detected during configure but fails during mac build
-    if conf.check_cc(ccflags='-Wl,--as-needed',
-            msg='Checking for flags -Wl,--as-needed') \
-            and not myplatform.startswith('darwin'):
+    # On linux link only with needed libraries.
+    # -Wl,--as-needed is on some platforms detected during configure but
+    # fails during build. (Mac OS X, Solaris, AIX)
+    if myplatform.startswith('linux') and conf.check_cc(ccflags='-Wl,--as-needed',
+            msg='Checking for flags -Wl,--as-needed'):
         conf.env.append_value('LINKFLAGS', '-Wl,--as-needed')
 
 
     ### Other stuff
+
+    if myplatform.startswith('darwin'):
+        conf.env.MACOSX_DEPLOYMENT_TARGET = '10.4'
 
     if myplatform.startswith('win'):
         # RC file - icon
@@ -222,8 +258,7 @@ def configure(conf):
     ## setup windowed DEBUG environment
     conf.set_env_name('debugw', dbgw)
     conf.setenv('debugw')
-    if myplatform.startswith('darwin') or myplatform.startswith('win'):
-        conf.env.append_value('CCDEFINES', 'WINDOWED')
+    conf.env.append_value('CCDEFINES', 'WINDOWED')
     # disables console - mingw option
     if myplatform.startswith('win') and conf.env.CC_NAME == 'gcc':
             conf.env.append_value('LINKFLAGS', '-mwindows')
@@ -245,8 +280,7 @@ def configure(conf):
     ## setup windowed RELEASE environment
     conf.set_env_name('releasew', relw)
     conf.setenv('releasew')
-    if myplatform.startswith('darwin') or myplatform.startswith('win'):
-        conf.env.append_value('CCDEFINES', 'WINDOWED')
+    conf.env.append_value('CCDEFINES', 'WINDOWED')
     # disables console
     if myplatform.startswith('win') and conf.env.CC_NAME == 'gcc':
             conf.env.append_value('LINKFLAGS', '-mwindows')
@@ -263,7 +297,7 @@ def build(bld):
     Options.options.jobs = 1
 
     myplatform = Utils.detect_platform()
-    install_path = '../../support/loader/' + platform.system() + "-" + platform.architecture()[0]
+    install_path = '../../support/loader/' + platform.system() + "-" + bld.env.MYARCH
     targets = dict(release='run', debug='run_d', releasew='runw', debugw='runw_d')
 
     if myplatform.startswith('win'):
@@ -283,7 +317,7 @@ def build(bld):
         for key in ('release', 'debug'):
             bld(
                 features = 'cc cprogram pyembed',
-                source = bld.path.ant_glob('windows/winmain.c windows/run.rc common/*.c'),
+                source = bld.path.ant_glob('windows/utils.c windows/run.rc common/*.c'),
                 target = targets[key],
                 install_path = install_path,
                 uselib_local = 'staticlib_zlib',
@@ -296,7 +330,7 @@ def build(bld):
         for key in ('releasew', 'debugw'):
             bld(
                 features = 'cc cprogram pyembed',
-                source = bld.path.ant_glob('windows/winmain.c windows/runw.rc common/*.c'), # uses different RC file (icon)
+                source = bld.path.ant_glob('windows/utils.c windows/runw.rc common/*.c'), # uses different RC file (icon)
                 target = targets[key],
                 install_path = install_path,
                 uselib_local = 'staticlib_zlib',
