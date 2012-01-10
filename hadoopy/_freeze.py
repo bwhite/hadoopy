@@ -168,53 +168,6 @@ def freeze(script_path, target_dir='frozen', verbose=False, **kw):
     return cmds
 
 
-def freeze_old(script_path, target_dir='frozen', verbose=False, **kw):
-    """Wraps pyinstaller and provides an easy to use interface
-
-    This requires that the Configure.py script has been run (this is run in
-    setup.py during installation)
-
-    Args:
-        script_path: Absolute path to python script to be frozen.
-
-    Returns:
-        List of freeze commands ran
-
-    Raises:
-        subprocess.CalledProcessError: Freeze error.
-        OSError: Freeze not found.
-    """
-    cmds = []
-    if verbose:
-        print('/\\%s%s Output%s/\\' % ('-' * 10, 'Pyinstaller', '-' * 10))
-    pyinst_path = tempfile.mkdtemp()
-    try:
-        orig_pyinst_path = '%s/thirdparty/pyinstaller' % __path__[0]
-        root_path = pyinst_path + '/pyinstaller'
-        # Copy pyinstaller to the working directory as it assumes local paths
-        # TODO(brandyn): See if there is a way around this
-        shutil.copytree(orig_pyinst_path, root_path)
-        script_dir = os.path.dirname(script_path)
-        cur_cmd = 'python -O %s/Configure.py' % (root_path)
-        cmds.append(cur_cmd)
-        _run(cur_cmd, verbose=verbose)
-        cur_cmd = 'python -O %s/Makespec.py -o %s -C %s/config.dat -p %s %s' % (root_path, pyinst_path, root_path, script_dir, script_path)
-        cmds.append(cur_cmd)
-        _run(cur_cmd, verbose=verbose)
-        proj_name = os.path.basename(script_path)
-        proj_name = proj_name[:proj_name.rfind('.')]  # Remove extension
-        spec_path = '%s/%s.spec' % (pyinst_path, proj_name)
-        cur_cmd = 'python -O %s/Build.py -y -o %s -C %s/config.dat %s' % (root_path, pyinst_path, root_path, spec_path)
-        cmds.append(cur_cmd)
-        _run(cur_cmd, verbose=verbose)
-        _copytree('%s/dist/%s' % (pyinst_path, proj_name), target_dir)
-    finally:
-        shutil.rmtree(pyinst_path)
-    if verbose:
-        print('\\/%s%s Output%s\\/' % ('-' * 10, 'Pyinstaller', '-' * 10))
-    return cmds
-
-
 def freeze_to_tar(script_path, freeze_fn, extra_files=None):
     """Freezes a script to a .tar or .tar.gz file
 
