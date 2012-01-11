@@ -5,8 +5,7 @@ Modifications
 1. pyinstaller/PyInstaller/__init__.py: Allow import from non-parent
 2. pyinstaller/__init__.py: Added file
 3. pyinstaller/source/linux/utils.c: Fix handling of signals
-4. Recompiled linux support modules (to enable #3)
-5. Removed buildtests, doc, e2etests, examples, and Windows support files/directories
+4. Removed buildtests, doc, e2etests, examples, and Windows support files/directories
 
 
 diff -r pyinstaller/ trunk | grep -v \.pyc
@@ -48,9 +47,5 @@ diff -r pyinstaller//source/linux/utils.c trunk/source/linux/utils.c
 ---
 > 
 >     return WEXITSTATUS(rc);
-Binary files pyinstaller//support/loader/Linux-32bit/run and trunk/support/loader/Linux-32bit/run differ
-Binary files pyinstaller//support/loader/Linux-32bit/run_d and trunk/support/loader/Linux-32bit/run_d differ
-Binary files pyinstaller//support/loader/Linux-32bit/runw and trunk/support/loader/Linux-32bit/runw differ
-Binary files pyinstaller//support/loader/Linux-32bit/runw_d and trunk/support/loader/Linux-32bit/runw_d differ
 Only in trunk/support/loader: Windows-32bit
 Only in trunk/support/loader: Windows-64bit
