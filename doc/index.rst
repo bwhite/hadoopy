@@ -309,7 +309,7 @@ Lets open it up and try it out ::
     00000030  00 00 00 00 40 00 38 00  09 00 40 00 1d 00 1c 00  |....@.8...@.....|
     00000040  06 00 00 00 05 00 00 00  40 00 00 00 00 00 00 00  |........@.......|
 
-You can determine if a job provides map/reduce/combine functionality and get its documention by using 'info'.  This is also used internally by Hadoopy to autoatically enable/disable the reducer/combiner.  The task values are set when the corresponding slots in hadoopy.run are filled.
+You can determine if a job provides map/reduce/combine functionality and get its documention by using 'info'.  This is also used internally by Hadoopy to automatically enable/disable the reducer/combiner.  The task values are set when the corresponding slots in hadoopy.run are filled.
 
     >>> python wc.py info
     {"doc": "Hadoopy Wordcount Demo", "tasks": ["map", "reduce"]}
