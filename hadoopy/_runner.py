@@ -297,7 +297,7 @@ def _local_reader(worker_queue_maxsize, q_recv, q_send, in_r_fd, in_w_fd, out_r_
     with hadoopy.TypedBytesFile(read_fd=out_r_fd) as tbfp_r:
         for num, kv in enumerate(tbfp_r):
             while True:
-                while not q_recv.poll(.001) and not q.empty():
+                while not q_recv.poll() and not q.empty():
                     q_send.send(q.get())
                 try:
                     q.put_nowait(kv)
@@ -398,9 +398,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
                         break
                     if reader_process.exitcode:
                         raise EOFError('Reader process died[%s]' % reader_process.exitcode)
-                    # Use select to see if the buffer has anything in it
-                    # this minimizes the chance that the pipe will block
-                    while q_recv.poll(.01):
+                    while q_recv.poll():
                         try:
                             yield q_recv.recv()
                         except EOFError:
