@@ -99,6 +99,7 @@ def test_TCL_TK(config):
         # If no pattern is in place for this platform, skip TCL/TK detection.
         logger.info("... skipping TCL/TK detection on this target platform (%s)"
                     % sys.platform)
+        return
 
     if not (is_win):
         save_exclude = dylib.exclude_list
