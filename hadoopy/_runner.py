@@ -223,7 +223,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
 
 
 def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
-                  temp_path='_hadoopy_temp',
+                  temp_path='_hadoopy_temp', cache=True,
                   **kw):
     """Freezes a script and then launches it.
 
@@ -236,6 +236,7 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     :param out_name: Output path
     :param script_path: Path to the script (e.g., script.py)
     :param frozen_tar_path: If not None, use this path to a previously frozen archive.  You can get such a path from the return value of this function, it is particularly helpful in iterative programs.
+    :param cache: If True (default) then use previously frozen scripts.  Cache is stored in memory (not persistent).
     :param temp_path: HDFS path that we can use to store temporary files (default to _hadoopy_temp)
     :param partitioner: If True, the partitioner is the value.
     :param wait: If True, wait till the process is completed (default True) this is useful if you want to run multiple jobs concurrently by using the 'process' entry in the output.
@@ -270,7 +271,7 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
         raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
     cmds = []
     if not frozen_tar_path:
-        freeze_out = hadoopy.freeze_script(script_path, temp_path=temp_path)
+        freeze_out = hadoopy.freeze_script(script_path, temp_path=temp_path, cache=cache)
         frozen_tar_path = freeze_out['frozen_tar_path']
         cmds += freeze_out['cmds']
     try:

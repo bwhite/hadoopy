@@ -83,7 +83,9 @@ def _md5_file(fn, block_size=1048576):
     return h.hexdigest()
 
 
-def freeze_script(script_path, temp_path='_hadoopy_temp'):
+FREEZE_CACHE = {}
+
+def freeze_script(script_path, cache=True, temp_path='_hadoopy_temp'):
     """Freezes a script, puts it on hdfs, and gives you the path
 
     'frozen_tar_path' can be given to launch_frozen and it will use that
@@ -96,25 +98,31 @@ def freeze_script(script_path, temp_path='_hadoopy_temp'):
 
     Args:
         script_path: Path to a hadoopy script
+        cache: If True (default) then use previously frozen scripts.  Cache is stored in memory (not persistent).
         temp_path: HDFS temporary path (default is '_hadoopy_temp')
 
     Returns:
         {'cmds': commands_ran, 'frozen_tar_path': frozen_tar_path}
     """
-    tmp_frozen_tar_path = temp_path + '/%f.tar' % time.time()
-    freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar')
-    cmds = hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
-    md5 = _md5_file(freeze_fp.name)
-    frozen_tar_path = temp_path + '/%s.tar' % md5
-    if hadoopy.exists(frozen_tar_path):
-        return {'cmds': cmds, 'frozen_tar_path': frozen_tar_path}
-    hadoopy.put(freeze_fp.name, tmp_frozen_tar_path)
+    script_abspath = os.path.abspath(script_path)
     try:
-        hadoopy.mv(tmp_frozen_tar_path, frozen_tar_path)
-    except IOError, e:
-        if hadoopy.exists(frozen_tar_path):  # Check again
-            return {'cmds': cmds, 'frozen_tar_path': frozen_tar_path}
-        raise e
+        if not cache:
+            raise KeyError  # NOTE(brandyn): Don't use cache item
+        cmds, frozen_tar_path = FREEZE_CACHE[script_abspath]
+    except KeyError:
+        tmp_frozen_tar_path = temp_path + '/%f.tar' % time.time()
+        freeze_fp = tempfile.NamedTemporaryFile(suffix='.tar')
+        cmds = hadoopy._freeze.freeze_to_tar(os.path.abspath(script_path), freeze_fp.name)
+        md5 = _md5_file(freeze_fp.name)
+        frozen_tar_path = temp_path + '/%s.tar' % md5
+        if not hadoopy.exists(frozen_tar_path):
+            hadoopy.put(freeze_fp.name, tmp_frozen_tar_path)
+            try:
+                hadoopy.mv(tmp_frozen_tar_path, frozen_tar_path)
+            except IOError, e:
+                if not hadoopy.exists(frozen_tar_path):  # Check again
+                    raise
+    FREEZE_CACHE[script_abspath] = cmds, frozen_tar_path
     return {'cmds': cmds, 'frozen_tar_path': frozen_tar_path}
 
 
