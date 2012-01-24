@@ -2,8 +2,8 @@
 import sys
 import re
 import subprocess
-from distutils.core import setup
-from distutils.extension import Extension
+from setuptools import setup, find_packages
+from setuptools.extension import Extension
 import glob
 import os
 
@@ -86,7 +86,7 @@ ext_modules = [Extension("_main", ["hadoopy/_main" + source_ext,
 setup(name='hadoopy',
       cmdclass=cmdclass,
       version='0.5.0',
-      packages=['hadoopy'],
+      packages=find_packages(),
       package_data={'hadoopy': thirdparty_paths},
       author='Brandyn A. White',
       author_email='bwhite@dappervision.com',
