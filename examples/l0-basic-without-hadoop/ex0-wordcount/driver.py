@@ -8,7 +8,9 @@ import hadoopy
 import os
 
 # Setup paths
-input_path = os.path.abspath('../../data/wc-input-alice.txt')
+here = os.path.abspath(os.path.dirname(__file__))
+input_path = os.path.join(here, '..', '..', 'data', 'wc-input-alice.txt')
+wc_py = os.path.join(here, 'wc.py')
 
 # Read input as an iterator of (line_num, line).  'line_num' is the key
 # and line is the value; however, in wc.py only the value is used.  Notice that
@@ -45,7 +47,7 @@ def get_lines(fn):
 # form they are provided.  All base types are serialized very efficiently and they fall back to Pickle
 # for types not supported by TypedBytes.  If this is confusing, just know that you can input/output
 # anything you can pickle and Hadoopy does things in a fast way.
-output_kvs = hadoopy.launch_local(get_lines(input_path), None, 'wc.py')['output']
+output_kvs = hadoopy.launch_local(get_lines(input_path), None, wc_py )['output']
 
 # Analyze the output.  The output is an iterator of (word, count) where word is a string and count
 # is an integer.
