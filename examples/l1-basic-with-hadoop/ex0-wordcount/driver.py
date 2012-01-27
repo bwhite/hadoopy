@@ -1,13 +1,16 @@
 import hadoopy
 import time
+import os
 
 # Setup paths
+here = os.path.abspath(os.path.dirname(__file__))
 data_path = 'hadoopy-test-data/%f/' % time.time()
 input_path = data_path + 'wc-input-alice.tb'
 output_path = data_path + 'wc-output-alice'
 
 # Put the data from a local path onto HDFS
-hadoopy.put('../../data/wc-input-alice.tb', input_path)
+
+hadoopy.put(os.path.join(here, '..', '..', 'data' ,'wc-input-alice.tb'), input_path)
 
 # Launch the job.  The wc.py script will be "frozen" (all dependencies are discovered using Pyinstaller).
 # The cluster doesn't need Hadoopy, Python, or any other libraries for this to work (as long as Pyinstaller can find everything, if not there are simple things that you can do to fix it).
