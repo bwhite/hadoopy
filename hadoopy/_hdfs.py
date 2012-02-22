@@ -218,7 +218,7 @@ def readtb(paths, num_procs=10, java_mem_mb=256, ignore_logs=True):
     """
     import select
     hstreaming = _find_hstreaming()
-    if isinstance(paths, str):
+    if isinstance(paths, (str, unicode)):
         paths = [paths]
     read_fds = set()
     procs = {}
