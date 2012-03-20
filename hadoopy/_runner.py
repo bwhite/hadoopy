@@ -182,9 +182,17 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     # Add jobconfs
     jobconfs = list(jobconfs)
     if name == None:
-        jobconfs.append('mapred.job.name=%s' % (job_name))
+        jobconfs.append('"mapred.job.name=%s"' % (job_name))
     else:
-        jobconfs.append('mapred.job.name=%s' % (str(name)))
+        jobconfs.append('"mapred.job.name=%s"' % (str(name)))
+    # Handle additional jobconfs listed in the job itself
+    # these go at the beginning of the list as later jobconfs
+    # override them.  Launch specified confs override job specified ones
+    # as Hadoop takes the last one you provide.
+    try:
+        jobconfs = ['"%s"' % x for x in script_info['jobconfs']] + jobconfs
+    except KeyError:
+        pass
     for jobconf in jobconfs:
         cmd += ['-jobconf', jobconf]
     # Add cmdenv

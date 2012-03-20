@@ -124,9 +124,9 @@ class TestUsingHadoop(unittest.TestCase):
         self.assertFalse(hadoopy.isempty(self.data_path))
 
     # Face Finder test
-    def _run_face(self, fn, run_num=0, **kw):
+    def _run_face(self, fn, **kw):
         in_path = self.data_path + fn
-        out_path = '%sout-%s-%d' % (self.data_path, fn, run_num)
+        out_path = '%sout-%s-%f' % (self.data_path, fn, time.time())
         if not hadoopy.exists(in_path):
             hadoopy.put(fn, in_path)
         hadoopy.launch_frozen(in_path, out_path, 'face_finder.py', files=['haarcascade_frontalface_default.xml'], **kw)
@@ -140,13 +140,13 @@ class TestUsingHadoop(unittest.TestCase):
         with open('haarcascade_frontalface_default.xml', 'w') as fp:
             o = gzip.GzipFile('../examples/data/haarcascade_frontalface_default.xml.gz').read()
             fp.write(o)
-        self._run_face('../examples/data/face_finder-input-voctrainpart.tb', 0)
-        self._run_face('../examples/data/face_finder-input-voctrainpart.tb', 1, pipe=False)
+        self._run_face('../examples/data/face_finder-input-voctrainpart.tb')
+        self._run_face('../examples/data/face_finder-input-voctrainpart.tb', pipe=False)
 
-    def _run_wc(self, orig_fn, launcher=hadoopy.launch_frozen, **kw):
+    def _run_wc(self, orig_fn, script_name='wc.py', launcher=hadoopy.launch_frozen, **kw):
         fn = 'out-%f-%s' % (time.time(), orig_fn)
         in_path = self.data_path + fn
-        out_path = self.data_path + fn + '.out'
+        out_path = self.data_path + fn + '-%f.out' % time.time()
         print(os.path.abspath('.'))
         hadoopy.put(orig_fn, in_path)
         # We also do a few hdfs checks here
@@ -157,14 +157,21 @@ class TestUsingHadoop(unittest.TestCase):
         self.assertFalse(hadoopy.isdir(in_path))
         self.assertFalse(hadoopy.isempty(in_path))
         # Don't let the file split, CDH3 has a bug and will try to split gz's
-        launcher(in_path, out_path, 'wc.py', jobconfs=['mapred.min.split.size=100000000',
-                                                       'mapreduce.task.userlog.limit.kb=1000'], **kw)
+        if not isinstance(launcher, str):
+            launcher(in_path, out_path, script_name, jobconfs=['mapred.min.split.size=100000000',
+                                                               'mapreduce.task.userlog.limit.kb=1000'], **kw)
         if launcher == hadoopy.launch_frozen:
             self.assertTrue(hadoopy.isdir(out_path))
             self.assertTrue(hadoopy.isempty(out_path))  # Dirs are always empty
         elif launcher == hadoopy.launch_local:
             self.assertFalse(hadoopy.isdir(out_path))
             self.assertFalse(hadoopy.isempty(out_path))
+        elif launcher == 'launch_frozen_cmd':
+            cmd = '%s launch_frozen %s %s' % (script_name, in_path, out_path)
+            print(cmd)
+            subprocess.call(cmd.split())
+            self.assertTrue(hadoopy.isdir(out_path))
+            self.assertTrue(hadoopy.isempty(out_path))  # Dirs are always empty
         else:
             raise ValueError('Launcher not recognized')
         wc = dict(hadoopy.readtb(out_path))
@@ -173,30 +180,39 @@ class TestUsingHadoop(unittest.TestCase):
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_textgz_in(self):
+        self._run_wc('wc-input-alice.txt.gz', launcher='launch_frozen_cmd')
         self._run_wc('wc-input-alice.txt.gz')
         self._run_wc('wc-input-alice.txt.gz', pipe=False)
+        self._run_wc('wc-input-alice.txt.gz', script_name='wc_no_exec.py')
+        self._run_wc('wc-input-alice.txt.gz', script_name='wc_no_exec.py', pipe=False)
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_text_in(self):
+        self._run_wc('wc-input-alice.txt', launcher='launch_frozen_cmd')
         self._run_wc('wc-input-alice.txt')
         self._run_wc('wc-input-alice.txt', pipe=False)
+        self._run_wc('wc-input-alice.txt', script_name='wc_no_exec.py')
+        self._run_wc('wc-input-alice.txt', script_name='wc_no_exec.py', pipe=False)
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_tb_in(self):
+        self._run_wc('wc-input-alice.tb', launcher='launch_frozen_cmd')
         self._run_wc('wc-input-alice.tb')
         self._run_wc('wc-input-alice.tb', pipe=False)
+        self._run_wc('wc-input-alice.tb', script_name='wc_no_exec.py')
+        self._run_wc('wc-input-alice.tb', script_name='wc_no_exec.py', pipe=False)
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_textgz_in_local(self):
-        self._run_wc('wc-input-alice.txt.gz', hadoopy.launch_local)
+        self._run_wc('wc-input-alice.txt.gz', launcher=hadoopy.launch_local)
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_text_in_local(self):
-        self._run_wc('wc-input-alice.txt', hadoopy.launch_local)
+        self._run_wc('wc-input-alice.txt', launcher=hadoopy.launch_local)
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_tb_in_local(self):
-        self._run_wc('wc-input-alice.tb', hadoopy.launch_local)
+        self._run_wc('wc-input-alice.tb', launcher=hadoopy.launch_local)
 
     def _run_hdfs(self, orig_fn):
         fn = '%f-%s' % (time.time(), orig_fn)

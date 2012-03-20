@@ -56,4 +56,4 @@ def reducer(key, values):
     yield key, accum
 
 if __name__ == "__main__":
-    hadoopy.run(mapper, reducer, reducer, doc=__doc__)
+    hadoopy.run(mapper, reducer, reducer)

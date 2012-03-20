@@ -90,4 +90,4 @@ class Mapper(object):
 
 
 if __name__ == "__main__":
-    hadoopy.run(Mapper, doc=__doc__)
+    hadoopy.run(Mapper)

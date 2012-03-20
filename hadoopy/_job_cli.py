@@ -4,6 +4,7 @@ import argparse
 import os
 import json
 import subprocess
+import inspect
 from _hadoopy_main import HadoopyTask
 
 
@@ -34,7 +35,7 @@ def run_pipe(command):
         sys.exit(retcode)
 
 
-def run_info(mapper, reducer, combiner, kw):
+def run_info(mapper, reducer, combiner, jobconfs, kw):
     tasks = []
     if mapper:
         tasks.append('map')
@@ -44,6 +45,8 @@ def run_info(mapper, reducer, combiner, kw):
         tasks.append('combine')
     info = dict(kw)
     info['tasks'] = tasks
+    if jobconfs:
+        info['jobconfs'] = jobconfs
     print(json.dumps(info))
 
 
@@ -75,7 +78,7 @@ def disable_stdout_buffering():
     return stdout_orig
 
 
-def run(mapper=None, reducer=None, combiner=None, **kw):
+def run(mapper=None, reducer=None, combiner=None, script_path=None, jobconfs=(), **kw):
     """Hadoopy entrance function
 
     This is to be called in all Hadoopy job's.  Handles arguments passed in,
@@ -158,10 +161,10 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
     :param reducer: Function or class following the above spec
     :param combiner: Function or class following the above spec
     :param doc: If specified, on error print this and call sys.exit(1)
-    :rtype: True on error, else False (may not return if doc is set and
-        there is an error)
     """
-    script_path = os.path.abspath(__file__)
+    if script_path is None:
+        script_path = inspect.getfile(inspect.currentframe().f_back)
+    script_path = os.path.abspath(script_path)
 
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(help='Job Commands (additional help available inside each)')
@@ -172,7 +175,7 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
     parser_freeze.set_defaults(func=run_freeze)
 
     parser_info = subparsers.add_parser('info', help='Display job info as JSON')
-    parser_info.set_defaults(func=lambda : run_info(mapper, reducer, combiner, kw))
+    parser_info.set_defaults(func=lambda : run_info(mapper, reducer, combiner, jobconfs, kw))
 
     parser_launch_frozen = subparsers.add_parser('launch_frozen', help='Run Hadoop job (freezes script)')
     parser_launch_frozen.add_argument('in_name', help='Input HDFS path')
@@ -202,17 +205,7 @@ def run(mapper=None, reducer=None, combiner=None, **kw):
     # Call function with all arguments except for itself
     func = args['func']
     del args['func']
-    ret = func(**args)
-    # Handle return code
-    if ret and 'doc' in kw:
-        print_doc_quit(kw['doc'])
-    return bool(ret)
-
-
-def print_doc_quit(doc):
-    if doc is not None:
-        print(doc)
-    sys.exit(1)
+    func(**args)
 
 
 def job_cli():
