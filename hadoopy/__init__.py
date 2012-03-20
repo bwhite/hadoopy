@@ -19,11 +19,11 @@ __license__ = 'GPL V3'
 
 from _runner import launch, launch_frozen, launch_local
 from _hdfs import get, put, readtb, writetb, ls, exists, rmr, isempty, abspath, isdir, mv
-from _main import run, print_doc_quit
+from _job_cli import run, print_doc_quit
 from _reporter import status, counter
 from _test import Test
 from _typedbytes import TypedBytesFile
-import _typedbytes
-import _main
+import _hadoopy_typedbytes
+import _hadoopy_main
 from _main import GroupedValues
 from _freeze import freeze_script

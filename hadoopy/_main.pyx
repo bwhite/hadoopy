@@ -20,27 +20,7 @@ __license__ = 'GPL V3'
 import sys
 import os
 import hadoopy
-import subprocess
-import json
-
-def change_dir():
-    # Skip this process if the command used is pipe.  The child will still get
-    # the environmental variable
-    if len(sys.argv) >= 2 and sys.argv[1] == 'pipe':
-        return
-    try:
-        d = os.environ['HADOOPY_CHDIR']
-        sys.stderr.write('HADOOPY: Trying to chdir to [%s]\n' % d)
-    except KeyError:
-        pass
-    else:
-        try:
-            os.chdir(d)
-        except OSError:
-            sys.stderr.write('HADOOPY: Failed to chdir to [%s]\n' % d)
-
-# This is called immediately so that client imports are in their expected dir
-change_dir()
+import hadoopy._runner
 
 
 cdef extern from "stdlib.h":
@@ -180,26 +160,25 @@ cdef class HadoopyTask(object):
     cdef object combiner
     cdef object task_type
     cdef int line_count
-    cdef object args
     cdef int read_fd
     cdef int write_fd
     cdef void* read_fp
     cdef object tb
 
-    def __init__(self, mapper, reducer, combiner, task_type, *args, **kw):
+    def __init__(self, mapper, reducer, combiner, task_type, read_fd=None, write_fd=None):
         self.mapper = mapper
         self.reducer = reducer
         self.combiner = combiner
         self.task_type = task_type
         self.line_count = 0
-        try:
-            self.read_fd = int(args[0])
-        except IndexError:
+        if read_fd is None:
             self.read_fd = sys.stdin.fileno()
-        try:
-            self.write_fd = int(args[1])
-        except IndexError:
+        else:
+            self.read_fd = int(read_fd)
+        if write_fd is None:
             self.write_fd = sys.stdout.fileno()
+        else:
+            self.write_fd = int(write_fd)
         self.read_fp = fdopen(self.read_fd, 'r')
         self.tb = hadoopy.TypedBytesFile(read_fd=self.read_fd, write_fd=self.write_fd)
 
@@ -323,151 +302,3 @@ cdef class HadoopyTask(object):
 
     def is_on_hadoop(self):
         return 'mapred_input_format_class' in os.environ
-
-
-def freeze():
-    extra_files = []
-    pos = 3
-    # Any file with -Z is added to the tar
-    while len(sys.argv) >= pos + 2 and sys.argv[pos] == '-Z':
-        extra_files.append(sys.argv[pos + 1])
-        pos += 2
-    extra = ' '.join(sys.argv[pos:])
-    hadoopy._freeze.freeze_to_tar(script_path=os.path.abspath(sys.argv[0]),
-                                  freeze_fn=sys.argv[2],
-                                  extra_files=extra_files)
-
-
-def run(mapper=None, reducer=None, combiner=None, **kw):
-    """Hadoopy entrance function
-
-    This is to be called in all Hadoopy job's.  Handles arguments passed in,
-    calls the provided functions with input, and stores the output.
-
-    TypedBytes are used if the following is True
-    os.environ['stream_map_input'] == 'typedbytes'
-
-    It is *highly* recommended that TypedBytes be used for all non-trivial
-    tasks.  Keep in mind that the semantics of what you can safely emit from
-    your functions is limited when using Text (i.e., no \\t or \\n).  You can use
-    the base64 module to ensure that your output is clean.
-
-    If the HADOOPY_CHDIR environmental variable is set, this will immediately
-    change the working directory to the one specified.  This is useful if your
-    data is provided in an archive but your program assumes it is in that
-    directory.
-
-    As hadoop streaming relies on stdin/stdout/stderr for communication,
-    anything that outputs on them in an unexpected way (especially stdout) will
-    break the pipe on the Java side and can potentially cause data errors.  To
-    fix this problem, hadoopy allows file descriptors (integers) to be provided
-    to each task.  These will be used instead of stdin/stdout by hadoopy.  This
-    is designed to combine with the 'pipe' command.
-
-    To use the pipe functionality, instead of using
-    `your_script.py map` use `your_script.py pipe map`
-    which will call the script as a subprocess and use the read_fd/write_fd
-    command line arguments for communication.  This isolates your script and
-    eliminates the largest source of errors when using hadoop streaming.
-
-    The pipe functionality has the following semantics
-    stdin: Always an empty file
-    stdout: Redirected to stderr (which is visible in the hadoop log)
-    stderr: Kept as stderr
-    read_fd: File descriptor that points to the true stdin
-    write_fd: File descriptor that points to the true stdout
-
-    | **Command Interface**
-    | The command line switches added to your script (e.g., script.py) are
-
-    python script.py *map* (read_fd) (write_fd)
-        Use the provided mapper, optional read_fd/write_fd.
-    python script.py *reduce* (read_fd) (write_fd)
-        Use the provided reducer, optional read_fd/write_fd.
-    python script.py *combine* (read_fd) (write_fd)
-        Use the provided combiner, optional read_fd/write_fd.
-    python script.py *freeze* <tar_path> <-Z add_file0 -Z add_file1...>
-        Freeze the script to a tar file specified by <tar_path>.  The extension
-        may be .tar or .tar.gz.  All files are placed in the root of the tar.
-        Files specified with -Z will be added to the tar root.
-    python script.py info
-        Prints a json object containing 'tasks' which is a list of tasks which
-        can include 'map', 'combine', and 'reduce'.  Also contains 'doc' which is
-        the provided documentation through the doc argument to the run function.
-        The tasks correspond to provided inputs to the run function.
-
-    | **Specification of mapper/reducer/combiner** 
-    | Input Key/Value Types
-    |     For TypedBytes/SequenceFileInputFormat, the Key/Value are the decoded TypedBytes
-    |     For TextInputFormat, the Key is a byte offset (int) and the Value is a line without the newline (string)
-    |
-    | Output Key/Value Types
-    |     For TypedBytes, anything Pickle-able can be used
-    |     For Text, types are converted to string.  Note that neither may contain \\t or \\n as these are used in the encoding.  Output is key\\tvalue\\n
-    |
-    | Expected arguments
-    |     mapper(key, value) or mapper.map(key, value)
-    |     reducer(key, values) or reducer.reduce(key, values)
-    |     combiner(key, values) or combiner.reduce(key, values)
-    |
-    | Optional methods
-    |     func.configure(): Called before any input read.  Returns None.
-    |     func.close():  Called after all input read.  Returns None or Iterator of (key, value)
-    |
-    | Expected return
-    |     None or Iterator of (key, value)
-
-    :param mapper: Function or class following the above spec
-    :param reducer: Function or class following the above spec
-    :param combiner: Function or class following the above spec
-    :param doc: If specified, on error print this and call sys.exit(1)
-    :rtype: True on error, else False (may not return if doc is set and
-        there is an error)
-    """
-    ret = 0
-    if len(sys.argv) >= 2:
-        if sys.argv[1] == 'freeze':
-            if len(sys.argv) > 2:
-                ret = freeze()
-            else:
-                print('Usage: python script.py freeze <tar_path> <-Z add_file0 -Z add_file1...>')
-        elif sys.argv[1] == 'pipe' and len(sys.argv) == 3:
-            cmd = '%s %s %d %d' % (sys.argv[0],
-                                   sys.argv[2],
-                                   os.dup(sys.stdin.fileno()),
-                                   os.dup(sys.stdout.fileno()))
-            slave_stdin = open('/dev/null', 'r')
-            slave_stdout = os.fdopen(os.dup(sys.stderr.fileno()), 'w')
-            retcode = 0
-            try:
-                retcode = subprocess.call(cmd.split(), stdout=slave_stdout, stdin=slave_stdin)
-            except OSError:  # If we can't find the file, check the local dir
-                retcode = subprocess.call(('./' + cmd).split(), stdout=slave_stdout, stdin=slave_stdin)
-            if retcode:
-                sys.exit(retcode)
-        elif sys.argv[1] == 'info':
-            tasks = []
-            if mapper:
-                tasks.append('map')
-            if reducer:
-                tasks.append('reduce')
-            if combiner:
-                tasks.append('combine')
-            info = dict(kw)
-            info['tasks'] = tasks
-            print(json.dumps(info))
-        elif sys.argv[1] in ['map', 'reduce', 'combine']:
-            ret = HadoopyTask(mapper, reducer, combiner, *sys.argv[1:]).run()
-        else:
-            ret = 1
-    else:
-        ret = 1
-    if ret and 'doc' in kw:
-        print_doc_quit(kw['doc'])
-    return bool(ret)
-
-
-def print_doc_quit(doc):
-    if doc is not None:
-        print(doc)
-    sys.exit(1)
