@@ -413,9 +413,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
                     yield q_recv.recv()
                 except EOFError:
                     break
-            print('********  Done with inputs and cleaned up')
         finally:
-            print('Closing up shop')
             q_recv.close()
             reader_process.join()
             p.kill()
@@ -439,23 +437,18 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
         if 'reduce' in script_info['tasks']:
             kvs = list(_run_task('map', in_kvs, env))
             if 'combine' in script_info['tasks']:
-                print('COMBINER ----------------------------')
                 kvs = hadoopy.Test.sort_kv(kvs)
                 kvs = list(_run_task('combine', kvs, env))
-            print('REDUCER ----------------------------')
             kvs = hadoopy.Test.sort_kv(kvs)
             kvs = _run_task('reduce', kvs, env)
         else:
-            print('********** MapOnly Task')
             kvs = _run_task('map', in_kvs, env)
     except OSError, e:
         print('Error: Ensure that [%s] starts with "#!/usr/bin/env python".' % script_path)
         raise e
     else:
         if out_name is not None:
-            print('Start writing')
             hadoopy.writetb(out_name, kvs)
-            print('Done writing')
             out['output'] = hadoopy.readtb(out_name)
         else:
             out['output'] = iter(list(kvs))  # TODO(brandyn): Potential problem if using large values, fixes changing dir early
