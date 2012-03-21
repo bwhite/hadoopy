@@ -146,9 +146,10 @@ class TestUsingHadoop(unittest.TestCase):
     def _run_wc(self, orig_fn, script_name='wc.py', launcher=hadoopy.launch_frozen, **kw):
         fn = 'out-%f-%s' % (time.time(), orig_fn)
         in_path = self.data_path + fn
-        out_path = self.data_path + fn + '-%f.out' % time.time()
+        out_path = self.data_path + fn + '.out'
         print(os.path.abspath('.'))
-        hadoopy.put(orig_fn, in_path)
+        if not hadoopy.exists(in_path):
+            hadoopy.put(orig_fn, in_path)
         # We also do a few hdfs checks here
         self.assertEquals(len(hadoopy.ls(in_path)), 1)
         self.assertEquals(hadoopy.ls(in_path), [hadoopy.abspath(in_path)])
@@ -167,7 +168,9 @@ class TestUsingHadoop(unittest.TestCase):
             self.assertFalse(hadoopy.isdir(out_path))
             self.assertFalse(hadoopy.isempty(out_path))
         elif launcher == 'launch_frozen_cmd':
-            cmd = '%s launch_frozen %s %s' % (script_name, in_path, out_path)
+            cmd = 'python %s launch_frozen %s %s -jobconf "mapred.min.split.size=100000000" -jobconf "mapreduce.task.userlog.limit.kb=1000"' % (script_name,
+                                                                                                                                                in_path,
+                                                                                                                                                out_path)
             print(cmd)
             subprocess.call(cmd.split())
             self.assertTrue(hadoopy.isdir(out_path))
