@@ -28,6 +28,9 @@ import tempfile
 import stat
 import multiprocessing
 import Queue
+import logging
+import time
+import select
 
 # These two globals are only used in the follow function
 WARNED_HADOOP_HOME = False
@@ -51,13 +54,13 @@ def _find_hstreaming():
         search_root = os.environ['HADOOP_HOME']
     except KeyError:
         search_root = '/'
-        if not WARNED_HADOOP_HOME:
-            print('Hadoopy: Set the HADOOP_HOME environmental variable to your hadoop path to improve performance. (e.g., Put [export HADOOP_HOME="/home/user/hadoop-0.20.2+320"] in /home/user/.bashrc)')
-            WARNED_HADOOP_HOME = True
     cmd = 'find %s -name hadoop*streaming*.jar' % (search_root)
     p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
     HADOOP_STREAMING_PATH_CACHE = p.communicate()[0].split('\n')[0]
+    if search_root == '/' and not WARNED_HADOOP_HOME:
+        WARNED_HADOOP_HOME = True
+        logging.warn('Set the HADOOP_HOME environmental variable to your hadoop path to improve performance. Put the following [export HADOOP_HOME="%s"] in ~/.bashrc' % HADOOP_STREAMING_PATH_CACHE)
     return HADOOP_STREAMING_PATH_CACHE
 
 
@@ -212,14 +215,28 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     if config:
         cmd += ['--config', config]
     # Run command and wait till it has completed
-    print('/\\%s%s Output%s/\\' % ('-' * 10, 'Hadoop', '-' * 10))
-    print('hadoopy: Running[%s]' % (' '.join(cmd)))
-    process = subprocess.Popen(' '.join(cmd), shell=True)
-    out['process'] = process
+    hadoop_start_time = time.time()
+    logging.info('/\\%s%s Output%s/\\' % ('-' * 10, 'Hadoop', '-' * 10))
+    logging.info('hadoopy: Running[%s]' % (' '.join(cmd)))
+    out['process'] = process = subprocess.Popen(' '.join(cmd), shell=True,
+                                                stdout=subprocess.PIPE,
+                                                stderr=subprocess.PIPE)
+    # NOTE(brandyn): Read a line from stdout/stderr and log it.  This allows us
+    # to use the logging system instead printing to the console.
     if wait:
+        def check_fps():
+            fps = select.select([process.stdout, process.stderr], [], [], 1.)[0]
+            for fp in fps:
+                line = fp.readline()
+                if line:  # NOTE(brandyn): Should have at least a newline
+                    logging.info(line[:-1])
+        while process.poll() is None:
+            check_fps()
+        check_fps()
         if process.wait():
             raise subprocess.CalledProcessError(process.returncode, ' '.join(cmd))
-    print('\\/%s%s Output%s\\/' % ('-' * 10, 'Hadoop', '-' * 10))
+        logging.info('Hadoop took [%f] seconds' % (time.time() - hadoop_start_time))
+    logging.info('\\/%s%s Output%s\\/' % ('-' * 10, 'Hadoop', '-' * 10))
     # NOTE(brandyn): Postpones calling readtb
 
     def _read_out():
@@ -362,7 +379,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     """
     if isinstance(files, str) or isinstance(cmdenvs, str) or ('cmdenvs' in kw and isinstance(kw['cmdenvs'], str)):
         raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
-    print('Local[%s]' % script_path)
+    logging.info('Local[%s]' % script_path)
     script_info = _parse_info(script_path, python_cmd)
     if not files:
         files = []
@@ -431,7 +448,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     new_pwd = tempfile.mkdtemp()
     out = {}
     try:
-        print('Hadoopy: Launch local changing current directory to [%s]' % new_pwd)
+        logging.info('Hadoopy: Launch local changing current directory to [%s]' % new_pwd)
         os.chdir(new_pwd)
         if files:
             for f in files:
@@ -452,7 +469,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
         else:
             kvs = _run_task('map', in_kvs, env)
     except OSError, e:
-        print('Error: Ensure that [%s] starts with "#!/usr/bin/env python".' % script_path)
+        logging.error('Ensure that [%s] starts with "#!/usr/bin/env python".' % script_path)
         raise e
     else:
         if out_name is not None:
@@ -466,4 +483,4 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
         if remove_tempdir:
             shutil.rmtree(new_pwd)
         else:
-            print('Temporary directory not removed[%s]' % new_pwd)
+            logging.info('Temporary directory not removed[%s]' % new_pwd)

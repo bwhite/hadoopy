@@ -29,6 +29,7 @@ import tempfile
 import hadoopy
 import time
 import hashlib
+import logging
 from . import __path__
 
 
@@ -38,12 +39,14 @@ def _wrap_string(s):
     return list(s)
 
 
-def _run(path, verbose=False):
+def _run(path):
     p = subprocess.Popen(path.split(), stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
     stderr, stdout = p.communicate()
-    if verbose or p.returncode != 0:
-        print('stdout[%s] stderr[%s]' % (stdout, stderr))
+    if p.returncode != 0:
+        logging.error('stdout[%s] stderr[%s]' % (stdout, stderr))
+    else:
+        logging.debug('stdout[%s] stderr[%s]' % (stdout, stderr))
     return p.returncode
 
 
@@ -85,6 +88,7 @@ def _md5_file(fn, block_size=1048576):
 
 FREEZE_CACHE = {}
 
+
 def freeze_script(script_path, cache=True, temp_path='_hadoopy_temp'):
     """Freezes a script, puts it on hdfs, and gives you the path
 
@@ -119,14 +123,14 @@ def freeze_script(script_path, cache=True, temp_path='_hadoopy_temp'):
             hadoopy.put(freeze_fp.name, tmp_frozen_tar_path)
             try:
                 hadoopy.mv(tmp_frozen_tar_path, frozen_tar_path)
-            except IOError, e:
+            except IOError:
                 if not hadoopy.exists(frozen_tar_path):  # Check again
                     raise
     FREEZE_CACHE[script_abspath] = cmds, frozen_tar_path
     return {'cmds': cmds, 'frozen_tar_path': frozen_tar_path}
 
 
-def _freeze_config(force=False, verbose=False):
+def _freeze_config(force=False):
     from hadoopy.thirdparty.pyinstaller.PyInstaller import DEFAULT_CONFIGFILE
     cmds = []
     if force:
@@ -138,11 +142,11 @@ def _freeze_config(force=False, verbose=False):
         pyinst_path = '%s/thirdparty/pyinstaller' % __path__[0]
         cur_cmd = 'python -O %s/utils/Configure.py' % (pyinst_path)
         cmds.append(cur_cmd)
-        _run(cur_cmd, verbose=verbose)
+        _run(cur_cmd)
     return cmds
 
 
-def freeze(script_path, target_dir='frozen', verbose=False, **kw):
+def freeze(script_path, target_dir='frozen', **kw):
     """Wraps pyinstaller and provides an easy to use interface
 
     Args:
@@ -156,23 +160,23 @@ def freeze(script_path, target_dir='frozen', verbose=False, **kw):
         OSError: Freeze not found.
     """
     cmds = []
-    if verbose:
-        print('/\\%s%s Output%s/\\' % ('-' * 10, 'Pyinstaller', '-' * 10))
+    freeze_start_time = time.time()
+    logging.debug('/\\%s%s Output%s/\\' % ('-' * 10, 'Pyinstaller', '-' * 10))
     orig_dir = os.path.abspath('.')
     script_path = os.path.abspath(script_path)
     try:
         os.chdir(target_dir)
-        cmds += _freeze_config(verbose=verbose)
+        cmds += _freeze_config()
         pyinst_path = '%s/thirdparty/pyinstaller' % __path__[0]
         cur_cmd = 'python -O %s/pyinstaller.py %s --skip-configure' % (pyinst_path, script_path)
         cmds.append(cur_cmd)
-        if _run(cur_cmd, verbose=verbose):  # If there is a problem, try removing the config and re-doing
-            _freeze_config(verbose=verbose, force=True)
-            _run(cur_cmd, verbose=verbose)
+        if _run(cur_cmd):  # If there is a problem, try removing the config and re-doing
+            _freeze_config(force=True)
+            _run(cur_cmd)
     finally:
         os.chdir(orig_dir)
-    if verbose:
-        print('\\/%s%s Output%s\\/' % ('-' * 10, 'Pyinstaller', '-' * 10))
+    logging.debug('\\/%s%s Output%s\\/' % ('-' * 10, 'Pyinstaller', '-' * 10))
+    logging.info('Pyinstaller took [%f] seconds' % (time.time() - freeze_start_time))
     return cmds
 
 

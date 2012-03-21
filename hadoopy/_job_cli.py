@@ -5,6 +5,7 @@ import os
 import json
 import subprocess
 import inspect
+import logging
 from _hadoopy_main import HadoopyTask
 
 
@@ -167,6 +168,7 @@ def run(mapper=None, reducer=None, combiner=None, script_path=None, jobconfs=(),
     script_path = os.path.abspath(script_path)
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--log', help='Default log level to use', choices=('debug', 'info', 'warning', 'error', 'critical'), default='info')
     subparsers = parser.add_subparsers(help='Job Commands (additional help available inside each)')
 
     parser_freeze = subparsers.add_parser('freeze', help='Freeze the script to a tar file.')
@@ -202,6 +204,11 @@ def run(mapper=None, reducer=None, combiner=None, script_path=None, jobconfs=(),
     parser_reduce.set_defaults(func=lambda **y: run_task(mapper, reducer, combiner, command='reduce', **y))
 
     args = vars(parser.parse_args())
+    # Handle logging arguments
+    if 'log' in args:
+        numeric_level = getattr(logging, args['log'].upper(), None)
+        logging.basicConfig(level=numeric_level)
+        del args['log']
     # Call function with all arguments except for itself
     func = args['func']
     del args['func']
