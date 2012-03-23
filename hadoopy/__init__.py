@@ -22,8 +22,8 @@ from _hdfs import get, put, readtb, writetb, ls, exists, rmr, isempty, abspath, 
 from _job_cli import run
 from _reporter import status, counter
 from _test import Test
-from _typedbytes import TypedBytesFile
+from _hadoopy_typedbytes import TypedBytesFile
 import _hadoopy_typedbytes as _typedbytes
 import _hadoopy_main as _main
-from _main import GroupedValues
+from _hadoopy_main import GroupedValues
 from _freeze import freeze_script
