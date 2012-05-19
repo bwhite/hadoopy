@@ -26,17 +26,19 @@ cdef extern from "stdlib.h":
     void free(void *ptr)            
 
 cdef extern from "stdio.h":
-    ssize_t getdelim(char **lineptr, size_t *n, int delim, void *stream)
-    void *stdin
-    void *stdout
-    void *stderr
-    int getc(void *stream)
-    size_t fread(void *ptr, size_t size, size_t nmemb, void *stream)
-    size_t fwrite(void *ptr, size_t size, size_t nmemb, void *stream)
-    void *fdopen(int fd, char *mode)
-    int fclose(void *fp)
-    void *fopen(char *path, char *mode)
-    int fflush(void *stream)
+    ctypedef struct FILE:
+        pass
+    ssize_t getdelim(char **lineptr, size_t *n, int delim, FILE *stream)
+    FILE *stdin
+    FILE *stdout
+    FILE *stderr
+    int getc(FILE *stream)
+    size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
+    size_t fwrite(void *ptr, size_t size, size_t nmemb, FILE *stream)
+    FILE *fdopen(int fd, char *mode)
+    int fclose(FILE *fp)
+    FILE *fopen(char *path, char *mode)
+    int fflush(FILE *stream)
 
 cdef extern from "byteconversion.h":
     int32_t _be32toh(int32_t val)
@@ -50,7 +52,7 @@ cdef extern from "Python.h":
     char* PyString_AsString(object string)
     
 
-cdef inline int32_t _read_int(void *fp):
+cdef inline int32_t _read_int(FILE *fp):
     """Read integer
 
     Code: 3
@@ -64,7 +66,7 @@ cdef inline int32_t _read_int(void *fp):
     return _be32toh(val)
 
 
-cdef inline _raw_write_int(void *fp, val):
+cdef inline _raw_write_int(FILE *fp, val):
     """Write integer (used for sizes)
 
     Args:
@@ -78,7 +80,7 @@ cdef inline _raw_write_int(void *fp, val):
     fwrite(&cval, 4, 1, fp)  # = 1
 
 
-cdef inline _write_int(void *fp, val):
+cdef inline _write_int(FILE *fp, val):
     """Write integer
 
     Code: 3
@@ -96,7 +98,7 @@ cdef inline _write_int(void *fp, val):
     fwrite(&cval, 4, 1, fp)  # = 1
 
 
-cdef inline int64_t _read_long(void *fp):
+cdef inline int64_t _read_long(FILE *fp):
     """Read integer
 
     Code: 4
@@ -110,7 +112,7 @@ cdef inline int64_t _read_long(void *fp):
     return _be64toh(val)
 
 
-cdef inline _write_long(void *fp, val):
+cdef inline _write_long(FILE *fp, val):
     """Write long
 
     Code: 4
@@ -124,7 +126,7 @@ cdef inline _write_long(void *fp, val):
     fwrite(&cval, 8, 1, fp)  # = 1
 
 
-cdef inline float _read_float(void *fp):
+cdef inline float _read_float(FILE *fp):
     """Read float
 
     Code: 5
@@ -139,7 +141,7 @@ cdef inline float _read_float(void *fp):
     return (<float*>&val)[0]
 
 
-cdef inline _write_float(void *fp, val):
+cdef inline _write_float(FILE *fp, val):
     """Write float
 
     Code: 5
@@ -153,7 +155,7 @@ cdef inline _write_float(void *fp, val):
     fwrite(&cvalo, 4, 1, fp)  # = 1
 
 
-cdef inline double _read_double(void *fp):
+cdef inline double _read_double(FILE *fp):
     """Read double
 
     Code: 6
@@ -168,7 +170,7 @@ cdef inline double _read_double(void *fp):
     return (<double*>&val)[0]
 
 
-cdef inline _write_double(void *fp, val):
+cdef inline _write_double(FILE *fp, val):
     """Write double
 
     Code: 6
@@ -182,7 +184,7 @@ cdef inline _write_double(void *fp, val):
     fwrite(&cvalo, 8, 1, fp)  # = 1
 
 
-cdef inline _read_byte(void *fp):
+cdef inline _read_byte(FILE *fp):
     """Read byte
 
     Code: 1
@@ -196,7 +198,7 @@ cdef inline _read_byte(void *fp):
     return int(val)
 
 
-cdef inline _write_byte(void *fp, val):
+cdef inline _write_byte(FILE *fp, val):
     """Write byte
 
     Code: 1
@@ -209,7 +211,7 @@ cdef inline _write_byte(void *fp, val):
     fwrite(&cval, 1, 1, fp)  # = 1
     
 
-cdef inline _read_bool(void *fp):
+cdef inline _read_bool(FILE *fp):
     """Read integer
 
     Code: 2
@@ -221,7 +223,7 @@ cdef inline _read_bool(void *fp):
     return bool(_read_byte(fp))
 
 
-cdef inline _write_bool(void *fp, val):
+cdef inline _write_bool(FILE *fp, val):
     """Write bool
 
     Code: 2
@@ -234,7 +236,7 @@ cdef inline _write_bool(void *fp, val):
     fwrite(&cval, 1, 1, fp)  # = 1
 
 
-cdef inline _read_bytes(void *fp):
+cdef inline _read_bytes(FILE *fp):
     """Read bytes
 
     Code: 0
@@ -252,7 +254,7 @@ cdef inline _read_bytes(void *fp):
 
 
 # NOTE(brandyn): This is currently unused to be compatible with Dumbo's typedbytes
-cdef inline _read_unicode(void *fp):
+cdef inline _read_unicode(FILE *fp):
     """Read bytes
 
     Code: 7
@@ -269,7 +271,7 @@ cdef inline _read_unicode(void *fp):
     return unicode(out, 'utf-8')
 
 
-cdef inline _write_bytes(void *fp, val):
+cdef inline _write_bytes(FILE *fp, val):
     """Write bytes
 
     Code: 0
@@ -285,7 +287,7 @@ cdef inline _write_bytes(void *fp, val):
     fwrite(bytes, sz, 1, fp)  # = 1
 
 
-cdef inline _write_unicode(void *fp, val):
+cdef inline _write_unicode(FILE *fp, val):
     """Write bytes
 
     Code: 0
@@ -302,7 +304,7 @@ cdef inline _write_unicode(void *fp, val):
     fwrite(bytes, sz, 1, fp)  # = 1
 
 
-cdef inline _read_string(void *fp):
+cdef inline _read_string(FILE *fp):
     """Read string
 
     Code: 7
@@ -314,7 +316,7 @@ cdef inline _read_string(void *fp):
     return _read_bytes(fp)
 
 
-cdef inline _write_string(void *fp, val):
+cdef inline _write_string(FILE *fp, val):
     """Write string
 
     Code: 7
@@ -326,7 +328,7 @@ cdef inline _write_string(void *fp, val):
     _write_bytes(fp, val)
 
 
-cdef inline _read_vector(void *fp):
+cdef inline _read_vector(FILE *fp):
     """Read fixed length vector of typedbytes
 
     Code: 8
@@ -342,7 +344,7 @@ cdef inline _read_vector(void *fp):
     return tuple(out)
 
 
-cdef inline _write_vector(void *fp, val):
+cdef inline _write_vector(FILE *fp, val):
     """Write fixed length vector of typedbytes
 
     Code: 8
@@ -357,7 +359,7 @@ cdef inline _write_vector(void *fp, val):
         _write_tb_code(fp, x)
 
 
-cdef inline _read_list(void *fp):
+cdef inline _read_list(FILE *fp):
     """Read variable length list of typedbytes
 
     Code: 9
@@ -375,7 +377,7 @@ cdef inline _read_list(void *fp):
     return out
 
 
-cdef inline _write_list(void *fp, val):
+cdef inline _write_list(FILE *fp, val):
     """Write variable length list of typedbytes
 
     Code: 9
@@ -390,7 +392,7 @@ cdef inline _write_list(void *fp, val):
     fwrite(&code, 1, 1, fp)  # = 1
 
 
-cdef inline _read_map(void *fp):
+cdef inline _read_map(FILE *fp):
     """Read fixed length pairs of typedbytes (interpreted as a dict/map)
 
     Code: 10
@@ -407,7 +409,7 @@ cdef inline _read_map(void *fp):
     return out
 
 
-cdef inline _write_map(void *fp, val):
+cdef inline _write_map(FILE *fp, val):
     """Write fixed length pairs of typedbytes (interpreted as a dict/map)
 
     Code: 10
@@ -422,7 +424,7 @@ cdef inline _write_map(void *fp, val):
         _write_tb_code(fp, y)
 
 
-cdef inline _read_pickle(void *fp):
+cdef inline _read_pickle(FILE *fp):
     """Read a python pickle
 
     Code: 100 (custom)
@@ -434,7 +436,7 @@ cdef inline _read_pickle(void *fp):
     return pickle.loads(_read_bytes(fp))
 
 
-cdef inline _write_pickle(void *fp, val):
+cdef inline _write_pickle(FILE *fp, val):
     """Write a python pickle
 
     Code: 100 (custom)
@@ -460,7 +462,7 @@ _out_types = {types.BooleanType: 2,
               types.DictType: 10}
 
 
-cdef _write_tb_code(void *fp, val):
+cdef _write_tb_code(FILE *fp, val):
     cdef int type_code
     try:
         type_code = _out_types[type(val)]
@@ -496,7 +498,7 @@ cdef _write_tb_code(void *fp, val):
         raise IndexError('Bad index %d ' % type_code)
 
 
-cdef _read_tb_code(void *fp):
+cdef _read_tb_code(FILE *fp):
     cdef int type_code = getc(fp)
     # TODO Use a func pointer array
     if type_code == 0:
@@ -531,13 +533,13 @@ cdef _read_tb_code(void *fp):
         raise IndexError('Bad index %d ' % type_code)
 
 
-cdef __read_key_value_tb(void *fp):
+cdef __read_key_value_tb(FILE *fp):
     k = _read_tb_code(fp)
     v = _read_tb_code(fp)
     return k, v
 
 
-cdef __write_key_value_tb(void *fp, kv):
+cdef __write_key_value_tb(FILE *fp, kv):
     k, v = kv
     _write_tb_code(fp, k)
     _write_tb_code(fp, v)
@@ -560,8 +562,8 @@ cdef class TypedBytesFile(object):
     :param write_fd: Write file descriptor (int) (default None)
     :param flush_writes: If True then flush the buffer for every write (default False)
     """
-    cdef void* _write_ptr
-    cdef void* _read_ptr
+    cdef FILE* _write_ptr
+    cdef FILE* _read_ptr
     cdef object _repr
     cdef object file_method
     cdef int flush_writes
@@ -581,8 +583,8 @@ cdef class TypedBytesFile(object):
                 raise IOError('Cannot open file [%s]' % fn)
         elif read_fd != None or write_fd != None:
             self.file_method = 'readwritefds'
-            self._read_ptr = fdopen(read_fd, 'r') if read_fd != None else <void *>0
-            self._write_ptr = fdopen(write_fd, 'w') if write_fd != None else <void *>0
+            self._read_ptr = fdopen(read_fd, 'r') if read_fd != None else <FILE *>0
+            self._write_ptr = fdopen(write_fd, 'w') if write_fd != None else <FILE *>0
         else:
             self.file_method = 'stdinout'
             self._write_ptr = stdout
