@@ -50,10 +50,7 @@ def reducer(key, values):
         key: word (string)
         value: count (int)
     """
-    accum = 0
-    for count in values:
-        accum += int(count)
-    yield key, accum
+    yield key, sum(values)
 
 if __name__ == "__main__":
     hadoopy.run(mapper, reducer, reducer)
