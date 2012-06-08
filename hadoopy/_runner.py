@@ -60,7 +60,8 @@ def _find_hstreaming():
     HADOOP_STREAMING_PATH_CACHE = p.communicate()[0].split('\n')[0]
     if search_root == '/' and not WARNED_HADOOP_HOME:
         WARNED_HADOOP_HOME = True
-        logging.warn('Set the HADOOP_HOME environmental variable to your hadoop path to improve performance. Put the following [export HADOOP_HOME="%s"] in ~/.bashrc' % HADOOP_STREAMING_PATH_CACHE)
+        hadoop_home = HADOOP_STREAMING_PATH_CACHE[:HADOOP_STREAMING_PATH_CACHE.rfind('/contrib/')]
+        logging.warn('Set the HADOOP_HOME environmental variable to your hadoop path to improve performance. Put the following [export HADOOP_HOME="%s"] in ~/.bashrc' % hadoop_home)
     return HADOOP_STREAMING_PATH_CACHE
 
 
