@@ -172,6 +172,7 @@ def freeze(script_path, target_dir='frozen', **kw):
         cmds.append(cur_cmd)
         if _run(cur_cmd):  # If there is a problem, try removing the config and re-doing
             _freeze_config(force=True)
+            cur_cmd = 'python -O %s/pyinstaller.py %s' % (pyinst_path, script_path)
             _run(cur_cmd)
     finally:
         os.chdir(orig_dir)
