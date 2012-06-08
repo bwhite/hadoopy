@@ -26,6 +26,7 @@ import gzip
 import numpy as np
 import hashlib
 import urllib
+import tempfile
 
 
 def load_from_umiacs(path, md5hash):
@@ -109,10 +110,8 @@ class TestUsingHadoop(unittest.TestCase):
         super(TestUsingHadoop, self).__init__(*args, **kw)
         cur_time = time.time()
         self.data_path = 'hadoopy-test-data/%f/' % cur_time
-        self.out_path = 'face_finder_out/%f/' % cur_time
+        self.out_path = '%s/face_finder_out/%f/' % (tempfile.mkdtemp(), cur_time)
         os.makedirs(self.out_path)
-        load_from_umiacs('face_finder-input-voctrainpart.tb',
-                         'dbc50c02103221a499fc7cc77a5b61e9')
 
     def tearDown(self):
         if hadoopy.exists(self.data_path):

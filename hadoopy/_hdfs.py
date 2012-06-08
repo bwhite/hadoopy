@@ -106,6 +106,7 @@ def abspath(path):
     """
     global _USER_HOME_DIR
     # FIXME(brandyn): User's home directory must exist
+    # FIXME(brandyn): Requires something to be in home dir
     if path[0] == '/':
         return os.path.abspath(path)
     if _USER_HOME_DIR is None:
