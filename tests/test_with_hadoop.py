@@ -26,6 +26,8 @@ import numpy as np
 import hashlib
 import urllib
 import tempfile
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 try:
     import unittest2 as unittest
