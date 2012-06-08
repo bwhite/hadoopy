@@ -116,11 +116,15 @@ class TestUsingHadoop(unittest.TestCase):
         self.data_path = 'hadoopy-test-data/%f/' % cur_time
         self.out_path = '%s/face_finder_out/%f/' % (tempfile.mkdtemp(), cur_time)
         os.makedirs(self.out_path)
+        try:
+            hadoopy.mkdir('hadoopy-test-data')
+        except IOError:
+            pass
 
     def setUp(self):
         try:
             hadoopy.mkdir(self.data_path)
-        except:
+        except IOError:
             pass
 
     def tearDown(self):
