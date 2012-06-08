@@ -129,6 +129,16 @@ def rmr(path):
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
 
 
+def mkdir(path):
+    """Make a directory
+
+    :param path: A string (potentially with wildcards).
+    :raises IOError: If unsuccessful
+    """
+    cmd = "hadoop fs -mkdir %s" % (path)
+    rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
+
+
 def mv(hdfs_src, hdfs_dst):
     """Put a file on hdfs
     
