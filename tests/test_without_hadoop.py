@@ -17,12 +17,16 @@
 __author__ =  'Brandyn A. White <bwhite@cs.umd.edu>'
 __license__ = 'GPL V3'
 
-import unittest
 import hadoopy
 import tempfile
 import subprocess
 import os
 import re
+
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 
 def get_glibc_version():

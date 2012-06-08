@@ -19,7 +19,6 @@ __license__ = 'GPL V3'
 
 import subprocess
 import time
-import unittest
 import hadoopy
 import os
 import gzip
@@ -27,6 +26,11 @@ import numpy as np
 import hashlib
 import urllib
 import tempfile
+
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 
 def load_from_umiacs(path, md5hash):
