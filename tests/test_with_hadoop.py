@@ -110,6 +110,10 @@ class TestUsingHadoop(unittest.TestCase):
         super(TestUsingHadoop, self).__init__(*args, **kw)
         cur_time = time.time()
         self.data_path = 'hadoopy-test-data/%f/' % cur_time
+        try:
+            hadoopy.mkdir(self.data_path)
+        except:
+            pass
         self.out_path = '%s/face_finder_out/%f/' % (tempfile.mkdtemp(), cur_time)
         os.makedirs(self.out_path)
 
