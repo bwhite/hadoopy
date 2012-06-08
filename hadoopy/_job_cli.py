@@ -182,7 +182,7 @@ def run(mapper=None, reducer=None, combiner=None, script_path=None, jobconfs=(),
     parser_launch_frozen = subparsers.add_parser('launch_frozen', help='Run Hadoop job (freezes script)')
     parser_launch_frozen.add_argument('in_name', help='Input HDFS path')
     parser_launch_frozen.add_argument('out_name', help='Output HDFS path')
-    parser_launch_frozen.add_argument('-jobconf', help='Jobconf', action='append', dest='jobconfs', default=())
+    parser_launch_frozen.add_argument('-jobconf', help='Jobconf', action='append', dest='jobconfs', default=[])
     parser_launch_frozen.set_defaults(func=lambda *args, **kw: hadoopy.launch_frozen(*args, script_path=script_path, **kw))
 
     parser_pipe = subparsers.add_parser('pipe', help='Internal: Run map/combine/reduce task using "pipe hopping" to make stdout redirect to stderr.')
