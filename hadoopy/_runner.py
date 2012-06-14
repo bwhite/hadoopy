@@ -72,7 +72,8 @@ def _parse_info(script_path, python_cmd='python'):
 
 
 def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs=(),
-           cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None,
+           cmdenvs=(), input_format=None, output_format=None, copy_script=True,
+           wait=True, hstreaming=None, name=None,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
            add_python=True, config=None, pipe=True,
            python_cmd="python", num_mappers=None, num_reducers=None,
@@ -86,13 +87,15 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :param files: Extra files (other than the script) (iterator).  NOTE: Hadoop copies the files into working directory
     :param jobconfs: Extra jobconf parameters (iterator)
     :param cmdenvs: Extra cmdenv parameters (iterator)
+    :param input_format: Custom input format (if set overrides use_autoinput)
+    :param output_format: Custom output format (if set overrides use_seqoutput)
     :param copy_script: If True, the script is added to the files list.
     :param wait: If True, wait till the process is completed (default True) this is useful if you want to run multiple jobs concurrently by using the 'process' entry in the output.
     :param hstreaming: The full hadoop streaming path to call.
     :param name: Set the job name to this (default None, job name is the script name)
     :param use_typedbytes: If True (default), use typedbytes IO.
-    :param use_seqoutput: True (default), output sequence file. If False, output is text.
-    :param use_autoinput: If True (default), sets the input format to auto.
+    :param use_seqoutput: True (default), output sequence file. If False, output is text.  If output_format is set, this is not used.
+    :param use_autoinput: If True (default), sets the input format to auto.  If input_format is set, this is not used.
     :param add_python: If true, use 'python script_name.py'
     :param config: If a string, set the hadoop config path
     :param pipe: If true (default) then call user code through a pipe to isolate it and stop bugs when printing to stdout.  See project docs.
@@ -206,12 +209,18 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     if use_typedbytes:
         cmd += ['-io', 'typedbytes']
     # Add Outputformat
-    if use_seqoutput:
-        cmd += ['-outputformat',
-                'org.apache.hadoop.mapred.SequenceFileOutputFormat']
+    if output_format is not None:
+        cmd += ['-outputformat', output_format]
+    else:
+        if use_seqoutput:
+            cmd += ['-outputformat',
+                    'org.apache.hadoop.mapred.SequenceFileOutputFormat']
     # Add InputFormat
-    if use_autoinput:
-        cmd += ['-inputformat', 'AutoInputFormat']
+    if input_format is not None:
+        cmd += ['-inputformat', input_format]
+    else:
+        if use_autoinput:
+            cmd += ['-inputformat', 'AutoInputFormat']
     # Add config
     if config:
         cmd += ['--config', config]
