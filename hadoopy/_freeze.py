@@ -107,8 +107,13 @@ def freeze_script(script_path, cache=True, temp_path='_hadoopy_temp'):
 
     Returns:
         {'cmds': commands_ran, 'frozen_tar_path': frozen_tar_path}
+
+    Raises:
+        ValueError: Script cannot be found
     """
     script_abspath = os.path.abspath(script_path)
+    if not os.path.exists(script_abspath):
+        raise ValueError('Script [%s] does not exist.' % script_abspath)
     try:
         if not cache:
             raise KeyError  # NOTE(brandyn): Don't use cache item
