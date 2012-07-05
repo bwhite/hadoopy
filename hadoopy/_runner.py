@@ -75,7 +75,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
            cmdenvs=(), input_format=None, output_format=None, copy_script=True,
            wait=True, hstreaming=None, name=None,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
-           add_python=True, config=None, pipe=True,
+           remove_output=False, add_python=True, config=None, pipe=True,
            python_cmd="python", num_mappers=None, num_reducers=None,
            script_dir='', remove_ext=False, **kw):
     """Run Hadoop given the parameters
@@ -96,6 +96,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :param use_typedbytes: If True (default), use typedbytes IO.
     :param use_seqoutput: True (default), output sequence file. If False, output is text.  If output_format is set, this is not used.
     :param use_autoinput: If True (default), sets the input format to auto.  If input_format is set, this is not used.
+    :param remove_output: If True, output directory is removed if it exists. (defaults to False)
     :param add_python: If true, use 'python script_name.py'
     :param config: If a string, set the hadoop config path
     :param pipe: If true (default) then call user code through a pipe to isolate it and stop bugs when printing to stdout.  See project docs.
@@ -224,6 +225,10 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     # Add config
     if config:
         cmd += ['--config', config]
+    # Remove output
+    if remove_output and hadoopy.exists(out_name):
+        logging.warn('Removing output directory [%s]' % out_name)
+        hadoopy.rmr(out_name)
     # Run command and wait till it has completed
     hadoop_start_time = time.time()
     logging.info('/\\%s%s Output%s/\\' % ('-' * 10, 'Hadoop', '-' * 10))
