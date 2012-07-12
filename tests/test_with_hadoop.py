@@ -27,29 +27,13 @@ import hashlib
 import urllib
 import tempfile
 import logging
+import fetch_data
 logging.basicConfig(level=logging.DEBUG)
 
 try:
     import unittest2 as unittest
 except ImportError:
     import unittest
-
-
-def load_from_umiacs(path, md5hash):
-    name = os.path.basename(path)
-    download = not os.path.exists(path)
-    if os.path.exists(path) and md5hash:
-        with open(path) as fp:
-            if hashlib.md5(fp.read()).hexdigest() != md5hash:
-                download = True
-    if download:
-        url = 'http://umiacs.umd.edu/~bwhite/%s' % name
-        print('Downloading [%s]' % url)
-        data = urllib.urlopen(url).read()
-        with open(path, 'w') as fp:
-            if md5hash:
-                assert(md5hash == hashlib.md5(data).hexdigest())
-            fp.write(data)
 
 
 def hadoop_installed():
@@ -115,6 +99,7 @@ class TestUsingHadoop(unittest.TestCase):
     def __init__(self, *args, **kw):
         super(TestUsingHadoop, self).__init__(*args, **kw)
         cur_time = time.time()
+        fetch_data.main()
         self.data_path = 'hadoopy-test-data/%f/' % cur_time
         self.out_path = '%s/face_finder_out/%f/' % (tempfile.mkdtemp(), cur_time)
         os.makedirs(self.out_path)
@@ -152,9 +137,10 @@ class TestUsingHadoop(unittest.TestCase):
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     @unittest.skipIf(not pil_and_cv_installed(), 'PIL or OpenCV not installed')
     def test_face(self):
-        with open('haarcascade_frontalface_default.xml', 'w') as fp:
-            o = gzip.GzipFile('../examples/data/haarcascade_frontalface_default.xml.gz').read()
-            fp.write(o)
+        fp = open('haarcascade_frontalface_default.xml', 'w')
+        o = gzip.GzipFile('../examples/data/haarcascade_frontalface_default.xml.gz').read()
+        fp.write(o)
+        fp.close()
         self._run_face('../examples/data/face_finder-input-voctrainpart.tb')
         self._run_face('../examples/data/face_finder-input-voctrainpart.tb', pipe=False)
 
