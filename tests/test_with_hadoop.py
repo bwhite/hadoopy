@@ -21,7 +21,6 @@ import subprocess
 import time
 import hadoopy
 import os
-import gzip
 import numpy as np
 import hashlib
 import urllib
@@ -137,10 +136,6 @@ class TestUsingHadoop(unittest.TestCase):
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     @unittest.skipIf(not pil_and_cv_installed(), 'PIL or OpenCV not installed')
     def test_face(self):
-        fp = open('haarcascade_frontalface_default.xml', 'w')
-        o = gzip.GzipFile('../examples/data/haarcascade_frontalface_default.xml.gz').read()
-        fp.write(o)
-        fp.close()
         self._run_face('../examples/data/face_finder-input-voctrainpart.tb')
         self._run_face('../examples/data/face_finder-input-voctrainpart.tb', pipe=False)
 

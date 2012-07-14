@@ -1,6 +1,7 @@
 import os
 import hashlib
 import urllib
+import gzip
 
 
 def load_from_s3(path, md5hash):
@@ -21,6 +22,11 @@ def load_from_s3(path, md5hash):
 
 
 def main():
+    if not os.path.exists('../examples/data/haarcascade_frontalface_default.xml.gz'):
+        fp = open('haarcascade_frontalface_default.xml', 'w')
+        o = gzip.GzipFile('../examples/data/haarcascade_frontalface_default.xml.gz').read()
+        fp.write(o)
+        fp.close()
     load_from_s3('../examples/data/face_finder-input-voctrainpart.tb', 'dbc50c02103221a499fc7cc77a5b61e9')
 
 if __name__ == '__main__':
