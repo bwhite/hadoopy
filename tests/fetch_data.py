@@ -22,7 +22,7 @@ def load_from_s3(path, md5hash):
 
 
 def main():
-    if not os.path.exists('../examples/data/haarcascade_frontalface_default.xml.gz'):
+    if not os.path.exists('haarcascade_frontalface_default.xml'):
         fp = open('haarcascade_frontalface_default.xml', 'w')
         o = gzip.GzipFile('../examples/data/haarcascade_frontalface_default.xml.gz').read()
         fp.write(o)
