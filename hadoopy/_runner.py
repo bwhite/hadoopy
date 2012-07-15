@@ -65,10 +65,22 @@ def _find_hstreaming():
     return HADOOP_STREAMING_PATH_CACHE
 
 
+def _listeq_to_dict(jobconfs):
+    """Convert iterators of 'key=val' into a dictionary with later values taking priority."""
+    if not isinstance(jobconfs, dict):
+        return dict(x.lsplit('=', 1) for x in jobconfs)
+    return jobconfs
+
+
 def _parse_info(script_path, python_cmd='python'):
     p = subprocess.Popen([python_cmd, script_path, 'info'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
-    return json.loads(stdout)
+    info = json.loads(stdout)
+    try:
+        info['jobconfs'] = _listeq_to_dict(info['jobconfs'])
+    except KeyError:
+        pass
+    return info
 
 
 def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs=(),
@@ -85,8 +97,8 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :param script_path: Path to the script (e.g., script.py)
     :param partitioner: If True, the partitioner is the value.
     :param files: Extra files (other than the script) (iterator).  NOTE: Hadoop copies the files into working directory
-    :param jobconfs: Extra jobconf parameters (iterator)
-    :param cmdenvs: Extra cmdenv parameters (iterator)
+    :param jobconfs: Extra jobconf parameters (iterator of strings or dict)
+    :param cmdenvs: Extra cmdenv parameters (iterator of strings or dict)
     :param input_format: Custom input format (if set overrides use_autoinput)
     :param output_format: Custom output format (if set overrides use_seqoutput)
     :param copy_script: If True, the script is added to the files list.
@@ -119,6 +131,8 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     """
     if isinstance(files, str) or isinstance(jobconfs, str) or isinstance(cmdenvs, str):
         raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
+    jobconfs = _listeq_to_dict(jobconfs)
+    cmdenvs = _listeq_to_dict(cmdenvs)
     out = {}
     try:
         hadoop_cmd = 'hadoop jar ' + hstreaming
@@ -188,24 +202,22 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     for f in files:
         cmd += ['-file', f]
     # Add jobconfs
-    jobconfs = list(jobconfs)
     if name == None:
-        jobconfs.append('"mapred.job.name=%s"' % (job_name))
+        jobconfs['mapred.job.name'] = job_name
     else:
-        jobconfs.append('"mapred.job.name=%s"' % (str(name)))
+        jobconfs['mapred.job.name'] = str(name)
     # Handle additional jobconfs listed in the job itself
     # these go at the beginning of the list as later jobconfs
     # override them.  Launch specified confs override job specified ones
     # as Hadoop takes the last one you provide.
-    try:
-        jobconfs = ['"%s"' % x for x in script_info['jobconfs']] + jobconfs
-    except KeyError:
-        pass
-    for jobconf in jobconfs:
-        cmd += ['-jobconf', jobconf]
+    jobconfs_all = dict(script_info['jobconfs'])
+    jobconfs_all.update(jobconfs)
+    jobconfs = jobconfs_all
+    for x in jobconfs_all.items():
+        cmd += ['-jobconf', '"%s=%s"' % x]
     # Add cmdenv
-    for cmdenv in cmdenvs:
-        cmd += ['-cmdenv', cmdenv]
+    for x in cmdenvs.items():
+        cmd += ['-cmdenv', '"%s=%s"' % x]
     # Add IO
     if use_typedbytes:
         cmd += ['-io', 'typedbytes']
@@ -309,6 +321,10 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
         ('jobconfs' in kw and isinstance(kw['jobconfs'], str)) or
         ('cmdenvs' in kw and isinstance(kw['cmdenvs'], str))):
         raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
+    if 'jobconfs' in kw:
+        kw['jobconfs'] = _listeq_to_dict(kw['jobconfs'])
+    if 'cmdenvs' in kw:
+        kw['cmdenvs'] = _listeq_to_dict(kw['cmdenvs'])
     cmds = []
     if not frozen_tar_path:
         freeze_out = hadoopy.freeze_script(script_path, temp_path=temp_path, cache=cache)
@@ -393,7 +409,8 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     :raises: TypeError: Input types are not correct.
     """
     if isinstance(files, str) or isinstance(cmdenvs, str) or ('cmdenvs' in kw and isinstance(kw['cmdenvs'], str)):
-        raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
+        raise TypeError('files and cmdenvs must be iterators of strings and not strings!')
+    cmdenvs = _listeq_to_dict(cmdenvs)
     logging.info('Local[%s]' % script_path)
     script_info = _parse_info(script_path, python_cmd)
     if not files:
@@ -403,10 +420,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     # Setup env
     env = dict(os.environ)
     env['stream_map_input'] = 'typedbytes'
-    if cmdenvs:
-        for cmdenv in cmdenvs:
-            k, v = cmdenv.split('=', 1)
-            env[k] = v
+    env.update(cmdenvs)
 
     def _run_task(task, kvs, env):
         sys.stdout.flush()

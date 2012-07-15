@@ -22,8 +22,6 @@ import time
 import hadoopy
 import os
 import numpy as np
-import hashlib
-import urllib
 import tempfile
 import logging
 import fetch_data
@@ -155,8 +153,10 @@ class TestUsingHadoop(unittest.TestCase):
         self.assertFalse(hadoopy.isempty(in_path))
         # Don't let the file split, CDH3 has a bug and will try to split gz's
         if not isinstance(launcher, str):
-            launcher(in_path, out_path, script_name, jobconfs=['mapred.min.split.size=100000000',
-                                                               'mapreduce.task.userlog.limit.kb=1000'], **kw)
+            launcher(in_path, out_path + '_list_jobconfs', script_name, jobconfs=['mapred.min.split.size=100000000',
+                                                                                  'mapreduce.task.userlog.limit.kb=1000'], **kw)
+            launcher(in_path, out_path, script_name, jobconfs={'mapred.min.split.size': '100000000',
+                                                                    'mapreduce.task.userlog.limit.kb': '1000'}, **kw)
         if launcher == hadoopy.launch_frozen:
             self.assertTrue(hadoopy.isdir(out_path))
             self.assertTrue(hadoopy.isempty(out_path))  # Dirs are always empty
@@ -265,8 +265,11 @@ class TestUsingHadoop(unittest.TestCase):
     def test_local(self):
         out_path = '%s/local_test/%f' % (self.data_path, time.time())
         hadoopy.put('wc-input-alice.tb', out_path + '/wc-input-alice.tb')
-        hadoopy.launch_local(out_path + '/wc-input-alice.tb', out_path + '/out', 'local.py', max_input=1000,
+        hadoopy.launch_local(out_path + '/wc-input-alice.tb', out_path + '/out_list_cmdenvs', 'local.py', max_input=1000,
                              cmdenvs=['TEST_ENV=10'],
+                             files=['wc-input-alice.tb'])  # Just bring this along to test the files
+        hadoopy.launch_local(out_path + '/wc-input-alice.tb', out_path + '/out', 'local.py', max_input=1000,
+                             cmdenvs={'TEST_ENV': '10'},
                              files=['wc-input-alice.tb'])  # Just bring this along to test the files
         hadoopy.launch_local(((1000 * 'a', 10000000 * 'b') for x in range(100)), None, 'local.py', max_input=10000,
                              cmdenvs=['TEST_ENV=10'],
@@ -279,7 +282,6 @@ class TestUsingHadoop(unittest.TestCase):
         self.assertEquals(hadoopy.abspath(nonsense_path).rsplit('/')[-1], nonsense_path)
         self.assertRaises(IOError, hadoopy.ls, nonsense_path)
         self.assertRaises(IOError, hadoopy.readtb(nonsense_path).next)
-
 
 
 if __name__ == '__main__':
