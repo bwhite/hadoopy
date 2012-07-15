@@ -76,10 +76,7 @@ def _parse_info(script_path, python_cmd='python'):
     p = subprocess.Popen([python_cmd, script_path, 'info'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
     info = json.loads(stdout)
-    try:
-        info['jobconfs'] = _listeq_to_dict(info['jobconfs'])
-    except KeyError:
-        pass
+    info['jobconfs'] = _listeq_to_dict(info.get('jobconfs', ()))
     return info
 
 
