@@ -288,7 +288,7 @@ class TestUsingHadoop(unittest.TestCase):
     def test_cluster_info(self):
         hadoopy.writetb(self.out_path + 'cluster_info_input', [(0, 0)])
         hadoopy.launch_frozen(self.out_path + 'cluster_info_input', self.out_path + 'cluster_info', 'cluster_info.py')
-        pprint.pprint(dict(self.out_path + 'cluster_info'))
+        pprint.pprint(dict(hadoopy.readtb(self.out_path + 'cluster_info')))
 
 
 if __name__ == '__main__':
