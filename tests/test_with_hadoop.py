@@ -286,7 +286,8 @@ class TestUsingHadoop(unittest.TestCase):
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_cluster_info(self):
-        hadoopy.launch_frozen(self.data_path + 'wc-input-alice.tb', self.out_path + 'cluster_info', 'cluster_info.py')
+        hadoopy.writetb(self.out_path + 'cluster_info_input', [(0, 0)])
+        hadoopy.launch_frozen(self.data_path + 'cluster_info_input', self.out_path + 'cluster_info', 'cluster_info.py')
         pprint.pprint(dict(self.out_path + 'cluster_info'))
 
 
