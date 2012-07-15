@@ -327,12 +327,9 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
         freeze_out = hadoopy.freeze_script(script_path, temp_path=temp_path, cache=cache)
         frozen_tar_path = freeze_out['frozen_tar_path']
         cmds += freeze_out['cmds']
-    try:
-        jobconfs = list(kw['jobconfs'])
-    except KeyError:
-        jobconfs = []
-    jobconfs.append('"mapred.cache.archives=%s#_frozen"' % frozen_tar_path)
-    jobconfs.append('"mapreduce.job.cache.archives=%s#_frozen"' % frozen_tar_path)
+    jobconfs = kw.get('jobconfs', {})
+    jobconfs['mapred.cache.archives'] = '%s#_frozen' % frozen_tar_path
+    jobconfs['mapreduce.job.cache.archives'] = '%s#_frozen' % frozen_tar_path
     kw['copy_script'] = False
     kw['add_python'] = False
     kw['jobconfs'] = jobconfs
