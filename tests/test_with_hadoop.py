@@ -25,6 +25,7 @@ import numpy as np
 import tempfile
 import logging
 import fetch_data
+import pprint
 logging.basicConfig(level=logging.DEBUG)
 
 try:
@@ -282,6 +283,11 @@ class TestUsingHadoop(unittest.TestCase):
         self.assertEquals(hadoopy.abspath(nonsense_path).rsplit('/')[-1], nonsense_path)
         self.assertRaises(IOError, hadoopy.ls, nonsense_path)
         self.assertRaises(IOError, hadoopy.readtb(nonsense_path).next)
+
+    @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
+    def test_cluster_info(self):
+        hadoopy.launch_frozen(self.data_path + 'wc-input-alice.tb', self.out_path + 'cluster_info', 'cluster_info.py')
+        pprint.pprint(dict(self.out_path + 'cluster_info'))
 
 
 if __name__ == '__main__':
