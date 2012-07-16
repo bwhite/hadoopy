@@ -409,6 +409,8 @@ def launch_local(in_name, out_name, script_path, max_input=None,
     script_info = _parse_info(script_path, python_cmd)
     if not files:
         files = []
+    else:
+        files = list(files)
     files.append(script_path)
     files = [os.path.abspath(f) for f in files]
     # Setup env
