@@ -361,7 +361,7 @@ def _local_reader(worker_queue_maxsize, q_recv, q_send, in_r_fd, in_w_fd, out_r_
     q_send.close()
 
 
-def launch_local(in_name, out_name, script_path, max_input=-1,
+def launch_local(in_name, out_name, script_path, max_input=None,
                  files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True,
                  worker_queue_maxsize=0, **kw):
     """A simple local emulation of hadoop
@@ -385,7 +385,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
     :param in_name: Input path (string or list of strings) or Iterator of (key, value).  If it is an iterator then no input is taken from HDFS.
     :param out_name: Output path or None.  If None then output is not placed on HDFS, it is available through the 'output' key of the return value.
     :param script_path: Path to the script (e.g., script.py)
-    :param max_input: Maximum number of Mapper inputs, if < 0 (default) then unlimited.
+    :param max_input: Maximum number of Mapper inputs, None (default) then unlimited.
     :param files: Extra files (other than the script) (iterator).  NOTE: Hadoop copies the files into working directory
     :param cmdenvs: Extra cmdenv parameters (iterator)
     :param pipe: If true (default) then call user code through a pipe to isolate it and stop bugs when printing to stdout.  See project docs.
@@ -418,7 +418,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
 
     def _run_task(task, kvs, env):
         sys.stdout.flush()
-        cur_max_input = max_input if task == 'map' else -1
+        cur_max_input = max_input if task == 'map' else None
         if pipe:
             task = 'pipe %s' % task
         in_r_fd, in_w_fd = os.pipe()
@@ -443,7 +443,7 @@ def launch_local(in_name, out_name, script_path, max_input=-1,
             # main <(out_fd)= p
             with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
                 for num, kv in enumerate(kvs):
-                    if cur_max_input >= 0 and cur_max_input <= num:
+                    if cur_max_input is not None and cur_max_input <= num:
                         break
                     if reader_process.exitcode:
                         raise EOFError('Reader process died[%s]' % reader_process.exitcode)
