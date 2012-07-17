@@ -46,7 +46,7 @@ def hadoop_installed():
 def pil_and_cv_installed():
     try:
         import Image
-        import cv
+        import cv2
     except ImportError:
         return False
     return True
