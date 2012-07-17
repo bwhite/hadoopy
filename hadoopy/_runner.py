@@ -361,6 +361,16 @@ def _local_reader(worker_queue_maxsize, q_recv, q_send, in_r_fd, in_w_fd, out_r_
     q_send.close()
 
 
+def _make_script_executable(script_path):
+    logging.info('Making script [%s] executable' % script_path)
+    os.chmod(script_path, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+    script_data = open(script_path).read()
+    if script_data[:2] != '#!':
+        logging.warn('Adding "#!/usr/bin/env python" to script [%s], will make line numbers off by one.' % script_path)
+        with open(script_path, 'w') as fp:
+            fp.write('#!/usr/bin/env python\n' + script_data)
+    
+
 def launch_local(in_name, out_name, script_path, max_input=None,
                  files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True,
                  worker_queue_maxsize=0, **kw):
@@ -479,7 +489,7 @@ def launch_local(in_name, out_name, script_path, max_input=None,
             for f in files:
                 shutil.copy(f, os.path.basename(f))
         script_path = os.path.basename(script_path)
-        os.chmod(script_path, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+        _make_script_executable(script_path)
         if isinstance(in_name, str) or (in_name and isinstance(in_name, (list, tuple)) and isinstance(in_name[0], str)):
             in_kvs = hadoopy.readtb(in_name)
         else:
