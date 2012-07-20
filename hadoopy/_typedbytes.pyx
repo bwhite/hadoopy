@@ -251,7 +251,7 @@ cdef inline _read_bytes(void *fp):
     return out
 
 
-# NOTE(brandyn): This is currently unused to be compatible with Dumbo's typedbytes
+# NOTE(brandyn): This is incompatible with Dumbo's typedbytes as strings and unicode both go to string
 cdef inline _read_unicode(void *fp):
     """Read bytes
 
@@ -259,7 +259,7 @@ cdef inline _read_unicode(void *fp):
     Format: <32-bit signed integer> <as many bytes as indicated by the integer>
 
     Returns:
-        Python unicodoe
+        Python unicode
     """
     sz = _read_int(fp)
     cdef char *bytes = <char*>malloc(sz)
@@ -288,7 +288,7 @@ cdef inline _write_bytes(void *fp, val):
 cdef inline _write_unicode(void *fp, val):
     """Write bytes
 
-    Code: 0
+    Code: 7
     Format: <32-bit signed integer> <as many bytes as indicated by the integer>
 
     Args:
@@ -300,30 +300,6 @@ cdef inline _write_unicode(void *fp, val):
     PyString_AsStringAndSize(val, &bytes, &sz)  # != -1
     _raw_write_int(fp, sz)
     fwrite(bytes, sz, 1, fp)  # = 1
-
-
-cdef inline _read_string(void *fp):
-    """Read string
-
-    Code: 7
-    Format: <32-bit signed integer> <as many UTF-8 bytes as indicated by the integer>
-
-    Returns:
-        Python string
-    """
-    return _read_bytes(fp)
-
-
-cdef inline _write_string(void *fp, val):
-    """Write string
-
-    Code: 7
-    Format: <32-bit signed integer> <as many UTF-8 bytes as indicated by the integer>
-
-    Args:
-        val: Python string
-    """
-    _write_bytes(fp, val)
 
 
 cdef inline _read_vector(void *fp):
@@ -482,6 +458,8 @@ cdef _write_tb_code(void *fp, val):
         _write_long(fp, val)
     elif type_code == 6:
         _write_double(fp, val)
+    elif type_code == 7:
+        _write_unicode(fp, val)
     elif type_code == 8:
         _write_vector(fp, val)
     elif type_code == 9:
@@ -490,8 +468,6 @@ cdef _write_tb_code(void *fp, val):
         _write_map(fp, val)
     elif type_code == 100:
         _write_pickle(fp, val)
-    elif type_code == 7:  #  and isinstance(val, unicode)
-        _write_unicode(fp, val)
     else:
         raise IndexError('Bad index %d ' % type_code)
 
@@ -514,7 +490,7 @@ cdef _read_tb_code(void *fp):
     elif type_code == 6:
         return _read_double(fp)
     elif type_code == 7:
-        return _read_bytes(fp)
+        return _read_unicode(fp)
     elif type_code == 8:
         return _read_vector(fp)
     elif type_code == 9:
