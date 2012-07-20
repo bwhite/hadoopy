@@ -253,7 +253,13 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
             for fp in fps:
                 line = fp.readline()
                 if line:  # NOTE(brandyn): Should have at least a newline
-                    logging.info(line[:-1])
+                    line = line[:-1]
+                    if line.find(' ERROR ') != -1:
+                        logging.error(line)
+                    elif line.find(' WARN ') != -1:
+                        logging.warn(line)
+                    else:
+                        logging.info(line)
         while process.poll() is None:
             check_fps()
         check_fps()
