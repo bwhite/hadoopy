@@ -1,6 +1,7 @@
 Benchmarks
 ==========
 
+.. TODO Benchmark each method of side-data for a few common scenarios
 TypedBytes
 ----------
 

@@ -1,19 +1,22 @@
 Hadoopy: Tutorial
 ================================================
+.. TODO Open with a discussion about the goal of the tutorial and mention that the jobs shown are all identities or null to teach purely Hadoopy, see the projects section for detailed examples.
+
+
+Installing Hadoopy
+------------------
+.. TODO install guide
+.. TODO Add cluster setup citation
 
 Putting Data on HDFS
---------------------------------
+--------------------
 As Hadoop is used to process large amounts of data, being able to easily put data on HDFS (Hadoop Distributed File System) is essential.  The primary way to do this using Hadoopy is with the hadoopy.writetb command which takes an iterator of key/value pairs and puts them in a SequenceFile encoded as TypedBytes.  This file can be used directly as input to Hadoopy jobs and they maintain their Python types due to the TypedBytes encoding.
 
 .. raw:: html
 
-    <script src="https://gist.github.com/3182286.js?file=writetb.py"></script>
+    <script src="https://gist.github.com/3186206.js?file=datain_writetb.py"></script>
 
-As Hadoopy jobs can take pure text as input, another option is to make a large line-oriented textfile.  The main drawback of this is that you have to do your own encoding (especially avoiding using newline/tab characters in binary data).  A conservative way to do this is to pick any encoding you want (e.g., JSON, Python Pickles, Protocol Buffers, etc.) and base64 encode the result.  In the following example, we duplicate the behavior of the writetb method by base64 encoding the path and binary contents.  The two are distinguishable because of the tab separator and each pair is on a separate line.
-
-.. raw:: html
-
-    <script src="https://gist.github.com/3182434.js?file=datain_text.py"></script>
+.. TODO Link to text
 
 Anatomy of Hadoopy Jobs
 -----------------------
@@ -21,24 +24,41 @@ Each job consists of a Map task and an optional Reduce task.  If a Reduce task i
 
 .. raw:: html
 
-    <script src="https://gist.github.com/3182778.js"> </script>
+    <script src="https://gist.github.com/3186206.js?file=identity_func_m.py"></script>
+    <script src="https://gist.github.com/3186206.js?file=identity_func_mr.py"></script>
+    <script src="https://gist.github.com/3186206.js?file=identity_class_mrc.py"></script>
 
 While using generators is the most common way to make Hadoopy tasks, as long as a task returns an iterator of Key/Value pairs or None (useful if the task doesn't output when it is called) it will work.
 
 .. raw:: html
 
-    <script src="https://gist.github.com/3182990.js"> </script>
+    <script src="https://gist.github.com/3186206.js?file=identity_func_m_list.py"></script>
+    <script src="https://gist.github.com/3186206.js?file=null_func_m.py"></script>
 
 The class form also provides an additional capability that is useful in more advanced design patterns.  A class can specify a "close" method that is called after all inputs are provided to the task.  This often leads to map/reduce tasks that return None when called, but produce meaningful output when close is called.  Below is an example of an identity Map task that buffers all the inputs and outputs them during close.  Note this is to demonstrate the concept and would generally be a bad idea as the Map tasks would run out of memory when given large inputs.  
 
 .. raw:: html
 
-    <script src="https://gist.github.com/3183053.js?file=close.py"></script>
+    <script src="https://gist.github.com/3186206.js?file=identity_class_m_close.py"></script>
 
 
 Running Jobs
 --------------------
+Now that we have a Hadoopy job, we would like to execute it on an existing Hadoop cluster.  To launch a job, hadoopy builds the necessary command line arguments to call the "hadoop" command with.  The command that is constructed is shown when the job is launched (depending on the logging level enabled).  The hadoopy.launch command requires an hdfs input, hdfs output, and script path (in order).  It sends the python script with the job and it is executed on the cluster.  That means that everything the job script needs in terms of Python version, Python packages (e.g., numpy), C libraries (e.g., lapack), and utilities (e.g., ffmpeg) must already reside on the server.  If this sounds difficult (i.e., ensuring that all machines have identical libraries/packages) or impossible (e.g., you have no admin access to the cluster) then please continue reading to the "hadoopy.launch_frozen" command.  Additional files (including .py files) can be included in the "files" keyword argument (they will all be placed in the local directory of the job).
 
+
+
+.. raw:: html
+
+    <script src="https://gist.github.com/3186206.js?file=launch.py"></script>
+
+
+
+.. TODO Link to cluster setup guide
+.. TODO Explain launch and launch_frozen
+.. TODO Explain using the command line to launch jobs
+.. TODO Provide a link to local
+.. TODO Provide a link to flow
 
 
 Writing Jobs
@@ -54,8 +74,14 @@ Four ways of providing side data (in recommended order) are
 * Python scripts (can be stored as a global string, useful with launch_frozen as it packages up imported .py files)
 * HDFS paths (using hadoopy.readtb)
 
-.. TODO Benchmark each method for a few common scenarios
+.. TODO Link to benchmark
 
 Getting data from HDFS
 ----------------------
-TODO hadoopy.readtb
+After you've run your Hadoop jobs you'll eventually want to get something back from HDFS.  The most effective way of doing this in Hadoopy is using the hadoopy.readtb command which provides an iterator over Key/Value pairs in a SequenceFile.  Below is an example of how to read data of HDFS and store each key/value pair as a file with name as the key and value as the file (assumes unique keys).
+
+.. raw:: html
+
+    <script src="https://gist.github.com/3186206.js?file=dataout_readtb.py"></script>
+
+.. TODO Link to text

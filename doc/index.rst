@@ -5,12 +5,19 @@ Hadoopy: Python wrapper for Hadoop using Cython
     :maxdepth: 2
 
     tutorial
+    clustersetup
     projects
+    cookbook
     api
+    text
+    background
     internals
-    benchmark
+    benchmarks
+    local
     flow
     helper
+    hbase
+    java
 
 Visit https://github.com/bwhite/hadoopy/ for the source.
 
