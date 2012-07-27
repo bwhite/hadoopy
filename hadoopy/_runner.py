@@ -73,6 +73,8 @@ def _listeq_to_dict(jobconfs):
 
 
 def _parse_info(script_path, python_cmd='python'):
+    if not os.path.exists(script_path):
+        raise ValueError('Script [%s] not found!' % script_path)
     p = subprocess.Popen([python_cmd, script_path, 'info'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
     info = json.loads(stdout)
@@ -125,6 +127,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :raises: subprocess.CalledProcessError: Hadoop error.
     :raises: OSError: Hadoop streaming not found.
     :raises: TypeError: Input types are not correct.
+    :raises: ValueError: Script not found
     """
     if isinstance(files, str) or isinstance(jobconfs, str) or isinstance(cmdenvs, str):
         raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
@@ -319,6 +322,7 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     :raises: subprocess.CalledProcessError: Hadoop error.
     :raises: OSError: Hadoop streaming not found.
     :raises: TypeError: Input types are not correct.
+    :raises: ValueError: Script not found
     """
     if (('files' in kw and isinstance(kw['files'], str)) or
         ('jobconfs' in kw and isinstance(kw['jobconfs'], str)) or
@@ -417,6 +421,7 @@ def launch_local(in_name, out_name, script_path, max_input=None,
     :raises: subprocess.CalledProcessError: Hadoop error.
     :raises: OSError: Hadoop streaming not found.
     :raises: TypeError: Input types are not correct.
+    :raises: ValueError: Script not found
     """
     if isinstance(files, str) or isinstance(cmdenvs, str) or ('cmdenvs' in kw and isinstance(kw['cmdenvs'], str)):
         raise TypeError('files and cmdenvs must be iterators of strings and not strings!')
