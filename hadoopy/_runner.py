@@ -90,9 +90,9 @@ def _check_requirements(files, cmdenvs, required_files, required_cmdenvs):
     missing_files = required_files - files
     missing_cmdenvs = required_cmdenvs - cmdenvs
     if missing_files:
-        logging.error('Missing required file(s), include them using the "files" argument: %s' % ', '.join(missing_files))
+        logging.error('Missing required file(s), include them using the "files" argument: [%s]' % ', '.join(missing_files))
     if missing_cmdenvs:
-        logging.error('Missing required cmdenvs(s), include them using the "cmdenvs" argument: %s' % ', '.join(missing_cmdenvs))
+        logging.error('Missing required cmdenvs(s), include them using the "cmdenvs" argument: [%s]' % ', '.join(missing_cmdenvs))
     if missing_files or missing_cmdenvs:
         raise ValueError('Job is missing required cmdenvs/files.')
 
