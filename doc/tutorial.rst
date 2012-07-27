@@ -1,13 +1,6 @@
 Hadoopy: Tutorial
 ================================================
 
-.. contents::
-    :depth: 2
-
-..  toctree::
-    :maxdepth: 2
-
-
 Putting Data on HDFS
 --------------------------------
 As Hadoop is used to process large amounts of data, being able to easily put data on HDFS (Hadoop Distributed File System) is essential.  The primary way to do this using Hadoopy is with the hadoopy.writetb command which takes an iterator of key/value pairs and puts them in a SequenceFile encoded as TypedBytes.  This file can be used directly as input to Hadoopy jobs and they maintain their Python types due to the TypedBytes encoding.
@@ -89,19 +82,3 @@ http://opencv.willowgarage.com/wiki/
 
 Background: Hadoop
 -------------------
-
-
-Project: Compute Vector Statistics
-----------------------------------
-
-
-Project: Resize Images
-----------------------
-
-
-Project: Face Finder
---------------------
-
-
-Project: Get frames from Video
-------------------------------

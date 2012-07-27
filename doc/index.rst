@@ -5,10 +5,12 @@ Hadoopy: Python wrapper for Hadoop using Cython
     :maxdepth: 2
 
     tutorial
+    projects
     api
     internals
     benchmark
-    flow    
+    flow
+    helper
 
 Visit https://github.com/bwhite/hadoopy/ for the source.
 
