@@ -83,9 +83,9 @@ def _parse_info(script_path, python_cmd='python'):
 
 
 def _check_requirements(files, cmdenvs, required_files, required_cmdenvs):
-    files = set(files)
+    files = set(os.path.basename(x) for x in files)
     cmdenvs = set(cmdenvs)
-    required_files = set(os.path.basename(x) for x in required_files)
+    required_files = set(required_files)
     required_cmdenvs = set(required_cmdenvs)
     missing_files = required_files - files
     missing_cmdenvs = required_cmdenvs - cmdenvs
