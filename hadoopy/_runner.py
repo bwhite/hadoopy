@@ -80,7 +80,7 @@ def _parse_info(script_path, python_cmd='python'):
     try:
         info = json.loads(stdout)
     except ValueError:
-        raise ValueError('Cannot execute script [%s]!\nstdout\n%s\nstderr\n%s' % (script_path, stdout, stderr))
+        raise ValueError('Cannot execute script [%s]!  Script output below...\nstdout\n%s\nstderr\n%s' % (script_path, stdout, stderr))
     info['jobconfs'] = _listeq_to_dict(info.get('jobconfs', ()))
     return info
 

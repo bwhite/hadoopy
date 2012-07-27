@@ -44,9 +44,9 @@ def _run(path):
                          stderr=subprocess.PIPE)
     stderr, stdout = p.communicate()
     if p.returncode != 0:
-        logging.error('stdout[%s] stderr[%s]' % (stdout, stderr))
+        logging.error('Freeze output below...\nstdout\n%s\nstderr\n%s' % (stdout, stderr))
     else:
-        logging.debug('stdout[%s] stderr[%s]' % (stdout, stderr))
+        logging.debug('Freeze output below...\nstdout\n%s\nstderr\n%s' % (stdout, stderr))
     return p.returncode
 
 
