@@ -59,26 +59,3 @@ Four ways of providing side data (in recommended order) are
 Getting data from HDFS
 ----------------------
 TODO hadoopy.readtb
-
-
-Hadoopy Internals: How it all works
-------------------------------------
-TODO Hadoop Streaming, Pipe Hopping, python script.py info, TypedBytes, Pyinstaller
-
-Background: Python
----------------------
-.. raw:: html
-
-    <script src="https://gist.github.com/3183545.js"> </script>
-
-Background: MapReduce
----------------------
-http://code.google.com/edu/parallel/mapreduce-tutorial.html
-
-Background: OpenCV
----------------------
-http://docs.opencv.org/
-http://opencv.willowgarage.com/wiki/
-
-Background: Hadoop
--------------------

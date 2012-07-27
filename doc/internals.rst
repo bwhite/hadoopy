@@ -1,5 +1,6 @@
 Hadoopy Internals
 =================
+.. TODO Hadoop Streaming, Pipe Hopping, python script.py info, TypedBytes, Pyinstaller
 
 Pipe Hopping: Using Stdout/Stderr in Hadoopy Jobs
 --------------------------------------------------
