@@ -1,18 +1,14 @@
 Hadoopy: Python wrapper for Hadoop using Cython
 ================================================
 
-.. contents::
-    :depth: 2
-
 ..  toctree::
     :maxdepth: 2
 
     tutorial
-    benchmark
     api
     internals
-    flow
-    
+    benchmark
+    flow    
 
 Visit https://github.com/bwhite/hadoopy/ for the source.
 
