@@ -34,7 +34,7 @@ from . import __path__
 
 
 def _wrap_string(s):
-    if isinstance(s, str):
+    if isinstance(s, (str, unicode)):
         return [s]
     return list(s)
 

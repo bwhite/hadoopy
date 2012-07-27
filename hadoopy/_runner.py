@@ -129,7 +129,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :raises: TypeError: Input types are not correct.
     :raises: ValueError: Script not found
     """
-    if isinstance(files, str) or isinstance(jobconfs, str) or isinstance(cmdenvs, str):
+    if isinstance(files, (str, unicode)) or isinstance(jobconfs, (str, unicode)) or isinstance(cmdenvs, (str, unicode)):
         raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
     jobconfs = _listeq_to_dict(jobconfs)
     cmdenvs = _listeq_to_dict(cmdenvs)
@@ -162,7 +162,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
         combiner = None
     cmd = ('%s -output %s' % (hadoop_cmd, out_name)).split()
     # Add inputs
-    if isinstance(in_name, str):
+    if isinstance(in_name, (str, unicode)):
         in_name = [in_name]
     for f in in_name:
         cmd += ['-input', f]
@@ -324,9 +324,9 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     :raises: TypeError: Input types are not correct.
     :raises: ValueError: Script not found
     """
-    if (('files' in kw and isinstance(kw['files'], str)) or
-        ('jobconfs' in kw and isinstance(kw['jobconfs'], str)) or
-        ('cmdenvs' in kw and isinstance(kw['cmdenvs'], str))):
+    if (('files' in kw and isinstance(kw['files'], (str, unicode))) or
+        ('jobconfs' in kw and isinstance(kw['jobconfs'], (str, unicode))) or
+        ('cmdenvs' in kw and isinstance(kw['cmdenvs'], (str, unicode)))):
         raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
     if 'jobconfs' in kw:
         kw['jobconfs'] = _listeq_to_dict(kw['jobconfs'])
@@ -423,7 +423,7 @@ def launch_local(in_name, out_name, script_path, max_input=None,
     :raises: TypeError: Input types are not correct.
     :raises: ValueError: Script not found
     """
-    if isinstance(files, str) or isinstance(cmdenvs, str) or ('cmdenvs' in kw and isinstance(kw['cmdenvs'], str)):
+    if isinstance(files, (str, unicode)) or isinstance(cmdenvs, (str, unicode)) or ('cmdenvs' in kw and isinstance(kw['cmdenvs'], (str, unicode))):
         raise TypeError('files and cmdenvs must be iterators of strings and not strings!')
     cmdenvs = _listeq_to_dict(cmdenvs)
     logging.info('Local[%s]' % script_path)
@@ -501,7 +501,7 @@ def launch_local(in_name, out_name, script_path, max_input=None,
                 shutil.copy(f, os.path.basename(f))
         script_path = os.path.basename(script_path)
         _make_script_executable(script_path)
-        if isinstance(in_name, str) or (in_name and isinstance(in_name, (list, tuple)) and isinstance(in_name[0], str)):
+        if isinstance(in_name, (str, unicode)) or (in_name and isinstance(in_name, (list, tuple)) and isinstance(in_name[0], (str, unicode))):
             in_kvs = hadoopy.readtb(in_name)
         else:
             in_kvs = in_name
