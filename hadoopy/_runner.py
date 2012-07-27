@@ -77,7 +77,10 @@ def _parse_info(script_path, python_cmd='python'):
         raise ValueError('Script [%s] not found!' % script_path)
     p = subprocess.Popen([python_cmd, script_path, 'info'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
-    info = json.loads(stdout)
+    try:
+        info = json.loads(stdout)
+    except ValueError:
+        raise 'Cannot execute script [%s]! stdout[%s] stderr[%s]' % (script_path, stdout, stderr)
     info['jobconfs'] = _listeq_to_dict(info.get('jobconfs', ()))
     return info
 
@@ -108,8 +111,8 @@ def _check_script(script_path, files, python_cmd):
         os.chdir(temp_dir)
         try:
             _parse_info(os.path.basename(script_path), python_cmd)
-        except:
-            logging.error('Sanity check failed!  This is often due to local imports not included in the "files" argument.')
+        except ValueError:
+            logging.error('Sanity check failed: This is often due to local imports not included in the "files" argument.')
             raise
     finally:
         shutil.rmtree(temp_dir)
@@ -152,7 +155,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :param num_reducers: The number of reducers to use, i.e. the argument given to 'numReduceTasks'. If None, then do not specify this argument to hadoop streaming.
     :param script_dir: Where the script is relative to working dir, will be prefixed to script_path with a / (default '' is current dir)
     :param remove_ext: If True, remove the script extension (default False)
-    :param check_script: If add_python and copy_script are True, then copy script and .py(c) files to a temporary directory and verify that it can be executed.  This catches the majority of errors related to not included locally imported files. (default True)
+    :param check_script: If True, then copy script and .py(c) files to a temporary directory and verify that it can be executed.  This catches the majority of errors related to not included locally imported files. (default True)
     :param required_files: Iterator of files that must be specified (verified against the files argument)
     :param required_cmdenvs: Iterator of cmdenvs that must be specified (verified against the cmdenvs argument)
 
@@ -165,7 +168,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :raises: subprocess.CalledProcessError: Hadoop error.
     :raises: OSError: Hadoop streaming not found.
     :raises: TypeError: Input types are not correct.
-    :raises: ValueError: Script not found
+    :raises: ValueError: Script not found or check_script failed
     """
     if isinstance(files, (str, unicode)) or isinstance(jobconfs, (str, unicode)) or isinstance(cmdenvs, (str, unicode)):
         raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
@@ -240,7 +243,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     files = new_files
     del new_files
     # END BUG
-    if add_python and copy_script and check_script:
+    if check_script:
         _check_script(script_path, files, python_cmd)
     for f in files:
         cmd += ['-file', f]
@@ -326,7 +329,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
 
 
 def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
-                  temp_path='_hadoopy_temp', cache=True,
+                  temp_path='_hadoopy_temp', cache=True, check_script=False,
                   **kw):
     """Freezes a script and then launches it.
 
@@ -357,6 +360,7 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
 
     :param num_mappers: The number of mappers to use, i.e. the argument given to 'numMapTasks'. If None, then do not specify this argument to hadoop streaming.
     :param num_reducers: The number of reducers to use, i.e. the argument given to 'numReduceTasks'. If None, then do not specify this argument to hadoop streaming.
+    :param check_script: If True, then copy script and .py(c) files to a temporary directory and verify that it can be executed.  This catches the majority of errors related to not included locally imported files. The default is False when using launch_frozen as the freeze process packages local files.
 
     :rtype: Dictionary with some of the following entries (depending on options)
     :returns: freeze_cmds: Freeze command(s) ran
@@ -389,7 +393,7 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     kw['add_python'] = False
     kw['jobconfs'] = jobconfs
     out = launch(in_name, out_name, script_path,
-                 script_dir='_frozen', remove_ext=True, **kw)
+                 script_dir='_frozen', remove_ext=True, check_script=check_script, **kw)
     out['freeze_cmds'] = cmds
     out['frozen_tar_path'] = frozen_tar_path
     return out
