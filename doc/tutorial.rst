@@ -1,6 +1,9 @@
 Hadoopy: Tutorial
 ================================================
 
+.. contents::
+    :depth: 2
+
 ..  toctree::
     :maxdepth: 2
 
