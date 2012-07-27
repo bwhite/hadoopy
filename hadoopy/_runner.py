@@ -97,13 +97,33 @@ def _check_requirements(files, cmdenvs, required_files, required_cmdenvs):
         raise ValueError('Job is missing required cmdenvs/files.')
 
 
+def _check_script(script_path, files, python_cmd):
+    logging.info('Sanity checking script in a temp directory... (disable with check_script=False)')
+    orig_pwd = os.path.abspath('.')
+    try:
+        temp_dir = tempfile.mkdtemp()
+        for f in files:
+            if f.endswith('.py') or f.endswith('.pyc'):
+                shutil.copy(f, temp_dir)
+        os.chdir(temp_dir)
+        try:
+            _parse_info(os.path.basename(script_path), python_cmd)
+        except:
+            logging.error('Sanity check failed!  This is often due to local imports not included in the "files" argument.')
+            raise
+    finally:
+        shutil.rmtree(temp_dir)
+        os.chdir(orig_pwd)
+    
+
 def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs=(),
            cmdenvs=(), input_format=None, output_format=None, copy_script=True,
            wait=True, hstreaming=None, name=None,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
            remove_output=False, add_python=True, config=None, pipe=True,
            python_cmd="python", num_mappers=None, num_reducers=None,
-           script_dir='', remove_ext=False, required_files=(), required_cmdenvs=(), **kw):
+           script_dir='', remove_ext=False, check_script=True,
+           required_files=(), required_cmdenvs=(), **kw):
     """Run Hadoop given the parameters
 
     :param in_name: Input path (string or list)
@@ -132,6 +152,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :param num_reducers: The number of reducers to use, i.e. the argument given to 'numReduceTasks'. If None, then do not specify this argument to hadoop streaming.
     :param script_dir: Where the script is relative to working dir, will be prefixed to script_path with a / (default '' is current dir)
     :param remove_ext: If True, remove the script extension (default False)
+    :param check_script: If add_python and copy_script are True, then copy script and .py(c) files to a temporary directory and verify that it can be executed.  This catches the majority of errors related to not included locally imported files. (default True)
     :param required_files: Iterator of files that must be specified (verified against the files argument)
     :param required_cmdenvs: Iterator of cmdenvs that must be specified (verified against the cmdenvs argument)
 
@@ -219,6 +240,8 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     files = new_files
     del new_files
     # END BUG
+    if add_python and copy_script and check_script:
+        _check_script(script_path, files, python_cmd)
     for f in files:
         cmd += ['-file', f]
     # Add jobconfs
