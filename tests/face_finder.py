@@ -90,4 +90,4 @@ class Mapper(object):
 
 
 if __name__ == "__main__":
-    hadoopy.run(Mapper)
+    hadoopy.run(Mapper, required_files=['haarcascade_frontalface_default.xml'])
