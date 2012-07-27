@@ -82,13 +82,28 @@ def _parse_info(script_path, python_cmd='python'):
     return info
 
 
+def _check_requirements(files, cmdenvs, required_files, required_cmdenvs):
+    files = set(files)
+    cmdenvs = set(cmdenvs)
+    required_files = set(os.path.basename(x) for x in required_files)
+    required_cmdenvs = set(required_cmdenvs)
+    missing_files = required_files - files
+    missing_cmdenvs = required_cmdenvs - cmdenvs
+    if missing_files:
+        logging.error('Missing required file(s), include them using the "files" argument: %s' % ', '.join(missing_files))
+    if missing_cmdenvs:
+        logging.error('Missing required cmdenvs(s), include them using the "cmdenvs" argument: %s' % ', '.join(missing_cmdenvs))
+    if missing_files or missing_cmdenvs:
+        raise ValueError('Job is missing required cmdenvs/files.')
+
+
 def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs=(),
            cmdenvs=(), input_format=None, output_format=None, copy_script=True,
            wait=True, hstreaming=None, name=None,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
            remove_output=False, add_python=True, config=None, pipe=True,
            python_cmd="python", num_mappers=None, num_reducers=None,
-           script_dir='', remove_ext=False, **kw):
+           script_dir='', remove_ext=False, required_files=(), required_cmdenvs=(), **kw):
     """Run Hadoop given the parameters
 
     :param in_name: Input path (string or list)
@@ -117,6 +132,8 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :param num_reducers: The number of reducers to use, i.e. the argument given to 'numReduceTasks'. If None, then do not specify this argument to hadoop streaming.
     :param script_dir: Where the script is relative to working dir, will be prefixed to script_path with a / (default '' is current dir)
     :param remove_ext: If True, remove the script extension (default False)
+    :param required_files: Iterator of files that must be specified (verified against the files argument)
+    :param required_cmdenvs: Iterator of cmdenvs that must be specified (verified against the cmdenvs argument)
 
     :rtype: Dictionary with some of the following entries (depending on options)
     :returns: freeze_cmds: Freeze command(s) ran
@@ -133,7 +150,11 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
         raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
     jobconfs = _listeq_to_dict(jobconfs)
     cmdenvs = _listeq_to_dict(cmdenvs)
-    out = {}
+    script_info = _parse_info(script_path, python_cmd)
+    # Add required cmdenvs/files, num_reducers from script
+    required_cmdenvs = list(script_info.get('required_cmdenvs', ())) + list(required_cmdenvs)
+    required_files = list(script_info.get('required_files', ())) + list(required_files)
+    _check_requirements(files, cmdenvs, required_files, required_cmdenvs)
     try:
         hadoop_cmd = 'hadoop jar ' + hstreaming
     except TypeError:
@@ -146,7 +167,6 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
         script_name = '%s %s' % (python_cmd, script_name)
     if script_dir:
         script_name = ''.join([script_dir, '/', script_name])
-    script_info = _parse_info(script_path, python_cmd)
     if 'map' in script_info['tasks']:
         c = 'pipe map' if pipe else 'map'
         mapper = ' '.join((script_name, c))
@@ -245,6 +265,8 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     hadoop_start_time = time.time()
     logging.info('/\\%s%s Output%s/\\' % ('-' * 10, 'Hadoop', '-' * 10))
     logging.info('hadoopy: Running[%s]' % (' '.join(cmd)))
+
+    out = {}
     out['process'] = process = subprocess.Popen(' '.join(cmd), shell=True,
                                                 stdout=subprocess.PIPE,
                                                 stderr=subprocess.PIPE)
