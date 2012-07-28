@@ -2,6 +2,13 @@ Benchmarks
 ==========
 
 .. TODO Benchmark each method of side-data for a few common scenarios
+
+readtb/writetb
+---------------
+.. raw:: html
+
+    <script src="https://gist.github.com/3194576.js?file=readwritetb.py"></script>
+
 TypedBytes
 ----------
 
