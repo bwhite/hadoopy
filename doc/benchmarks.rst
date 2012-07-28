@@ -9,6 +9,12 @@ readtb/writetb
 
     <script src="https://gist.github.com/3194576.js?file=readwritetb.py"></script>
 
+launch_frozen (PyInstaller)
+---------------------------
+.. raw:: html
+
+    <script src="https://gist.github.com/3194576.js?file=freeze.py"></script>
+
 TypedBytes
 ----------
 
