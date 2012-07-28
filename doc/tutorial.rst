@@ -1,4 +1,4 @@
-Hadoopy: Tutorial
+Tutorial
 ================================================
 .. TODO Open with a discussion about the goal of the tutorial and mention that the jobs shown are all identities or null to teach purely Hadoopy, see the projects section for detailed examples.
 
@@ -18,6 +18,8 @@ PIP installation ::
     sudo pip install -e git+https://github.com/bwhite/hadoopy#egg=hadoopy
 
 .. _github: http://github github.com/bwhite/hadoopy
+
+This guide assumes you have a functional Hadoop cluster with a supported version of Hadoop.  If you need help with this see the :doc:`cluster guide</clustersetup>`
 
 .. TODO install guide
 .. TODO Add cluster setup citation
