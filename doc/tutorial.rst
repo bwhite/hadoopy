@@ -5,6 +5,20 @@ Hadoopy: Tutorial
 
 Installing Hadoopy
 ------------------
+The best way to get Hadoopy is off of the github_.
+
+Github Clone ::
+
+    git clone https://github.com/bwhite/hadoopy.git
+    cd hadoopy
+    sudo python setup.py install
+
+PIP installation ::
+
+    sudo pip install -e git+https://github.com/bwhite/hadoopy#egg=hadoopy
+
+.. _github: http://github github.com/bwhite/hadoopy
+
 .. TODO install guide
 .. TODO Add cluster setup citation
 
