@@ -203,12 +203,12 @@ def writetb(path, kvs, java_mem_mb=256):
     with hadoopy.TypedBytesFile(write_fd=write_fd) as tb_fp:
         for kv in kvs:
             if p.poll() is not None:
-                raise IOError('Child process quit while we were sending it data. STDOUT[%s] STDERR[%s]' % p.communicate())
+                raise IOError('writetb: Hadoop process quit while we were sending it data.  Hadoop output below...\nstdout\n%s\nstderr\n%s' % p.communicate())
             tb_fp.write(kv)
         tb_fp.flush()
     p.wait()
     if p.returncode is not 0:
-        raise IOError('writetb: Child returned [%d] Stderr[%s]' % (p.returncode, p.stderr.read()))
+        raise IOError('writetb: Hadoop process returned [%d]. Hadoop output below...\nstderr\n%s' % (p.returncode, p.stderr.read()))
 
 
 def readtb(paths, num_procs=10, java_mem_mb=256, ignore_logs=True):
