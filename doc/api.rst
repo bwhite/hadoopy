@@ -1,5 +1,6 @@
 API
 ===
+This section contains API documentation for Hadoopy.
 
 Job Driver API (Start Hadoop Jobs)
 ----------------------------------
