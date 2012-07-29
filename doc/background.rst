@@ -4,7 +4,7 @@ This section contains links to relevent background material that is often useful
 
 Python
 ---------------------
-Example of generators in Python.
+Python Generators are often used in Hadoopy jobs, below is an example of generators in Python.
 
 .. raw:: html
 
