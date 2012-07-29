@@ -1,18 +1,32 @@
 Hadoopy Internals
 =================
-.. TODO Hadoop Streaming, Pipe Hopping, python script.py info, TypedBytes, Pyinstaller
+This section is for understanding how Hadoopy works.
 
-Pipe Hopping: Using Stdout/Stderr in Hadoopy Jobs
---------------------------------------------------
+Streaming
+---------
+Hadoopy uses the Hadoop Streaming_ mechanism to run jobs and communicate with Hadoop.
 
-Hadoop streaming implements the standard Mapper/Reducer classes and simply opens 3 pipes to a streaming program (stdout, stderr, and stdin).  The first issue is how is data encoded?  The standard is to separate keys and values with a tab and each key/value pair with a newline; however, this is really a bad way to have to work as you have to ensure that your output never contains tabs or newlines.  Moreover, serializing everything to an escaped string is inefficient and tends to hurt interoperability of jobs as everyone has their own solution to encoding.  The solution (part of CDH2+) is to use TypedBytes which is an encoding format for basic types (int, float, dictionary, list, string, etc.) which is fast, standardized, and simple.  Hadoopy has its own implementation and it is particularly fast.
+.. _Streaming: http://wiki.apache.org/hadoop/HadoopStreaming
 
-TypedBytes doesn't solve the issue of client code outputting to stdout, it actually makes it worse as the resulting output is interpreted as TypedBytes which can have very complex effects.  Most Hadoop streaming programs have to meticulously avoid printing to stdout as it will interfere with the connection to Hadoop streaming.  Hadoopy uses a technique I refer to as 'pipe hopping' where a launcher remaps the stdin/stdout of the client program to be null and stderr respectively, and communication happens over file descriptors which correspond to the true stdout/stdin that Hadoop streaming communicates with.  This is transparent to the user but the end result is more useful error messages when exceptions are thrown (as opposed to generic Java errors) and the ability to use print statements like normal.  This is a general solution to the problem and if other library writers (for python or other languages) would like a minimum working example of this technique I have one available.
 
-This technique is on by default and can be disabled by passing pipe=False to the launch command of your choice.
+TypedBytes
+----------
+Hadoopy makes exensive use of the TypedBytes_ encoding.
 
-Wordcount Job
--------------
+.. _TypedBytes: http://hadoop.apache.org/mapreduce/docs/r0.21.0/api/org/apache/hadoop/typedbytes/package-summary.html
+
+
+PyInstaller
+-----------
+The launch_frozen command uses PyInstaller_ (included in the source tree) to package up all Python scripts (.py) and shared libraries (.so) into a .tar file consisting of a self-contained executable (the same name as your script without .py) and the shared libraries.  This means that launch_frozen allows you to launch jobs on clusters without Python or any libraries that your job needs; however, there is a 15+ second overhead to do this (there are tricks to minimizing this effect).
+
+.. _PyInstaller: http://www.pyinstaller.org
+
+
+Detailed Functional Walkthrough
+-------------------------------
+To explain how Hadoopy works, we will now walk through a job and discuss some of the behind-the-scenes details of Hadoopy.
+
 Python Source (fully documented version in wc.py_) ::
 
     """Hadoopy Wordcount Demo"""
@@ -80,9 +94,6 @@ We can also do this in Python
     ['/user/brandyn/playground/wc-input-alice.tb', '/user/brandyn/playground/wc-input-alice.txt', '/user/brandyn/playground/wc-input-alice.txt.gz']
 
 
-Launching a job
----------------
-
 Lets put wc-input-alice.txt through the word counter using Hadoop.  Each node in the cluster has Hadoopy installed (later we will show that it isn't necessary with launch_frozen).  Note that it is using typedbytes, SequenceFiles, and the AutoInputFormat by default.
 
     >>> out = hadoopy.launch('playground/wc-input-alice.txt', 'playground/out/', 'wc.py')
@@ -127,9 +138,6 @@ Now it's gone
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
     ImportError: No module named hadoopy
-
-Launching a job (Frozen Script)
--------------------------------
 
 The rest of the nodes were cleaned up the same way.  We modify the command, note that we now get the output from freeze at the top
 
@@ -220,6 +228,15 @@ Lets open it up and try it out ::
     00000020  40 00 00 00 00 00 00 00  50 04 16 00 00 00 00 00  |@.......P.......|
     00000030  00 00 00 00 40 00 38 00  09 00 40 00 1d 00 1c 00  |....@.8...@.....|
     00000040  06 00 00 00 05 00 00 00  40 00 00 00 00 00 00 00  |........@.......|
+
+Pipe Hopping: Using Stdout/Stderr in Hadoopy Jobs
+--------------------------------------------------
+
+Hadoop streaming implements the standard Mapper/Reducer classes and simply opens 3 pipes to a streaming program (stdout, stderr, and stdin).  The first issue is how is data encoded?  The standard is to separate keys and values with a tab and each key/value pair with a newline; however, this is really a bad way to have to work as you have to ensure that your output never contains tabs or newlines.  Moreover, serializing everything to an escaped string is inefficient and tends to hurt interoperability of jobs as everyone has their own solution to encoding.  The solution (part of CDH2+) is to use TypedBytes which is an encoding format for basic types (int, float, dictionary, list, string, etc.) which is fast, standardized, and simple.  Hadoopy has its own implementation and it is particularly fast.
+
+TypedBytes doesn't solve the issue of client code outputting to stdout, it actually makes it worse as the resulting output is interpreted as TypedBytes which can have very complex effects.  Most Hadoop streaming programs have to meticulously avoid printing to stdout as it will interfere with the connection to Hadoop streaming.  Hadoopy uses a technique I refer to as 'pipe hopping' where a launcher remaps the stdin/stdout of the client program to be null and stderr respectively, and communication happens over file descriptors which correspond to the true stdout/stdin that Hadoop streaming communicates with.  This is transparent to the user but the end result is more useful error messages when exceptions are thrown (as opposed to generic Java errors) and the ability to use print statements like normal.  This is a general solution to the problem and if other library writers (for python or other languages) would like a minimum working example of this technique I have one available.
+
+This technique is on by default and can be disabled by passing pipe=False to the launch command of your choice.
 
 Script Info
 -----------
