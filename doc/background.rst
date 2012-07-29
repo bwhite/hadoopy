@@ -10,6 +10,12 @@ Example of generators in Python.
 
     <script src="https://gist.github.com/3183545.js"> </script>
 
+Cython
+------
+The core of Hadoopy is written in the Cython_ language which is effectively Python with types but that is compiled to C.  This enables the code to be easily maintained but perform at native speeds.
+
+.. _Cython: http://cython.org/
+
 MapReduce
 ---------------------
 http://code.google.com/edu/parallel/mapreduce-tutorial.html
