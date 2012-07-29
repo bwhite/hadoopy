@@ -1,7 +1,7 @@
-Raw Text IO
+Text Input
 ===========
 
-.. TODO Do a foreword explanation
+When working with Hadoopy it is preferable to work with SequenceFiles encoded with TypedBytes; however, it can operate on raw text input too (e.g., put text data directly on HDFS).  This section explores the use of raw text with Hadoopy.  Note that this is distinct from Hadoop Streaming's communication method with Hadoopy (i.e., Text or TypedBytes), see :doc:`internals</internals>` for more discussion.
 
 Putting Text Data on HDFS
 -------------------------
