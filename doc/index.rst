@@ -7,7 +7,6 @@ Hadoopy: Python wrapper for Hadoop using Cython
     tutorial
     clustersetup
     projects
-    cookbook
     api
     text
     background
@@ -18,6 +17,7 @@ Hadoopy: Python wrapper for Hadoop using Cython
     helper
     hbase
     java
+    cookbook
 
 Visit https://github.com/bwhite/hadoopy/ for the source.
 
