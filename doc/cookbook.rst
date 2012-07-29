@@ -1,6 +1,6 @@
 Cookbook
 ========
-
+This section is a collection of tips/tricks that are useful when working with Hadoopy.
 
 .. raw:: html
 
