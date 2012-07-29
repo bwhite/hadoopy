@@ -11,7 +11,7 @@ Hadoopy uses the Hadoop Streaming_ mechanism to run jobs and communicate with Ha
 
 TypedBytes
 ----------
-Hadoopy makes exensive use of the TypedBytes_ encoding.
+Hadoopy makes exensive use of the TypedBytes_ encoding.  It is used to communicate between Hadoop Streaming and Hadoopy, the alternative is a line/tab delimited key/value system (the old style) which leaves serialization up to you and you have to avoid using those characters.
 
 .. _TypedBytes: http://hadoop.apache.org/mapreduce/docs/r0.21.0/api/org/apache/hadoop/typedbytes/package-summary.html
 
