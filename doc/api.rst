@@ -2,7 +2,7 @@ Programming Documentation
 =========================
 This section contains library documentation for Hadoopy.
 
-Job Launchers (Start Hadoop Jobs)
+Job Launchers (Start Hadoopy Jobs)
 ----------------------------------
 
 ..  autofunction:: hadoopy.launch(in_name, out_name, script_path[, partitioner=False, files=(), jobconfs=(), cmdenvs=(), copy_script=True, wait=True, hstreaming=None, name=None, use_typedbytes=True, use_seqoutput=True, use_autoinput=True, add_python=True, config=None, pipe=True, python_cmd="python", num_mappers=None, num_reducers=None, script_dir='', remove_ext=False, **kw])
@@ -12,7 +12,7 @@ Job Launchers (Start Hadoop Jobs)
 ..  autofunction:: hadoopy.launch_local(in_name, out_name, script_path[, max_input=-1, files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True, **kw])
 
 
-Task functions (used inside Hadoopy jobs)
+Task functions (Usable inside Hadoopy jobs)
 ------------------------------------------
 
 ..  autofunction:: hadoopy.run(mapper=None, reducer=None, combiner=None, **kw)
