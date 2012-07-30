@@ -4,6 +4,7 @@ Example Projects
 Compute Vector Statistics
 -------------------------
 Compute statistics for different vector groups.  The first job is a basic implementation, the second uses the "In-mapper" combine design pattern to minimize the amount of data sent to the reducer(s) during the shuffle phase.
+
 .. raw:: html
 
     <script src="https://gist.github.com/3204235.js?file=vector_stats.py"></script>
@@ -14,9 +15,10 @@ Compute statistics for different vector groups.  The first job is a basic implem
 
 
 Below is the driver and test script for the above jobs.
+
 .. raw:: html
 
-    <script src="https://gist.github.com/3204235.js?file=driver"></script>
+    <script src="https://gist.github.com/3204235.js?file=driver.py"></script>
 
 
 
