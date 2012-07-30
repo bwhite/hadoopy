@@ -1,5 +1,6 @@
 Hadoopy Flow: Automatic Job-Level Parallization (Experimental)
 ==============================================================
+Hadoopy flow is experimental and is maintained out of branch at https://github.com/bwhite/hadoopy_flow.  It is under active development.
 
 Once you get past the wordcount examples and you have a few scripts you use regularly, the next level of complexity is managing a workflow of jobs.  The simplest way of doing this is to put a few sequential launch statements in a python script and run it.  This is fine for simple workflows but you miss out on two abilities: re-execution of previous workflows by re-using outputs (e.g., when tweaking one job in a flow) and parallel execution of jobs in a flow.  I've had some fairly complex flows and previously the best solution I could find was using Oozie_ with a several thousand line XML file.  Once setup, this ran jobs in parallel and re-execute the workflow by skipping previous nodes; however, it is another server you have to setup and making that XML file takes a lot of the fun out of using Python in the first place (it could be more code than your actual task).  While Hadoopy is fully compatible with Oozie, it certainly seems lacking for the kind of short turn-around scripts most users want to make.
 
