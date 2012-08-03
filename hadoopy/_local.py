@@ -10,7 +10,7 @@ import shutil
 import contextlib
 
 
-def _local_reader(worker_queue_maxsize, q_recv, q_send, in_r_fd, in_w_fd, out_r_fd, out_w_fd):
+def _local_reader(q_recv, q_send, in_r_fd, in_w_fd, out_r_fd, out_w_fd):
     os.close(in_r_fd)
     os.close(in_w_fd)
     os.close(out_w_fd)
@@ -43,7 +43,7 @@ def chdir(path):
 
 class LocalTask(object):
 
-    def __init__(self, script_path, task, max_input, pipe, python_cmd, worker_queue_maxsize, files, remove_tempdir):
+    def __init__(self, script_path, task, max_input, pipe, python_cmd, files, remove_tempdir):
         self.remove_tempdir = remove_tempdir
         self.temp_dir = tempfile.mkdtemp()
         self.script_path = script_path
@@ -51,7 +51,6 @@ class LocalTask(object):
         self.max_input = max_input if task == 'map' else None
         self.pipe = pipe
         self.python_cmd = python_cmd
-        self.worker_queue_maxsize = worker_queue_maxsize
         self.files = files
         self._setup()
 
@@ -77,8 +76,7 @@ class LocalTask(object):
         a = os.fdopen(in_r_fd, 'r')
         b = os.fdopen(out_w_fd, 'w')
         q_recv, q_send = multiprocessing.Pipe(True)
-        reader_process = multiprocessing.Process(target=_local_reader, args=(self.worker_queue_maxsize, q_recv,
-                                                                             q_send, in_r_fd, in_w_fd, out_r_fd, out_w_fd))
+        reader_process = multiprocessing.Process(target=_local_reader, args=(q_recv, q_send, in_r_fd, in_w_fd, out_r_fd, out_w_fd))
         reader_process.start()
         os.close(out_r_fd)
         q_send.close()
@@ -150,7 +148,6 @@ def launch_local(in_name, out_name, script_path, max_input=None,
     :param pipe: If true (default) then call user code through a pipe to isolate it and stop bugs when printing to stdout.  See project docs.
     :param python_cmd: The python command to use. The default is "python".  Can be used to override the system default python, e.g. python_cmd = "python2.6"
     :param remove_tempdir: If True (default), then rmtree the temporary dir, else print its location.  Useful if you need to see temporary files or how input files are copied.
-    :param worker_queue_maxsize: The number of elements the queue holding results from the worker task will hold (default 0 which is unlimited).
     :rtype: Dictionary with some of the following entries (depending on options)
     :returns: freeze_cmds: Freeze command(s) ran
     :returns: frozen_tar_path: HDFS path to frozen file
@@ -183,17 +180,17 @@ def launch_local(in_name, out_name, script_path, max_input=None,
         in_kvs = in_name
     if 'reduce' in script_info['tasks']:
         kvs = list(LocalTask(script_path, 'map', max_input, pipe,
-                             python_cmd, worker_queue_maxsize, files, remove_tempdir).run_task(in_kvs, env))
+                             python_cmd, files, remove_tempdir).run_task(in_kvs, env))
         if 'combine' in script_info['tasks']:
             kvs = hadoopy.Test.sort_kv(kvs)
             kvs = list(LocalTask(script_path, 'combine', max_input, pipe,
-                                 python_cmd, worker_queue_maxsize, files, remove_tempdir).run_task(kvs, env))
+                                 python_cmd, files, remove_tempdir).run_task(kvs, env))
         kvs = hadoopy.Test.sort_kv(kvs)
         kvs = LocalTask(script_path, 'reduce', max_input, pipe,
-                        python_cmd, worker_queue_maxsize, files, remove_tempdir).run_task(kvs, env)
+                        python_cmd, files, remove_tempdir).run_task(kvs, env)
     else:
         kvs = LocalTask(script_path, 'reduce', max_input, pipe,
-                        python_cmd, worker_queue_maxsize, files, remove_tempdir).run_task(in_kvs, env)
+                        python_cmd, files, remove_tempdir).run_task(in_kvs, env)
     out = {}
     if out_name is not None:
         hadoopy.writetb(out_name, kvs)
