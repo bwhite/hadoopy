@@ -40,7 +40,7 @@ def _local_reader(q_r_fd, q_w_fd, in_r_fd, in_w_fd, out_r_fd, out_w_fd):
             del data[0]
     while True:
         try:
-            d = os.read(out_r_fd, 10485760)  # 10MB Max read per iter
+            d = os.read(out_r_fd, 1048576)  # 1MB Max read per iter
             if not d:  # We are done
                 break
             data.append(d)
