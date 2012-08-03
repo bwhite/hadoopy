@@ -120,7 +120,7 @@ class LocalTask(object):
 
 def launch_local(in_name, out_name, script_path, max_input=None,
                  files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True,
-                 worker_queue_maxsize=0, **kw):
+                 **kw):
     """A simple local emulation of hadoop
 
     This doesn't run hadoop and it doesn't support many advanced features, it
@@ -189,7 +189,7 @@ def launch_local(in_name, out_name, script_path, max_input=None,
         kvs = LocalTask(script_path, 'reduce', max_input, pipe,
                         python_cmd, files, remove_tempdir).run_task(kvs, env)
     else:
-        kvs = LocalTask(script_path, 'reduce', max_input, pipe,
+        kvs = LocalTask(script_path, 'map', max_input, pipe,
                         python_cmd, files, remove_tempdir).run_task(in_kvs, env)
     out = {}
     if out_name is not None:
