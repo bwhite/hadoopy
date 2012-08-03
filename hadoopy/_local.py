@@ -46,6 +46,8 @@ class LocalTask(object):
     def __init__(self, script_path, task, max_input, pipe, python_cmd, worker_queue_maxsize, files, remove_tempdir):
         self.remove_tempdir = remove_tempdir
         self.temp_dir = tempfile.mkdtemp()
+        self.script_path = script_path
+        self.task = task
         self.max_input = max_input if task == 'map' else None
         self.pipe = pipe
         self.python_cmd = python_cmd
