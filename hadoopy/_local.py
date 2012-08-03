@@ -48,7 +48,7 @@ class LocalTask(object):
         self.temp_dir = tempfile.mkdtemp()
         self.max_input = max_input if task == 'map' else None
         self.pipe = pipe
-        self.python_cmd
+        self.python_cmd = python_cmd
         self.worker_queue_maxsize = worker_queue_maxsize
         self.files = files
         self._setup()
