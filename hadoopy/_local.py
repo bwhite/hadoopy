@@ -7,6 +7,7 @@ import Queue
 import subprocess
 import tempfile
 import shutil
+import contextlib
 
 
 def _local_reader(worker_queue_maxsize, q_recv, q_send, in_r_fd, in_w_fd, out_r_fd, out_w_fd):
@@ -28,6 +29,93 @@ def _local_reader(worker_queue_maxsize, q_recv, q_send, in_r_fd, in_w_fd, out_r_
     while not q.empty():
         q_send.send(q.get())
     q_send.close()
+
+
+@contextlib.contextmanager
+def chdir(path):
+    orig_pwd = os.path.abspath('.')
+    try:
+        os.chdir(path)
+        yield
+    finally:
+        os.chdir(orig_pwd)
+
+
+class LocalTask(object):
+
+    def __init__(self, script_path, task, max_input, pipe, python_cmd, worker_queue_maxsize, files, remove_tempdir):
+        self.remove_tempdir = remove_tempdir
+        self.temp_dir = tempfile.mkdtemp()
+        self.max_input = max_input if task == 'map' else None
+        self.pipe = pipe
+        self.python_cmd
+        self.worker_queue_maxsize = worker_queue_maxsize
+        self.files = files
+        self._setup()
+
+    def _setup(self):
+        with chdir(self.temp_dir):
+            if self.files:
+                for f in self.files:
+                    shutil.copy(f, os.path.basename(f))
+            hadoopy._runner._make_script_executable(os.path.basename(self.script_path))
+
+    def __del__(self):
+        if self.remove_tempdir:
+            shutil.rmtree(self.temp_dir)
+        else:
+            logging.warn('Temporary directory not removed[%s]' % self.temp_dir)
+
+    def run_task(self, kvs, env):
+        sys.stdout.flush()
+        task = 'pipe %s' % self.task if self.pipe else self.task
+        in_r_fd, in_w_fd = os.pipe()
+        out_r_fd, out_w_fd = os.pipe()
+        cmd = ('%s %s %s' % (self.python_cmd, self.script_path, task)).split()
+        a = os.fdopen(in_r_fd, 'r')
+        b = os.fdopen(out_w_fd, 'w')
+        q_recv, q_send = multiprocessing.Pipe(True)
+        reader_process = multiprocessing.Process(target=_local_reader, args=(self.worker_queue_maxsize, q_recv,
+                                                                             q_send, in_r_fd, in_w_fd, out_r_fd, out_w_fd))
+        reader_process.start()
+        os.close(out_r_fd)
+        q_send.close()
+        try:
+            with chdir(self.temp_dir):
+                p = subprocess.Popen(cmd,
+                                     stdin=a,
+                                     stdout=b,
+                                     close_fds=True,
+                                     env=env)
+            a.close()
+            b.close()
+            # main =(in_fd)> p
+            # main <(out_fd)= p
+            with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
+                for num, kv in enumerate(kvs):
+                    if self.max_input is not None and self.max_input <= num:
+                        break
+                    if reader_process.exitcode:
+                        raise EOFError('Reader process died[%s]' % reader_process.exitcode)
+                    while q_recv.poll():
+                        try:
+                            yield q_recv.recv()
+                        except EOFError:
+                            break
+                    tbfp_w.write(kv)
+            # Get any remaining values
+            while True:
+                if reader_process.exitcode:
+                    raise EOFError('Reader process died[%s]' % reader_process.exitcode)
+                try:
+                    yield q_recv.recv()
+                except EOFError:
+                    break
+        finally:
+            q_recv.close()
+            reader_process.join()
+            p.kill()
+            p.wait()
 
 
 def launch_local(in_name, out_name, script_path, max_input=None,
@@ -87,95 +175,28 @@ def launch_local(in_name, out_name, script_path, max_input=None,
     env = dict(os.environ)
     env['stream_map_input'] = 'typedbytes'
     env.update(cmdenvs)
-
-    def _run_task(task, kvs, env):
-        sys.stdout.flush()
-        cur_max_input = max_input if task == 'map' else None
-        if pipe:
-            task = 'pipe %s' % task
-        in_r_fd, in_w_fd = os.pipe()
-        out_r_fd, out_w_fd = os.pipe()
-        cmd = ('%s %s %s' % (python_cmd, script_path, task)).split()
-        a = os.fdopen(in_r_fd, 'r')
-        b = os.fdopen(out_w_fd, 'w')
-        q_recv, q_send = multiprocessing.Pipe(True)
-        reader_process = multiprocessing.Process(target=_local_reader, args=(worker_queue_maxsize, q_recv, q_send, in_r_fd, in_w_fd, out_r_fd, out_w_fd))
-        reader_process.start()
-        os.close(out_r_fd)
-        q_send.close()
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdin=a,
-                                 stdout=b,
-                                 close_fds=True,
-                                 env=env)
-            a.close()
-            b.close()
-            # main =(in_fd)> p
-            # main <(out_fd)= p
-            with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
-                for num, kv in enumerate(kvs):
-                    if cur_max_input is not None and cur_max_input <= num:
-                        break
-                    if reader_process.exitcode:
-                        raise EOFError('Reader process died[%s]' % reader_process.exitcode)
-                    while q_recv.poll():
-                        try:
-                            yield q_recv.recv()
-                        except EOFError:
-                            break
-                    tbfp_w.write(kv)
-            # Get any remaining values
-            while True:
-                if reader_process.exitcode:
-                    raise EOFError('Reader process died[%s]' % reader_process.exitcode)
-                try:
-                    yield q_recv.recv()
-                except EOFError:
-                    break
-        finally:
-            q_recv.close()
-            reader_process.join()
-            p.kill()
-            p.wait()
-
-    orig_pwd = os.path.abspath('.')
-    new_pwd = tempfile.mkdtemp()
-    out = {}
-    try:
-        logging.info('Hadoopy: Launch local changing current directory to [%s]' % new_pwd)
-        os.chdir(new_pwd)
-        if files:
-            for f in files:
-                shutil.copy(f, os.path.basename(f))
-        script_path = os.path.basename(script_path)
-        hadoopy._runner._make_script_executable(script_path)
-        if isinstance(in_name, (str, unicode)) or (in_name and isinstance(in_name, (list, tuple)) and isinstance(in_name[0], (str, unicode))):
-            in_kvs = hadoopy.readtb(in_name)
-        else:
-            in_kvs = in_name
-        if 'reduce' in script_info['tasks']:
-            kvs = list(_run_task('map', in_kvs, env))
-            if 'combine' in script_info['tasks']:
-                kvs = hadoopy.Test.sort_kv(kvs)
-                kvs = list(_run_task('combine', kvs, env))
-            kvs = hadoopy.Test.sort_kv(kvs)
-            kvs = _run_task('reduce', kvs, env)
-        else:
-            kvs = _run_task('map', in_kvs, env)
-    except OSError, e:
-        logging.error('Ensure that [%s] starts with "#!/usr/bin/env python".' % script_path)
-        raise e
+    if isinstance(in_name, (str, unicode)) or (in_name and isinstance(in_name, (list, tuple)) and isinstance(in_name[0], (str, unicode))):
+        in_kvs = hadoopy.readtb(in_name)
     else:
-        if out_name is not None:
-            hadoopy.writetb(out_name, kvs)
-            out['output'] = hadoopy.readtb(out_name)
-        else:
-            out['output'] = iter(list(kvs))  # TODO(brandyn): Potential problem if using large values, fixes changing dir early
-        return out
-    finally:
-        os.chdir(orig_pwd)
-        if remove_tempdir:
-            shutil.rmtree(new_pwd)
-        else:
-            logging.info('Temporary directory not removed[%s]' % new_pwd)
+        in_kvs = in_name
+    if 'reduce' in script_info['tasks']:
+        kvs = list(LocalTask(script_path, 'map', max_input, pipe,
+                             python_cmd, worker_queue_maxsize, files, remove_tempdir).run_task(in_kvs, env))
+        if 'combine' in script_info['tasks']:
+            kvs = hadoopy.Test.sort_kv(kvs)
+            kvs = list(LocalTask(script_path, 'combine', max_input, pipe,
+                                 python_cmd, worker_queue_maxsize, files, remove_tempdir).run_task(kvs, env))
+        kvs = hadoopy.Test.sort_kv(kvs)
+        kvs = LocalTask(script_path, 'reduce', max_input, pipe,
+                        python_cmd, worker_queue_maxsize, files, remove_tempdir).run_task(kvs, env)
+    else:
+        kvs = LocalTask(script_path, 'reduce', max_input, pipe,
+                        python_cmd, worker_queue_maxsize, files, remove_tempdir).run_task(in_kvs, env)
+    out = {}
+    if out_name is not None:
+        hadoopy.writetb(out_name, kvs)
+        out['output'] = hadoopy.readtb(out_name)
+    else:
+        out['output'] = kvs
+    return out
+
