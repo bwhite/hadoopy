@@ -3,32 +3,55 @@ import logging
 import os
 import multiprocessing
 import sys
-import Queue
+import select
 import subprocess
 import tempfile
 import shutil
 import contextlib
+import fcntl
 
 
-def _local_reader(q_recv, q_send, in_r_fd, in_w_fd, out_r_fd, out_w_fd):
-    os.close(in_r_fd)
+def _local_reader(q_r_fd, q_w_fd, in_r_fd, in_w_fd, out_r_fd, out_w_fd):
+    """
+    caller(q_r_fd, in_w_fd)
+    reader(out_r_fd, q_w_fd)
+    worker(in_r_fd, out_w_fd)
+    """
+    os.close(q_r_fd)
     os.close(in_w_fd)
+    os.close(in_r_fd)
     os.close(out_w_fd)
-    q = Queue.Queue()
-    with hadoopy.TypedBytesFile(read_fd=out_r_fd) as tbfp_r:
-        for num, kv in enumerate(tbfp_r):
-            while True:
-                while not q_recv.poll() and not q.empty():
-                    q_send.send(q.get())
-                try:
-                    q.put_nowait(kv)
-                except Queue.Full:
-                    continue
-                else:
-                    break
-    while not q.empty():
-        q_send.send(q.get())
-    q_send.close()
+    flr = fcntl.fcntl(out_r_fd, fcntl.F_GETFL)
+    fcntl.fcntl(out_r_fd, fcntl.F_SETFL, flr | os.O_NONBLOCK)
+    flw = fcntl.fcntl(q_w_fd, fcntl.F_GETFL)
+    fcntl.fcntl(q_w_fd, fcntl.F_SETFL, flw | os.O_NONBLOCK)
+    data = []
+
+    def write_data():
+        while data:
+            d = data[0]
+            try:
+                l = os.write(q_w_fd, d)
+            except OSError:  # Too much data in pipe
+                break
+            if l != len(d):  # Too much data in pipe
+                data[0] = d[l:]
+                break
+            del data[0]
+    while True:
+        try:
+            d = os.read(out_r_fd, 10485760)  # 10MB Max read per iter
+            if not d:  # We are done
+                break
+            data.append(d)
+        except OSError:
+            pass
+        write_data()
+    # Re-enable blocking on write socket, as we have read everything
+    fcntl.fcntl(q_w_fd, fcntl.F_SETFL, flw)
+    while data:
+        write_data()
+    os.close(q_w_fd)
 
 
 @contextlib.contextmanager
@@ -72,14 +95,14 @@ class LocalTask(object):
         task = 'pipe %s' % self.task if self.pipe else self.task
         in_r_fd, in_w_fd = os.pipe()
         out_r_fd, out_w_fd = os.pipe()
+        q_r_fd, q_w_fd = os.pipe()
         cmd = ('%s %s %s' % (self.python_cmd, self.script_path, task)).split()
         a = os.fdopen(in_r_fd, 'r')
         b = os.fdopen(out_w_fd, 'w')
-        q_recv, q_send = multiprocessing.Pipe(True)
-        reader_process = multiprocessing.Process(target=_local_reader, args=(q_recv, q_send, in_r_fd, in_w_fd, out_r_fd, out_w_fd))
+        reader_process = multiprocessing.Process(target=_local_reader, args=(q_r_fd, q_w_fd, in_r_fd, in_w_fd, out_r_fd, out_w_fd))
         reader_process.start()
         os.close(out_r_fd)
-        q_send.close()
+        os.close(q_w_fd)
         try:
             with chdir(self.temp_dir):
                 p = subprocess.Popen(cmd,
@@ -89,30 +112,31 @@ class LocalTask(object):
                                      env=env)
             a.close()
             b.close()
-            # main =(in_fd)> p
-            # main <(out_fd)= p
-            with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
-                for num, kv in enumerate(kvs):
-                    if self.max_input is not None and self.max_input <= num:
-                        break
+            with hadoopy.TypedBytesFile(read_fd=q_r_fd) as tbfp_r:
+                with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
+                    for num, kv in enumerate(kvs):
+                        if self.max_input is not None and self.max_input <= num:
+                            break
+                        while True:
+                            if reader_process.exitcode:
+                                raise EOFError('Reader process died[%s]' % reader_process.exitcode)
+                            r, w, _ = select.select([q_r_fd], [in_w_fd], [], 0)
+                            if r:  # If data is available to be read, than get it
+                                yield tbfp_r.next()
+                            elif w and kv is not None:
+                                tbfp_w.write(kv)
+                                kv = None
+                            elif w and kv is None:  # We can write but have already written
+                                break
+                # Get any remaining values
+                while True:
                     if reader_process.exitcode:
                         raise EOFError('Reader process died[%s]' % reader_process.exitcode)
-                    while q_recv.poll():
-                        try:
-                            yield q_recv.recv()
-                        except EOFError:
-                            break
-                    tbfp_w.write(kv)
-            # Get any remaining values
-            while True:
-                if reader_process.exitcode:
-                    raise EOFError('Reader process died[%s]' % reader_process.exitcode)
-                try:
-                    yield q_recv.recv()
-                except EOFError:
-                    break
+                    try:
+                        yield tbfp_r.next()
+                    except EOFError:
+                        break
         finally:
-            q_recv.close()
             reader_process.join()
             p.kill()
             p.wait()
