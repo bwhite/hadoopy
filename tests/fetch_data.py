@@ -27,7 +27,7 @@ def main():
         o = gzip.GzipFile('../examples/data/haarcascade_frontalface_default.xml.gz').read()
         fp.write(o)
         fp.close()
-    load_from_s3('../examples/data/face_finder-input-voctrainpart.tb', 'dbc50c02103221a499fc7cc77a5b61e9')
+    load_from_s3('../examples/data/test_images.tb', '935e4408f1416532a9aa5a6ac459e66b')
 
 if __name__ == '__main__':
     main()

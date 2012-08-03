@@ -24,5 +24,5 @@ try:
 except OSError:
     pass
 shutil.copy(data_path + 'target.jpg', local_out + 'target.jpg')
-_run_haystack(data_path + '/face_finder-input-voctrainpart.tb', 'haystack.py')
-_run_haystack(data_path + '/face_finder-input-voctrainpart.tb', 'haystack_imc.py')
+_run_haystack(data_path + '/test_images.tb', 'haystack.py')
+_run_haystack(data_path + '/test_images.tb', 'haystack_imc.py')

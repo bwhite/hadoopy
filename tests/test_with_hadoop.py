@@ -135,8 +135,8 @@ class TestUsingHadoop(unittest.TestCase):
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     @unittest.skipIf(not pil_and_cv_installed(), 'PIL or OpenCV not installed')
     def test_face(self):
-        self._run_face('../examples/data/face_finder-input-voctrainpart.tb')
-        self._run_face('../examples/data/face_finder-input-voctrainpart.tb', pipe=False)
+        self._run_face('../examples/data/test_images.tb')
+        self._run_face('../examples/data/test_images.tb', pipe=False)
 
     def _run_wc(self, orig_fn, script_name='wc.py', launcher=hadoopy.launch_frozen, **kw):
         fn = 'out-%f-%s' % (time.time(), orig_fn)

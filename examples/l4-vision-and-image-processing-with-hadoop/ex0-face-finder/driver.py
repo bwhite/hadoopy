@@ -36,4 +36,4 @@ def _run_face(fn):
 with open(data_path + 'haarcascade_frontalface_default.xml', 'w') as fp:
     o = gzip.GzipFile(data_path + 'haarcascade_frontalface_default.xml.gz').read()
     fp.write(o)
-_run_face(data_path + '/face_finder-input-voctrainpart.tb')
+_run_face(data_path + '/test_images.tb')
