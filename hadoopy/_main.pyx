@@ -180,7 +180,7 @@ cdef class HadoopyTask(object):
         else:
             self.write_fd = int(write_fd)
         self.read_fp = fdopen(self.read_fd, 'r')
-        self.tb = hadoopy.TypedBytesFile(read_fd=self.read_fd, write_fd=self.write_fd)
+        self.tb = hadoopy.TypedBytesFile(read_fd=self.read_fd, write_fd=self.write_fd, flush_writes=self.flush_tb_writes())
 
     # Core methods
     def run(self):
@@ -302,3 +302,6 @@ cdef class HadoopyTask(object):
 
     def is_on_hadoop(self):
         return 'mapred_input_format_class' in os.environ
+
+    def flush_tb_writes(self):
+        return 'hadoopy_flush_tb_writes' in os.environ

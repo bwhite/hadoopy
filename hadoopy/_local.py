@@ -95,14 +95,9 @@ class LocalTask(object):
         task = 'pipe %s' % self.task if self.pipe else self.task
         in_r_fd, in_w_fd = os.pipe()
         out_r_fd, out_w_fd = os.pipe()
-        q_r_fd, q_w_fd = os.pipe()
         cmd = ('%s %s %s' % (self.python_cmd, self.script_path, task)).split()
         a = os.fdopen(in_r_fd, 'r')
         b = os.fdopen(out_w_fd, 'w')
-        reader_process = multiprocessing.Process(target=_local_reader, args=(q_r_fd, q_w_fd, in_r_fd, in_w_fd, out_r_fd, out_w_fd))
-        reader_process.start()
-        os.close(out_r_fd)
-        os.close(q_w_fd)
         try:
             with chdir(self.temp_dir):
                 p = subprocess.Popen(cmd,
@@ -112,15 +107,13 @@ class LocalTask(object):
                                      env=env)
             a.close()
             b.close()
-            with hadoopy.TypedBytesFile(read_fd=q_r_fd) as tbfp_r:
+            with hadoopy.TypedBytesFile(read_fd=out_r_fd) as tbfp_r:
                 with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
                     for num, kv in enumerate(kvs):
                         if self.max_input is not None and self.max_input <= num:
                             break
                         while True:
-                            if reader_process.exitcode:
-                                raise EOFError('Reader process died[%s]' % reader_process.exitcode)
-                            r, w, _ = select.select([q_r_fd], [in_w_fd], [], 0)
+                            r, w, _ = select.select([out_r_fd], [in_w_fd], [], 0)
                             if r:  # If data is available to be read, than get it
                                 yield tbfp_r.next()
                             elif w and kv is not None:
@@ -130,15 +123,11 @@ class LocalTask(object):
                                 break
                 # Get any remaining values
                 while True:
-                    if reader_process.exitcode:
-                        raise EOFError('Reader process died[%s]' % reader_process.exitcode)
                     try:
                         yield tbfp_r.next()
                     except EOFError:
                         break
         finally:
-            reader_process.join()
-            p.kill()
             p.wait()
 
 
@@ -197,6 +186,7 @@ def launch_local(in_name, out_name, script_path, max_input=None,
     # Setup env
     env = dict(os.environ)
     env['stream_map_input'] = 'typedbytes'
+    env['hadoopy_flush_tb_writes'] = '1'
     env.update(cmdenvs)
     if isinstance(in_name, (str, unicode)) or (in_name and isinstance(in_name, (list, tuple)) and isinstance(in_name[0], (str, unicode))):
         in_kvs = hadoopy.readtb(in_name)
