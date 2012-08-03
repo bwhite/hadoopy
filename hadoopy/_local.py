@@ -88,13 +88,11 @@ class LocalTask(object):
                         if self.max_input is not None and self.max_input <= num:
                             break
                         while True:
-                            r, w, _ = select.select([out_r_fd], [in_w_fd], [], .001)
+                            r, w, _ = select.select([out_r_fd], [in_w_fd], [])
                             if r:  # If data is available to be read, than get it
                                 yield tbfp_r.next()
-                            elif w and kv is not None:
+                            elif w:
                                 tbfp_w.write(kv)
-                                kv = None
-                            elif w and kv is None:  # We can write but have already written
                                 break
                 # Get any remaining values
                 while True:
@@ -156,7 +154,6 @@ def launch_local(in_name, out_name, script_path, max_input=None,
         in_kvs = hadoopy.readtb(in_name)
     else:
         in_kvs = in_name
-    #script_path, task, files=(), max_input=None, pipe=True, python_cmd='python', remove_tempdir=True
     if 'reduce' in script_info['tasks']:
         kvs = list(LocalTask(script_path, 'map', files, max_input, pipe,
                              python_cmd, remove_tempdir).run_task(in_kvs, cmdenvs))
