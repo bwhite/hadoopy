@@ -88,7 +88,7 @@ class LocalTask(object):
                         if self.max_input is not None and self.max_input <= num:
                             break
                         while True:
-                            r, w, _ = select.select([out_r_fd], [in_w_fd], [], 0)
+                            r, w, _ = select.select([out_r_fd], [in_w_fd], [], .001)
                             if r:  # If data is available to be read, than get it
                                 yield tbfp_r.next()
                             elif w and kv is not None:
