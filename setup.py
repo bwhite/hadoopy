@@ -82,7 +82,8 @@ thirdparty_paths = map(_remove_prefix, _glob_recursive('hadoopy/thirdparty/*'))
 ext_modules = [Extension("_hadoopy_main", ["hadoopy/_main" + source_ext,
                                    "hadoopy/getdelim.c"]),
                Extension("_hadoopy_typedbytes", ["hadoopy/_typedbytes" + source_ext],
-                         extra_compile_args=tb_extra_args)]
+                         extra_compile_args=tb_extra_args),
+               Extension("_hadoopy_local", ["hadoopy/_local" + source_ext])]
 setup(name='hadoopy',
       cmdclass=cmdclass,
       version='0.6.0',
