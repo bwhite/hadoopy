@@ -21,7 +21,7 @@ def chdir(path):
 
 class LocalTask(object):
 
-    def __init__(self, script_path, task, max_input, pipe, python_cmd, files, remove_tempdir):
+    def __init__(self, script_path, task, files, max_input, pipe, python_cmd, remove_tempdir=True):
         self.remove_tempdir = remove_tempdir
         self.temp_dir = tempfile.mkdtemp()
         self.script_path = script_path
@@ -29,7 +29,16 @@ class LocalTask(object):
         self.max_input = max_input if task == 'map' else None
         self.pipe = pipe
         self.python_cmd = python_cmd
+        if not files:
+            files = []
+        else:
+            files = list(files)
+        files.append(script_path)
+        files = [os.path.abspath(f) for f in files]
         self.files = files
+        # Check on script
+        script_info = hadoopy._runner._parse_info(script_path, python_cmd)
+        assert task in script_info['tasks']
         self._setup()
 
     def _setup(self):
@@ -45,14 +54,25 @@ class LocalTask(object):
         else:
             logging.warn('Temporary directory not removed[%s]' % self.temp_dir)
 
-    def run_task(self, kvs, env):
-        sys.stdout.flush()
+    def _setup_env(self, cmdenvs):
+        cmdenvs = hadoopy._runner._listeq_to_dict(cmdenvs)
+        env = dict(os.environ)
+        env['stream_map_input'] = 'typedbytes'
+        env['hadoopy_flush_tb_writes'] = '1'
+        env.update(cmdenvs)
+        return env
+
+    def run_task(self, kvs, cmdenvs=()):
+        env = self._setup_env(cmdenvs)
+        # Setup pipes
         task = 'pipe %s' % self.task if self.pipe else self.task
         in_r_fd, in_w_fd = os.pipe()
         out_r_fd, out_w_fd = os.pipe()
         cmd = ('%s %s %s' % (self.python_cmd, self.script_path, task)).split()
         a = os.fdopen(in_r_fd, 'r')
         b = os.fdopen(out_w_fd, 'w')
+
+        # Start the read/write loop
         try:
             with chdir(self.temp_dir):
                 p = subprocess.Popen(cmd,
@@ -130,37 +150,26 @@ def launch_local(in_name, out_name, script_path, max_input=None,
     """
     if isinstance(files, (str, unicode)) or isinstance(cmdenvs, (str, unicode)) or ('cmdenvs' in kw and isinstance(kw['cmdenvs'], (str, unicode))):
         raise TypeError('files and cmdenvs must be iterators of strings and not strings!')
-    cmdenvs = hadoopy._runner._listeq_to_dict(cmdenvs)
     logging.info('Local[%s]' % script_path)
     script_info = hadoopy._runner._parse_info(script_path, python_cmd)
-    if not files:
-        files = []
-    else:
-        files = list(files)
-    files.append(script_path)
-    files = [os.path.abspath(f) for f in files]
-    # Setup env
-    env = dict(os.environ)
-    env['stream_map_input'] = 'typedbytes'
-    env['hadoopy_flush_tb_writes'] = '1'
-    env.update(cmdenvs)
     if isinstance(in_name, (str, unicode)) or (in_name and isinstance(in_name, (list, tuple)) and isinstance(in_name[0], (str, unicode))):
         in_kvs = hadoopy.readtb(in_name)
     else:
         in_kvs = in_name
+    #script_path, task, files=(), max_input=None, pipe=True, python_cmd='python', remove_tempdir=True
     if 'reduce' in script_info['tasks']:
-        kvs = list(LocalTask(script_path, 'map', max_input, pipe,
-                             python_cmd, files, remove_tempdir).run_task(in_kvs, env))
+        kvs = list(LocalTask(script_path, 'map', files, max_input, pipe,
+                             python_cmd, remove_tempdir).run_task(in_kvs, cmdenvs))
         if 'combine' in script_info['tasks']:
             kvs = hadoopy.Test.sort_kv(kvs)
-            kvs = list(LocalTask(script_path, 'combine', max_input, pipe,
-                                 python_cmd, files, remove_tempdir).run_task(kvs, env))
+            kvs = list(LocalTask(script_path, 'combine', files, max_input, pipe,
+                                 python_cmd, remove_tempdir).run_task(kvs, cmdenvs))
         kvs = hadoopy.Test.sort_kv(kvs)
-        kvs = LocalTask(script_path, 'reduce', max_input, pipe,
-                        python_cmd, files, remove_tempdir).run_task(kvs, env)
+        kvs = LocalTask(script_path, 'reduce', files, max_input, pipe,
+                        python_cmd, remove_tempdir).run_task(kvs, cmdenvs)
     else:
-        kvs = LocalTask(script_path, 'map', max_input, pipe,
-                        python_cmd, files, remove_tempdir).run_task(in_kvs, env)
+        kvs = LocalTask(script_path, 'map', files, max_input, pipe,
+                        python_cmd, remove_tempdir).run_task(in_kvs, cmdenvs)
     out = {}
     if out_name is not None:
         hadoopy.writetb(out_name, kvs)
@@ -168,4 +177,3 @@ def launch_local(in_name, out_name, script_path, max_input=None,
     else:
         out['output'] = kvs
     return out
-
