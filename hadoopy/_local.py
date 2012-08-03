@@ -1,57 +1,12 @@
 import hadoopy
 import logging
 import os
-import multiprocessing
 import sys
 import select
 import subprocess
 import tempfile
 import shutil
 import contextlib
-import fcntl
-
-
-def _local_reader(q_r_fd, q_w_fd, in_r_fd, in_w_fd, out_r_fd, out_w_fd):
-    """
-    caller(q_r_fd, in_w_fd)
-    reader(out_r_fd, q_w_fd)
-    worker(in_r_fd, out_w_fd)
-    """
-    os.close(q_r_fd)
-    os.close(in_w_fd)
-    os.close(in_r_fd)
-    os.close(out_w_fd)
-    flr = fcntl.fcntl(out_r_fd, fcntl.F_GETFL)
-    fcntl.fcntl(out_r_fd, fcntl.F_SETFL, flr | os.O_NONBLOCK)
-    flw = fcntl.fcntl(q_w_fd, fcntl.F_GETFL)
-    fcntl.fcntl(q_w_fd, fcntl.F_SETFL, flw | os.O_NONBLOCK)
-    data = []
-
-    def write_data():
-        while data:
-            d = data[0]
-            try:
-                l = os.write(q_w_fd, d)
-            except OSError:  # Too much data in pipe
-                break
-            if l != len(d):  # Too much data in pipe
-                data[0] = d[l:]
-                break
-            del data[0]
-    while True:
-        try:
-            d = os.read(out_r_fd, 1048576)  # 1MB Max read per iter
-            if not d:  # We are done
-                break
-            data.append(d)
-        except OSError:
-            pass
-        write_data()
-    # Re-enable blocking on write socket, as we have read everything
-    fcntl.fcntl(q_w_fd, fcntl.F_SETFL, flw)
-    while data:
-        write_data()
-    os.close(q_w_fd)
 
 
 @contextlib.contextmanager
@@ -128,6 +83,7 @@ class LocalTask(object):
                     except EOFError:
                         break
         finally:
+            p.kill()
             p.wait()
 
 
