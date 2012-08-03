@@ -266,7 +266,10 @@ cdef inline _read_unicode(void *fp):
     fread(bytes, sz, 1, fp)  # = 1
     out = PyString_FromStringAndSize(bytes, sz)
     free(bytes)
-    return unicode(out, 'utf-8')
+    try:
+        return unicode(out, 'utf-8')
+    except UnicodeError:
+        raise UnicodeError('Error decoding unicode string.  See hadoopy.com for details on TypedBytes encoding.')
 
 
 cdef inline _write_bytes(void *fp, val):
