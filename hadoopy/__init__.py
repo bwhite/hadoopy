@@ -19,7 +19,7 @@ __license__ = 'GPL V3'
 
 from _runner import launch, launch_frozen
 from _local import launch_local
-from _hdfs import get, put, readtb, writetb, ls, exists, rmr, isempty, abspath, isdir, mv, mkdir
+from _hdfs import get, put, readtb, writetb, ls, exists, rmr, isempty, abspath, isdir, mv, mkdir, cp
 from _job_cli import run
 from _reporter import status, counter
 from _test import Test
