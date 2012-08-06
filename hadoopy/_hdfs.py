@@ -129,6 +129,17 @@ def rmr(path):
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
 
 
+def cp(hdfs_src, hdfs_dst):
+    """Copy a file
+
+    :param hdfs_src: Source (str)
+    :param hdfs_dst: Destination (str)
+    :raises: IOError: If unsuccessful
+    """
+    cmd = "hadoop fs -cp %s %s" % (hdfs_src, hdfs_dst)
+    rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
+
+
 def mkdir(path):
     """Make a directory
 
@@ -140,8 +151,8 @@ def mkdir(path):
 
 
 def mv(hdfs_src, hdfs_dst):
-    """Put a file on hdfs
-    
+    """Move a file on hdfs
+
     :param hdfs_src: Source (str)
     :param hdfs_dst: Destination (str)
     :raises: IOError: If unsuccessful
@@ -152,7 +163,7 @@ def mv(hdfs_src, hdfs_dst):
 
 def put(local_path, hdfs_path):
     """Put a file on hdfs
-    
+
     :param local_path: Source (str)
     :param hdfs_path: Destination (str)
     :raises: IOError: If unsuccessful
