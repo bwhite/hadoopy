@@ -100,6 +100,7 @@ class TestUsingHadoop(unittest.TestCase):
         fetch_data.main()
         self.data_path = 'hadoopy-test-data/%f/' % cur_time
         self.out_path = '%s/face_finder_out/%f/' % (tempfile.mkdtemp(), cur_time)
+        print('OutputPath[%s] (see results here)' % self.out_path)
         os.makedirs(self.out_path)
         try:
             hadoopy.mkdir('hadoopy-test-data')

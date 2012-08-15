@@ -38,7 +38,6 @@ def _detect_faces(img, cascade):
     small_img = cv2.resize(img, (small_width, small_height))
     cv2.equalizeHist(small_img, small_img)
     faces = cascade.detectMultiScale(small_img, scaleFactor=haar_scale, minNeighbors=min_neighbors, flags=haar_flags, minSize=min_size)
-    print(faces)
     return [(x * image_scale, y * image_scale,
              w * image_scale, h * image_scale)
             for (x, y, w, h) in faces]
