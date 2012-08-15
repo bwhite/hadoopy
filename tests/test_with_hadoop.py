@@ -128,8 +128,8 @@ class TestUsingHadoop(unittest.TestCase):
         if not hadoopy.exists(in_path):
             hadoopy.put(fn, in_path)
         hadoopy.launch_frozen(in_path, out_path, 'face_finder.py', files=['haarcascade_frontalface_default.xml'], **kw)
-        for num, (image_name, (image_data, faces)) in enumerate(hadoopy.readtb(out_path)):
-            with open(self.out_path + 'img%.8d.jpg' % num, 'w') as fp:
+        for num, ((image_name, box), image_data) in enumerate(hadoopy.readtb(out_path)):
+            with open(self.out_path + 'img%.8d.png' % num, 'w') as fp:
                 fp.write(image_data)
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')

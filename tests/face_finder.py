@@ -38,9 +38,10 @@ def _detect_faces(img, cascade):
     small_img = cv2.resize(img, (small_width, small_height))
     cv2.equalizeHist(small_img, small_img)
     faces = cascade.detectMultiScale(small_img, scaleFactor=haar_scale, minNeighbors=min_neighbors, flags=haar_flags, minSize=min_size)
-    return [((x * image_scale, y * image_scale,
-              w * image_scale, h * image_scale), n)
-            for (x, y, w, h), n in faces]
+    print(faces)
+    return [(x * image_scale, y * image_scale,
+             w * image_scale, h * image_scale)
+            for (x, y, w, h) in faces]
 
 
 class Mapper(object):
@@ -64,18 +65,18 @@ class Mapper(object):
 
         Yields:
             A tuple in the form of (key, value)
-            key: Image name
-            value: (image, faces) where image is the input value and faces is
-                a list of ((x, y, w, h), n)
+            key: (Image name, (x, y, w, h))
+            value: face image (.png)
         """
         try:
-            image = imfeat.image_fromstring(value)
+            image = imfeat.image_fromstring(value, {'type': 'numpy', 'dtype': 'uint8', 'mode': 'gray'})
+            image_color = imfeat.image_fromstring(value, {'type': 'numpy', 'dtype': 'uint8', 'mode': 'bgr'})
         except:
             hadoopy.counter('DATA_ERRORS', 'ImageLoadError')
             return
-        faces = _detect_faces(image)
-        if faces:
-            yield key, (value, faces)
+        faces = _detect_faces(image, self._cascade)
+        for x, y, w, h in faces:
+            yield (key, (x, y, w, h)), imfeat.image_tostring(image_color[y:y + h, x:x + w, :], '.png')
 
 
 if __name__ == "__main__":
