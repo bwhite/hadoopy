@@ -24,7 +24,23 @@ import Image
 import imfeat
 import cStringIO as StringIO
 import os
-import cv
+import cv2
+
+
+def _detect_faces(img, cascade):
+    min_size = (20, 20)
+    image_scale = 2
+    haar_scale = 1.2
+    min_neighbors = 2
+    haar_flags = 0
+    small_width = img.shape[1] / image_scale
+    small_height = img.shape[0] / image_scale
+    small_img = cv2.resize(img, (small_width, small_height))
+    cv2.equalizeHist(small_img, small_img)
+    faces = cascade.detectMultiScale(small_img, scaleFactor=haar_scale, minNeighbors=min_neighbors, flags=haar_flags, minSize=min_size)
+    return [((x * image_scale, y * image_scale,
+              w * image_scale, h * image_scale), n)
+            for (x, y, w, h), n in faces]
 
 
 class Mapper(object):
@@ -32,40 +48,13 @@ class Mapper(object):
     def __init__(self):
         path = 'haarcascade_frontalface_default.xml'
         if os.path.exists(path):
-            self._cascade = cv.Load(path)
+            self._cascade = cv2.CascadeClassifier(path)
         else:
-            path = 'fixtures/haarcascade_frontalface_default.xml'
+            path = ('fixtures/haarcascade_frontalface_default.xml')
             if os.path.exists(path):
-                self._cascade = cv.Load(path)
+                self._cascade = cv2.CascadeClassifier(path)
             else:
                 raise ValueError("Can't find .xml file!")
-
-    def _detect_faces(self, img):
-        min_size = (20, 20)
-        image_scale = 2
-        haar_scale = 1.2
-        min_neighbors = 2
-        haar_flags = 0
-        if img.nChannels == 3:
-            gray = cv.CreateImage((img.width, img.height), 8, 1)
-            cv.CvtColor(img, gray, cv.CV_BGR2GRAY)
-        else:
-            gray = img
-        small_img = cv.CreateImage((cv.Round(img.width / image_scale),
-                                    cv.Round(img.height / image_scale)), 8, 1)
-        cv.Resize(gray, small_img, cv.CV_INTER_LINEAR)
-        cv.EqualizeHist(small_img, small_img)
-        faces = cv.HaarDetectObjects(small_img, self._cascade,
-                                     cv.CreateMemStorage(0),
-                                     haar_scale, min_neighbors, haar_flags,
-                                     min_size)
-        return [((x * image_scale, y * image_scale,
-                  w * image_scale, h * image_scale), n)
-                for (x, y, w, h), n in faces]
-
-    def _load_cv_image(self, value):
-        return imfeat.convert_image(Image.open(StringIO.StringIO(value)),
-                                    [('opencv', 'rgb', 8)])
 
     def map(self, key, value):
         """
@@ -80,11 +69,11 @@ class Mapper(object):
                 a list of ((x, y, w, h), n)
         """
         try:
-            image = self._load_cv_image(value)
+            image = imfeat.image_fromstring(value)
         except:
             hadoopy.counter('DATA_ERRORS', 'ImageLoadError')
             return
-        faces = self._detect_faces(image)
+        faces = _detect_faces(image)
         if faces:
             yield key, (value, faces)
 
