@@ -123,7 +123,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
            remove_output=False, add_python=True, config=None, pipe=True,
            python_cmd="python", num_mappers=None, num_reducers=None,
-           script_dir='', remove_ext=False, check_script=True,
+           script_dir='', remove_ext=False, check_script=True, make_executable=True,
            required_files=(), required_cmdenvs=(), **kw):
     """Run Hadoop given the parameters
 
@@ -154,6 +154,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :param script_dir: Where the script is relative to working dir, will be prefixed to script_path with a / (default '' is current dir)
     :param remove_ext: If True, remove the script extension (default False)
     :param check_script: If True, then copy script and .py(c) files to a temporary directory and verify that it can be executed.  This catches the majority of errors related to not included locally imported files. (default True)
+    :param make_executable: If True, ensure that script is executable and has a #! line at the top.
     :param required_files: Iterator of files that must be specified (verified against the files argument)
     :param required_cmdenvs: Iterator of cmdenvs that must be specified (verified against the cmdenvs argument)
 
@@ -241,6 +242,8 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     files = new_files
     del new_files
     # END BUG
+    if make_executable and script_path.endswith('.py'):
+        hadoopy._runner._make_script_executable(script_path)
     if check_script:
         _check_script(script_path, files, python_cmd)
     for f in files:
@@ -391,15 +394,18 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     kw['add_python'] = False
     kw['jobconfs'] = jobconfs
     out = launch(in_name, out_name, script_path,
-                 script_dir='_frozen', remove_ext=True, check_script=check_script, **kw)
+                 script_dir='_frozen', remove_ext=True, check_script=check_script,
+                 make_executable=False, **kw)
     out['freeze_cmds'] = cmds
     out['frozen_tar_path'] = frozen_tar_path
     return out
 
 
 def _make_script_executable(script_path):
-    logging.info('Making script [%s] executable' % script_path)
-    os.chmod(script_path, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
+    cur_mode = os.stat(script_path).st_mode & 07777
+    if not stat.S_IXUSR & cur_mode:
+        logging.warn('Making script [%s] executable' % script_path)
+        os.chmod(script_path, stat.S_IXUSR | cur_mode)
     script_data = open(script_path).read()
     if script_data[:2] != '#!':
         logging.warn('Adding "#!/usr/bin/env python" to script [%s], will make line numbers off by one.' % script_path)
