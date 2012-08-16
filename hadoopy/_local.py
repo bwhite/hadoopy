@@ -46,7 +46,8 @@ class LocalTask(object):
             if self.files:
                 for f in self.files:
                     shutil.copy(f, os.path.basename(f))
-            hadoopy._runner._make_script_executable(os.path.basename(self.script_path))
+            if self.pipe:
+                hadoopy._runner._make_script_executable(os.path.basename(self.script_path), temp_copy=False)
 
     def __del__(self):
         if self.remove_tempdir:

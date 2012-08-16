@@ -28,6 +28,7 @@ import stat
 import logging
 import time
 import select
+import atexit
 
 # These two globals are only used in the follow function
 WARNED_HADOOP_HOME = False
@@ -173,7 +174,11 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
         raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
     jobconfs = _listeq_to_dict(jobconfs)
     cmdenvs = _listeq_to_dict(cmdenvs)
+    if make_executable and script_path.endswith('.py') and pipe:
+        script_path = hadoopy._runner._make_script_executable(script_path)
     script_info = _parse_info(script_path, python_cmd)
+    job_name = os.path.basename(script_path).rsplit('.', 1)[0]
+    script_name = os.path.basename(script_path)
     # Add required cmdenvs/files, num_reducers from script
     required_cmdenvs = list(script_info.get('required_cmdenvs', ())) + list(required_cmdenvs)
     required_files = list(script_info.get('required_files', ())) + list(required_files)
@@ -182,8 +187,6 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
         hadoop_cmd = 'hadoop jar ' + hstreaming
     except TypeError:
         hadoop_cmd = 'hadoop jar ' + _find_hstreaming()
-    job_name = os.path.basename(script_path).rsplit('.', 1)[0]
-    script_name = os.path.basename(script_path)
     if remove_ext:
         script_name = script_name.rsplit('.', 1)[0]
     if add_python:
@@ -242,8 +245,6 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     files = new_files
     del new_files
     # END BUG
-    if make_executable and script_path.endswith('.py'):
-        hadoopy._runner._make_script_executable(script_path)
     if check_script:
         _check_script(script_path, files, python_cmd)
     for f in files:
@@ -401,13 +402,21 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     return out
 
 
-def _make_script_executable(script_path):
+def _make_script_executable(script_path, temp_copy=True):
     cur_mode = os.stat(script_path).st_mode & 07777
-    if not stat.S_IXUSR & cur_mode:
-        logging.warn('Making script [%s] executable' % script_path)
-        os.chmod(script_path, stat.S_IXUSR | cur_mode)
     script_data = open(script_path).read()
-    if script_data[:2] != '#!':
-        logging.warn('Adding "#!/usr/bin/env python" to script [%s], will make line numbers off by one.' % script_path)
-        with open(script_path, 'w') as fp:
-            fp.write('#!/usr/bin/env python\n' + script_data)
+    if not stat.S_IXUSR & cur_mode or script_data[:2] != '#!':
+        if temp_copy:
+            logging.warn('Script is not executable which is a requirement when pipe=True.  A temporary copy will be modified to correct this.')
+            temp_fp = tempfile.NamedTemporaryFile(suffix=os.path.basename(script_path))
+            shutil.copy(script_path, temp_fp.name)
+            atexit.register(temp_fp.close)  # NOTE(brandyn): This keeps the file from being deleted when wait=False in launch
+            script_path = temp_fp.name
+        if not stat.S_IXUSR & cur_mode:
+            logging.warn('Making script [%s] executable.' % script_path)
+            os.chmod(script_path, stat.S_IXUSR | cur_mode)
+        if script_data[:2] != '#!':
+            logging.warn('Adding "#!/usr/bin/env python" to script [%s].  This will make line numbers off by one from the original.' % script_path)
+            with open(script_path, 'w') as fp:
+                fp.write('#!/usr/bin/env python\n' + script_data)
+    return script_path
