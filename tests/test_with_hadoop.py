@@ -99,9 +99,6 @@ class TestUsingHadoop(unittest.TestCase):
         cur_time = time.time()
         fetch_data.main()
         self.data_path = 'hadoopy-test-data/%f/' % cur_time
-        self.out_path = '%s/face_finder_out/%f/' % (tempfile.mkdtemp(), cur_time)
-        print('OutputPath[%s] (see results here)' % self.out_path)
-        os.makedirs(self.out_path)
         try:
             hadoopy.mkdir('hadoopy-test-data')
         except IOError:
@@ -123,21 +120,25 @@ class TestUsingHadoop(unittest.TestCase):
         self.assertFalse(hadoopy.isempty(self.data_path))
 
     # Face Finder test
-    def _run_face(self, fn, **kw):
+    def _run_face(self, fn, out_path, **kw):
         in_path = self.data_path + fn
         out_path = '%sout-%s-%f' % (self.data_path, fn, time.time())
         if not hadoopy.exists(in_path):
             hadoopy.put(fn, in_path)
         hadoopy.launch_frozen(in_path, out_path, 'face_finder.py', files=['haarcascade_frontalface_default.xml'], **kw)
         for num, ((image_name, box), image_data) in enumerate(hadoopy.readtb(out_path)):
-            with open(self.out_path + 'img%.8d.png' % num, 'w') as fp:
+            with open(out_path + 'img%.8d.png' % num, 'w') as fp:
                 fp.write(image_data)
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     @unittest.skipIf(not pil_and_cv_installed(), 'PIL or OpenCV not installed')
     def test_face(self):
-        self._run_face('../examples/data/test_images.tb')
-        self._run_face('../examples/data/test_images.tb', pipe=False)
+        out_path = '%s/face_finder_out/%f/' % (tempfile.mkdtemp(), time.time())
+        print('OutputPath[%s] (see results here)' % out_path)
+        os.makedirs(out_path + '/pipe')
+        os.makedirs(out_path + '/nopipe')
+        self._run_face('../examples/data/test_images.tb', out_path=out_path + '/pipe')
+        self._run_face('../examples/data/test_images.tb', pipe=False, out_path=out_path + '/nopipe')
 
     def _run_wc(self, orig_fn, script_name='wc.py', launcher=hadoopy.launch_frozen, **kw):
         fn = 'out-%f-%s' % (time.time(), orig_fn)
@@ -287,9 +288,9 @@ class TestUsingHadoop(unittest.TestCase):
 
     @unittest.skipIf(not hadoop_installed(), 'Hadoop not installed')
     def test_cluster_info(self):
-        hadoopy.writetb(self.out_path + 'cluster_info_input', [(0, 0)])
-        hadoopy.launch_frozen(self.out_path + 'cluster_info_input', self.out_path + 'cluster_info', 'cluster_info.py')
-        pprint.pprint(dict(hadoopy.readtb(self.out_path + 'cluster_info')))
+        hadoopy.writetb(self.data_path + 'cluster_info_input', [(0, 0)])
+        hadoopy.launch_frozen(self.data_path + 'cluster_info_input', self.data_path + 'cluster_info', 'cluster_info.py')
+        pprint.pprint(dict(hadoopy.readtb(self.data_path + 'cluster_info')))
 
 
 if __name__ == '__main__':
