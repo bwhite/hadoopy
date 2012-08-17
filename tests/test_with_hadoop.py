@@ -122,11 +122,11 @@ class TestUsingHadoop(unittest.TestCase):
     # Face Finder test
     def _run_face(self, fn, out_path, **kw):
         in_path = self.data_path + fn
-        out_path = '%sout-%s-%f' % (self.data_path, fn, time.time())
+        hdfs_out_path = '%sout-%s-%f' % (self.data_path, fn, time.time())
         if not hadoopy.exists(in_path):
             hadoopy.put(fn, in_path)
-        hadoopy.launch_frozen(in_path, out_path, 'face_finder.py', files=['haarcascade_frontalface_default.xml'], **kw)
-        for num, ((image_name, box), image_data) in enumerate(hadoopy.readtb(out_path)):
+        hadoopy.launch_frozen(in_path, hdfs_out_path, 'face_finder.py', files=['haarcascade_frontalface_default.xml'], **kw)
+        for num, ((image_name, box), image_data) in enumerate(hadoopy.readtb(hdfs_out_path)):
             with open(out_path + 'img%.8d.png' % num, 'w') as fp:
                 fp.write(image_data)
 
