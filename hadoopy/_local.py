@@ -91,6 +91,7 @@ class LocalTask(object):
                             break
                         timeout = None
                         wrote = False
+                        sys.stderr.write('In loop')
                         while True:
                             r, w, _ = select.select([out_r_fd], [in_w_fd], [], timeout)
                             if r:  # If data is available to be read, than get it
@@ -104,6 +105,7 @@ class LocalTask(object):
                                 if p:
                                     sys.stderr.write('Poll[%s]' % str(p))
                             if wrote and (poll is None or p):
+                                sys.stderr.write('Leaving loop')
                                 break
                 # Get any remaining values
                 while True:
