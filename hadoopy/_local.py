@@ -84,7 +84,7 @@ class LocalTask(object):
                                      env=env)
             a.close()
             b.close()
-            with hadoopy.TypedBytesFile(read_fd=out_r_fd) as tbfp_r:
+            with hadoopy.TypedBytesFile(read_fd=out_r_fd, unbuffered_reads=True) as tbfp_r:
                 with hadoopy.TypedBytesFile(write_fd=in_w_fd, flush_writes=True) as tbfp_w:
                     for num, kv in enumerate(kvs):
                         if self.max_input is not None and self.max_input <= num:
@@ -102,13 +102,10 @@ class LocalTask(object):
                                 tbfp_w.write(kv)
                                 wrote = True
                                 timeout = .01
-                            if poll is not None:
-                                p = poll()
-                                if p:
-                                    sys.stderr.write('Poll[%s]\n' % str(p))
-                            if wrote and (poll is None or p):
-                                sys.stderr.write('Leaving loop\n')
-                                break
+                            else:
+                                if wrote and (poll is None or poll()):
+                                    sys.stderr.write('Leaving loop\n')
+                                    break
                 # Get any remaining values
                 while True:
                     try:

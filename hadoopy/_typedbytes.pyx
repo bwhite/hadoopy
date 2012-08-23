@@ -37,6 +37,7 @@ cdef extern from "stdio.h":
     int fclose(void *fp)
     void *fopen(char *path, char *mode)
     int fflush(void *stream)
+    int setvbuf(void *stream, char *buffer, int mode, size_t size)
 
 cdef extern from "byteconversion.h":
     int32_t _be32toh(int32_t val)
@@ -544,7 +545,7 @@ cdef class TypedBytesFile(object):
     cdef object _repr
     cdef object file_method
     cdef int flush_writes
-    def __init__(self, fn=None, mode=None, read_fd=None, write_fd=None, flush_writes=False):
+    def __init__(self, fn=None, mode=None, read_fd=None, write_fd=None, flush_writes=False, unbuffered_reads=False):
         self.flush_writes = int(flush_writes)
         cdef char *fnc
         cdef char *modec
@@ -561,6 +562,8 @@ cdef class TypedBytesFile(object):
         elif read_fd != None or write_fd != None:
             self.file_method = 'readwritefds'
             self._read_ptr = fdopen(read_fd, 'r') if read_fd != None else <void *>0
+            if unbuffered_reads:
+                setvbuf(self._read_ptr, <char *>0, 2, 0)
             self._write_ptr = fdopen(write_fd, 'w') if write_fd != None else <void *>0
         else:
             self.file_method = 'stdinout'
