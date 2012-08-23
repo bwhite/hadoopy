@@ -7,7 +7,6 @@ import subprocess
 import tempfile
 import shutil
 import contextlib
-import sys
 
 
 @contextlib.contextmanager
@@ -91,29 +90,23 @@ class LocalTask(object):
                             break
                         timeout = None
                         wrote = False
-                        sys.stderr.write('In loop[%s]\n' % str(kv))
                         while True:
                             r, w, _ = select.select([out_r_fd], [in_w_fd], [], timeout)
                             if r:  # If data is available to be read, than get it
-                                okv = tbfp_r.next()
-                                sys.stderr.write('In loop Yielding[%s]\n' % str(okv))
-                                yield okv
+                                yield tbfp_r.next()
                             elif w and not wrote:
                                 tbfp_w.write(kv)
                                 wrote = True
-                                timeout = .01
+                                timeout = .0001
                             else:
                                 if wrote and (poll is None or poll()):
-                                    sys.stderr.write('Leaving loop\n')
                                     break
                 # Get any remaining values
-                sys.stderr.write('Get remaining\n')
                 while True:
                     try:
                         yield tbfp_r.next()
                     except EOFError:
                         break
-                sys.stderr.write('Finishing\n')
         finally:
             p.kill()
             p.wait()
