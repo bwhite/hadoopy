@@ -107,11 +107,13 @@ class LocalTask(object):
                                     sys.stderr.write('Leaving loop\n')
                                     break
                 # Get any remaining values
+                sys.stderr.write('Get remaining\n')
                 while True:
                     try:
                         yield tbfp_r.next()
                     except EOFError:
                         break
+                sys.stderr.write('Finishing\n')
         finally:
             p.kill()
             p.wait()
