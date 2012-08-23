@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import shutil
 import contextlib
+import sys
 
 
 @contextlib.contextmanager
@@ -98,7 +99,11 @@ class LocalTask(object):
                                 tbfp_w.write(kv)
                                 wrote = True
                                 timeout = .0001
-                            if wrote and (poll is None or poll()):
+                            if poll is not None:
+                                p = poll()
+                                if p:
+                                    sys.stderr.write('Poll[%s]' % str(p))
+                            if wrote and (poll is None or p):
                                 break
                 # Get any remaining values
                 while True:
