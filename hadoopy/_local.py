@@ -97,7 +97,7 @@ class LocalTask(object):
                             elif w and not wrote:
                                 tbfp_w.write(kv)
                                 wrote = True
-                                timeout = 0
+                                timeout = .0001
                             if wrote and (poll is None or poll()):
                                 break
                 # Get any remaining values
