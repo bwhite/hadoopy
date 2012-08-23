@@ -91,11 +91,13 @@ class LocalTask(object):
                             break
                         timeout = None
                         wrote = False
-                        sys.stderr.write('In loop')
+                        sys.stderr.write('In loop[%s]\n' % str(kv))
                         while True:
                             r, w, _ = select.select([out_r_fd], [in_w_fd], [], timeout)
                             if r:  # If data is available to be read, than get it
-                                yield tbfp_r.next()
+                                okv = tbfp_r.next()
+                                sys.stderr.write('In loop Yielding[%s]\n' % str(okv))
+                                yield okv
                             elif w and not wrote:
                                 tbfp_w.write(kv)
                                 wrote = True
@@ -103,9 +105,9 @@ class LocalTask(object):
                             if poll is not None:
                                 p = poll()
                                 if p:
-                                    sys.stderr.write('Poll[%s]' % str(p))
+                                    sys.stderr.write('Poll[%s]\n' % str(p))
                             if wrote and (poll is None or p):
-                                sys.stderr.write('Leaving loop')
+                                sys.stderr.write('Leaving loop\n')
                                 break
                 # Get any remaining values
                 while True:
