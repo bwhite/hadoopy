@@ -114,7 +114,7 @@ class LocalTask(object):
 
 def launch_local(in_name, out_name, script_path, poll=None, max_input=None,
                  files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True,
-                 identity_mapper=False,
+                 identity_mapper=False, num_reducers=None,
                  **kw):
     """A simple local emulation of hadoop
 
@@ -145,6 +145,7 @@ def launch_local(in_name, out_name, script_path, poll=None, max_input=None,
     :param python_cmd: The python command to use. The default is "python".  Can be used to override the system default python, e.g. python_cmd = "python2.6"
     :param remove_tempdir: If True (default), then rmtree the temporary dir, else print its location.  Useful if you need to see temporary files or how input files are copied.
     :param identity_mapper: If True, use an identity mapper, regardless of what is in the script.
+    :param num_reducers: If 0, don't run the reducer even if one exists, else obey what is in the script.
     :rtype: Dictionary with some of the following entries (depending on options)
     :returns: freeze_cmds: Freeze command(s) ran
     :returns: frozen_tar_path: HDFS path to frozen file
@@ -164,7 +165,7 @@ def launch_local(in_name, out_name, script_path, poll=None, max_input=None,
         in_kvs = hadoopy.readtb(in_name)
     else:
         in_kvs = in_name
-    if 'reduce' in script_info['tasks']:
+    if 'reduce' in script_info['tasks'] and num_reducers != 0:
         if identity_mapper:
             kvs = in_kvs
         else:
