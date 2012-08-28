@@ -108,8 +108,11 @@ class LocalTask(object):
                     except EOFError:
                         break
         finally:
-            p.kill()
-            p.wait()
+            try:
+                p.kill()
+                p.wait()
+            except NameError:  # If p isn't defined yet
+                pass
 
 
 def launch_local(in_name, out_name, script_path, poll=None, max_input=None,
