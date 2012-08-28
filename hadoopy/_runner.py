@@ -66,8 +66,8 @@ def _find_hstreaming():
 def _listeq_to_dict(jobconfs):
     """Convert iterators of 'key=val' into a dictionary with later values taking priority."""
     if not isinstance(jobconfs, dict):
-        return dict(x.split('=', 1) for x in jobconfs)
-    return jobconfs
+        jobconfs = dict(x.split('=', 1) for x in jobconfs)
+    return dict((str(k), str(v)) for k, v in jobconfs.items())
 
 
 def _parse_info(script_path, python_cmd='python'):
