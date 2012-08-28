@@ -111,7 +111,7 @@ class LocalTask(object):
             try:
                 returncode = p.wait()
                 if returncode != 0:
-                    raise subprocess.CalledProcessError('Process returned [%d]' % returncode)
+                    raise RuntimeError('Process returned [%d]' % returncode)
             except NameError:  # If p isn't defined yet
                 pass
 
