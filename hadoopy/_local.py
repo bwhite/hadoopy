@@ -114,6 +114,7 @@ class LocalTask(object):
 
 def launch_local(in_name, out_name, script_path, poll=None, max_input=None,
                  files=(), cmdenvs=(), pipe=True, python_cmd='python', remove_tempdir=True,
+                 identity_mapper=False,
                  **kw):
     """A simple local emulation of hadoop
 
@@ -143,6 +144,7 @@ def launch_local(in_name, out_name, script_path, poll=None, max_input=None,
     :param pipe: If true (default) then call user code through a pipe to isolate it and stop bugs when printing to stdout.  See project docs.
     :param python_cmd: The python command to use. The default is "python".  Can be used to override the system default python, e.g. python_cmd = "python2.6"
     :param remove_tempdir: If True (default), then rmtree the temporary dir, else print its location.  Useful if you need to see temporary files or how input files are copied.
+    :param identity_mapper: If True, use an identity mapper, regardless of what is in the script.
     :rtype: Dictionary with some of the following entries (depending on options)
     :returns: freeze_cmds: Freeze command(s) ran
     :returns: frozen_tar_path: HDFS path to frozen file
@@ -163,8 +165,11 @@ def launch_local(in_name, out_name, script_path, poll=None, max_input=None,
     else:
         in_kvs = in_name
     if 'reduce' in script_info['tasks']:
-        kvs = list(LocalTask(script_path, 'map', files, max_input, pipe,
-                             python_cmd, remove_tempdir).run_task(in_kvs, cmdenvs, poll))
+        if identity_mapper:
+            kvs = in_kvs
+        else:
+            kvs = list(LocalTask(script_path, 'map', files, max_input, pipe,
+                                 python_cmd, remove_tempdir).run_task(in_kvs, cmdenvs, poll))
         if 'combine' in script_info['tasks']:
             kvs = hadoopy.Test.sort_kv(kvs)
             kvs = list(LocalTask(script_path, 'combine', files, max_input, pipe,
@@ -173,8 +178,11 @@ def launch_local(in_name, out_name, script_path, poll=None, max_input=None,
         kvs = LocalTask(script_path, 'reduce', files, max_input, pipe,
                         python_cmd, remove_tempdir).run_task(kvs, cmdenvs)
     else:
-        kvs = LocalTask(script_path, 'map', files, max_input, pipe,
-                        python_cmd, remove_tempdir).run_task(in_kvs, cmdenvs, poll)
+        if identity_mapper:
+            kvs = in_kvs
+        else:
+            kvs = LocalTask(script_path, 'map', files, max_input, pipe,
+                            python_cmd, remove_tempdir).run_task(in_kvs, cmdenvs, poll)
     out = {}
     if out_name is not None:
         hadoopy.writetb(out_name, kvs)
