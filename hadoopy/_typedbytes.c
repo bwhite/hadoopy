@@ -573,7 +573,7 @@ static CYTHON_INLINE PyObject *__pyx_f_19_hadoopy_typedbytes__write_map(void *, 
 static CYTHON_INLINE PyObject *__pyx_f_19_hadoopy_typedbytes__read_pickle(void *); /*proto*/
 static CYTHON_INLINE PyObject *__pyx_f_19_hadoopy_typedbytes__write_pickle(void *, PyObject *); /*proto*/
 static PyObject *__pyx_f_19_hadoopy_typedbytes__write_tb_code(void *, PyObject *); /*proto*/
-static PyObject *__pyx_f_19_hadoopy_typedbytes__read_tb_code(void *); /*proto*/
+static PyObject *__pyx_f_19_hadoopy_typedbytes__read_tb_code(FILE *); /*proto*/
 static PyObject *__pyx_f_19_hadoopy_typedbytes___read_key_value_tb(void *); /*proto*/
 static PyObject *__pyx_f_19_hadoopy_typedbytes___write_key_value_tb(void *, PyObject *); /*proto*/
 #define __Pyx_MODULE_NAME "_hadoopy_typedbytes"
@@ -3267,7 +3267,7 @@ static PyObject *__pyx_f_19_hadoopy_typedbytes__write_tb_code(void *__pyx_v_fp, 
  *     # TODO Use a func pointer array
  */
 
-static PyObject *__pyx_f_19_hadoopy_typedbytes__read_tb_code(void *__pyx_v_fp) {
+static PyObject *__pyx_f_19_hadoopy_typedbytes__read_tb_code(FILE *__pyx_v_fp) {
   int __pyx_v_type_code;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
