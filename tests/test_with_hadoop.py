@@ -121,8 +121,9 @@ class TestUsingHadoop(unittest.TestCase):
 
     # Face Finder test
     def _run_face(self, fn, out_path, **kw):
-        in_path = self.data_path + os.path.basename(fn)
-        hdfs_out_path = '%sout-%s-%f' % (self.data_path, fn, time.time())
+        bfn = os.path.basename(fn)
+        in_path = self.data_path + bfn
+        hdfs_out_path = '%sout-%s-%f' % (self.data_path, bfn, time.time())
         try:
             hadoopy.mkdir(hdfs_out_path)
         except IOError:
