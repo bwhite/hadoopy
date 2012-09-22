@@ -125,6 +125,8 @@ def freeze_script(script_path, cache=True, temp_path='_hadoopy_temp'):
         md5 = _md5_file(freeze_fp.name)
         frozen_tar_path = temp_path + '/%s.tar' % md5
         if not hadoopy.exists(frozen_tar_path):
+            if not hadoopy.exists(temp_path):  # CDH4 Fix
+                hadoopy.mkdir(temp_path)
             hadoopy.put(freeze_fp.name, tmp_frozen_tar_path)
             try:
                 hadoopy.mv(tmp_frozen_tar_path, frozen_tar_path)
