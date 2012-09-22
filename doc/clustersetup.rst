@@ -3,7 +3,7 @@ Hadoop Cluster Setup
 
 Supported Versions
 ------------------
-Any version of Hadoop that has built in TypedBytes support (Apache 0.21+, CDH2+) should work with all features (if not please submit a bug report).  The version that currently has the most testing is CDH3, and CDH4 has not been tested as of this writing.  Hadoopy can be used with text input/output (see the :doc:`text guide guide</text>`) in all Hadoop distributions that support streaming; however, this input/output method is not recommended as TypedBytes handles serialization, is unambiguous (i.e., no need to worry about binary data with tabs or new lines), and is more efficient.
+Any version of Hadoop that has built in TypedBytes support (Apache 0.21+, CDH2+) should work with all features (if not please submit a bug report).  The version that currently has the most testing is CDH3, and CDH2/4 have also been tested.  Hadoopy can be used with text input/output (see the :doc:`text guide guide</text>`) in all Hadoop distributions that support streaming; however, this input/output method is not recommended as TypedBytes handles serialization, is unambiguous (i.e., no need to worry about binary data with tabs or new lines), and is more efficient.
 
 launch vs. launch_frozen
 ------------------------
