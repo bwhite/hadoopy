@@ -123,6 +123,10 @@ class TestUsingHadoop(unittest.TestCase):
     def _run_face(self, fn, out_path, **kw):
         in_path = self.data_path + fn
         hdfs_out_path = '%sout-%s-%f' % (self.data_path, fn, time.time())
+        try:
+            hadoopy.mkdir(hdfs_out_path)
+        except IOError:
+            pass
         if not hadoopy.exists(in_path):
             hadoopy.put(fn, in_path)
         hadoopy.launch_frozen(in_path, hdfs_out_path, 'face_finder.py', files=['haarcascade_frontalface_default.xml'], **kw)
