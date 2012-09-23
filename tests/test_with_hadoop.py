@@ -150,7 +150,7 @@ class TestUsingHadoop(unittest.TestCase):
             hadoopy.put(orig_fn, in_path)
         # We also do a few hdfs checks here
         self.assertEquals(len(hadoopy.ls(in_path)), 1)
-        self.assertEquals(hadoopy.ls(in_path), [hadoopy.abspath(in_path)])
+        #self.assertEquals(hadoopy.ls(in_path), [hadoopy.abspath(in_path)])  # This is no longer true in CDH4
         self.assertTrue(hadoopy.exists(in_path))
         self.assertFalse(hadoopy.exists(out_path))
         self.assertFalse(hadoopy.isdir(in_path))
