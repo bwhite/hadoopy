@@ -107,7 +107,7 @@ def _get_home_dir():
         out = [stat_out] + out
         path = '../' + path
         stat_out = hadoopy.stat(path, '%n')
-    return '/'.join(out)
+    return '/'.join([''] + out)
 
 
 def abspath(path):
