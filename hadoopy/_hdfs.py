@@ -94,6 +94,22 @@ def isempty(path):
 _USER_HOME_DIR = None  # Cache for user's home directory
 
 
+def _get_home_dir_old():
+    # NOTE(brandyn): Not compatible with CDH4's ls
+    return hadoopy.ls('.')[0].rsplit('/', 1)[0]
+
+
+def _get_home_dir():
+    out = []
+    path = '.'
+    stat_out = hadoopy.stat(path, '%n')
+    while stat_out != '':
+        out = [stat_out] + out
+        path = '../' + path
+        stat_out = hadoopy.stat(path, '%n')
+    return '/'.join(out)
+
+
 def abspath(path):
     """Return the absolute path to a file and canonicalize it
 
@@ -101,7 +117,7 @@ def abspath(path):
     Caches the user's home directory.
 
     :param path: A string for the path.  This should not have any wildcards.
-    :returns Absolute path to the file
+    :returns: Absolute path to the file
     :raises IOError: If unsuccessful
     """
     global _USER_HOME_DIR
@@ -111,7 +127,7 @@ def abspath(path):
         return os.path.abspath(path)
     if _USER_HOME_DIR is None:
         try:
-            _USER_HOME_DIR = hadoopy.ls('.')[0].rsplit('/', 1)[0]
+            _USER_HOME_DIR = _get_home_dir()
         except IOError, e:
             if not exists('.'):
                 raise IOError("Home directory doesn't exist")
@@ -138,6 +154,19 @@ def cp(hdfs_src, hdfs_dst):
     """
     cmd = "hadoop fs -cp %s %s" % (hdfs_src, hdfs_dst)
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
+
+
+def stat(path, format):
+    """Call stat on file
+
+    :param path: HDFS Path
+    :param format: Stat format
+    :returns: Stat output
+    :raises: IOError: If unsuccessful
+    """
+    cmd = "hadoop fs -stat %s %s" % (format, path)
+    rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
+    return stdout.rstrip()
 
 
 def mkdir(path):

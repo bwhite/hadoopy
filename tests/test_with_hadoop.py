@@ -268,6 +268,7 @@ class TestUsingHadoop(unittest.TestCase):
 
     def test_local(self):
         out_path = '%s/local_test/%f' % (self.data_path, time.time())
+        hadoopy.mkdir(out_path)
         hadoopy.put('wc-input-alice.tb', out_path + '/wc-input-alice.tb')
         hadoopy.launch_local(out_path + '/wc-input-alice.tb', out_path + '/out_list_cmdenvs', 'local.py', max_input=1000,
                              cmdenvs=['TEST_ENV=10'],
