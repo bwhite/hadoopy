@@ -151,8 +151,8 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :param pipe: If true (default) then call user code through a pipe to isolate it and stop bugs when printing to stdout.  See project docs.
     :param python_cmd: The python command to use. The default is "python". Can be used to override the system default python, e.g. python_cmd = "python2.6"
 
-    :param num_mappers: The number of mappers to use (i.e., cmdenv mapred.map.tasks=num_mappers).
-    :param num_reducers: The number of reducers to use (i.e., cmdenv mapred.reduce.tasks=num_reducers).
+    :param num_mappers: The number of mappers to use (i.e., jobconf mapred.map.tasks=num_mappers).
+    :param num_reducers: The number of reducers to use (i.e., jobconf mapred.reduce.tasks=num_reducers).
     :param script_dir: Where the script is relative to working dir, will be prefixed to script_path with a / (default '' is current dir)
     :param remove_ext: If True, remove the script extension (default False)
     :param check_script: If True, then copy script and .py(c) files to a temporary directory and verify that it can be executed.  This catches the majority of errors related to not included locally imported files. (default True)
@@ -234,11 +234,11 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
         cmd += ['-partitioner',
                 '"%s"' % (partitioner)]
     if num_mappers is not None:
-        if 'mapred.map.tasks' not in cmdenvs:
-            cmdenvs['mapred.map.tasks'] = str(num_mappers)
+        if 'mapred.map.tasks' not in jobconfs:
+            jobconfs['mapred.map.tasks'] = str(num_mappers)
     if num_reducers is not None:
-        if 'mapred.reduce.tasks' not in cmdenvs:
-            cmdenvs['mapred.reduce.tasks'] = str(num_reducers)
+        if 'mapred.reduce.tasks' not in jobconfs:
+            jobconfs['mapred.reduce.tasks'] = str(num_reducers)
     # Add files
     if copy_script:
         files = list(files)
