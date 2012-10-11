@@ -119,7 +119,7 @@ def _check_script(script_path, files, python_cmd):
     
 
 def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs=(),
-           cmdenvs=(), input_format=None, output_format=None, copy_script=True,
+           cmdenvs=(), libjars=(), input_format=None, output_format=None, copy_script=True,
            wait=True, hstreaming=None, name=None,
            use_typedbytes=True, use_seqoutput=True, use_autoinput=True,
            remove_output=False, add_python=True, config=None, pipe=True,
@@ -135,6 +135,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     :param files: Extra files (other than the script) (iterator).  NOTE: Hadoop copies the files into working directory
     :param jobconfs: Extra jobconf parameters (iterator of strings or dict)
     :param cmdenvs: Extra cmdenv parameters (iterator of strings or dict)
+    :param libjars: Extra jars to include with the job (iterator of strings).
     :param input_format: Custom input format (if set overrides use_autoinput)
     :param output_format: Custom output format (if set overrides use_seqoutput)
     :param copy_script: If True, the script is added to the files list.
@@ -174,6 +175,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
         raise TypeError('files,  jobconfs, and cmdenvs must be iterators of strings and not strings!')
     jobconfs = _listeq_to_dict(jobconfs)
     cmdenvs = _listeq_to_dict(cmdenvs)
+    libjars = list(libjars)
     if make_executable and script_path.endswith('.py') and pipe:
         script_path = hadoopy._runner._make_script_executable(script_path)
     script_info = _parse_info(script_path, python_cmd)
@@ -206,7 +208,11 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
         combiner = ' '.join((script_name, c))
     else:
         combiner = None
-    cmd = ('%s -output %s' % (hadoop_cmd, out_name)).split()
+    cmd = [hadoop_cmd]
+    # Add libjars
+    if libjars:
+        cmd += ['--libjars', ','.join(libjars)]
+    cmd += ['-output', out_name]
     # Add inputs
     if isinstance(in_name, (str, unicode)):
         in_name = [in_name]
