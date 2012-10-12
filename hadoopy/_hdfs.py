@@ -251,6 +251,34 @@ def writetb(path, kvs, java_mem_mb=256):
         raise IOError('writetb: Hadoop process returned [%d]. Hadoop output below...\nstderr\n%s' % (p.returncode, p.stderr.read()))
 
 
+def writetb_parts(path, kvs, num_per_file, **kw):
+    """Write typedbytes sequence files to HDFS given an iterator of KeyValue pairs
+
+    This is useful when a task is CPU bound and wish to break up its inputs
+    into pieces smaller than the HDFS block size.  This causes Hadoop to launch
+    one Map task per file.  As such, you can consider this a way of forcing
+    a minimum number of map tasks.
+
+    :param path: HDFS path (string)
+    :param kvs: Iterator of (key, value)
+    :param num_per_file: Max # of kv pairs per file.
+    :param java_mem_mb: Integer of java heap size in MB (default 256)
+    :raises: IOError: An error occurred while saving the data.
+    """
+    out = []
+    part_num = 0
+
+    def _flush(out, part_num):
+        hadoopy.writetb('%s/part-%.5d' % (path, part_num), out, **kw)
+        return [], part_num + 1
+    for kv in kvs:
+        out.append(kv)
+        if len(out) >= num_per_file:
+            out, part_num = _flush(out, part_num)
+    if out:
+        out, part_num = _flush(out, part_num)
+
+
 def readtb(paths, num_procs=10, java_mem_mb=256, ignore_logs=True):
     """Read typedbytes sequence files on HDFS (with optional compression).
 
