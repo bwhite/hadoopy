@@ -176,9 +176,9 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     jobconfs = _listeq_to_dict(jobconfs)
     cmdenvs = _listeq_to_dict(cmdenvs)
     libjars = list(libjars)
+    script_info = _parse_info(script_path, python_cmd)
     if make_executable and script_path.endswith('.py') and pipe:
         script_path = hadoopy._runner._make_script_executable(script_path)
-    script_info = _parse_info(script_path, python_cmd)
     job_name = os.path.basename(script_path).rsplit('.', 1)[0]
     script_name = os.path.basename(script_path)
     # Add required cmdenvs/files, num_reducers from script
@@ -258,7 +258,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     for f in files:
         cmd += ['-file', f]
     # Add jobconfs
-    if name == None:
+    if name is None:
         jobconfs['mapred.job.name'] = job_name
     else:
         jobconfs['mapred.job.name'] = str(name)
