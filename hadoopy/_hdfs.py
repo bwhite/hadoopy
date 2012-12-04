@@ -279,7 +279,7 @@ def writetb_parts(path, kvs, num_per_file, **kw):
         out, part_num = _flush(out, part_num)
 
 
-def readtb(paths, num_procs=10, java_mem_mb=256, ignore_logs=True):
+def readtb(paths, num_procs=1, java_mem_mb=256, ignore_logs=True):
     """Read typedbytes sequence files on HDFS (with optional compression).
 
     By default, ignores files who's names start with an underscore '_' as they
@@ -289,7 +289,7 @@ def readtb(paths, num_procs=10, java_mem_mb=256, ignore_logs=True):
     (they are read in parallel).
 
     :param paths: HDFS path (str) or paths (iterator)
-    :param num_procs: Number of reading procs to open (default 10)
+    :param num_procs: Number of reading procs to open (default 1)
     :param java_mem_mb: Integer of java heap size in MB (default 256)
     :param ignore_logs: If True, ignore all files who's name starts with an underscore.  Defaults to True.
     :returns: An iterator of key, value pairs.
