@@ -426,7 +426,6 @@ cdef inline _write_pickle(void *fp, val):
     _write_bytes(fp, pickle.dumps(val, -1))
 
 
-# 0: _write_bytes unused
 # 1: _write_byte unused
 # 5: _write_float unused
 _out_types = {types.BooleanType: 2,
