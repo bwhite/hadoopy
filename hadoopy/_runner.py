@@ -178,7 +178,7 @@ def launch(in_name, out_name, script_path, partitioner=False, files=(), jobconfs
     libjars = list(libjars)
     script_info = _parse_info(script_path, python_cmd)
     if make_executable and script_path.endswith('.py') and pipe:
-        script_path = hadoopy._runner._make_script_executable(script_path)
+        script_path = hadoopy._runner._make_script_executable(script_path, python_cmd=python_cmd)
     job_name = os.path.basename(script_path).rsplit('.', 1)[0]
     script_name = os.path.basename(script_path)
     # Add required cmdenvs/files, num_reducers from script
@@ -410,7 +410,7 @@ def launch_frozen(in_name, out_name, script_path, frozen_tar_path=None,
     return out
 
 
-def _make_script_executable(script_path, temp_copy=True):
+def _make_script_executable(script_path, temp_copy=True, python_cmd=None):
     cur_mode = os.stat(script_path).st_mode & 07777
     script_data = open(script_path).read()
     if not stat.S_IXUSR & cur_mode or script_data[:2] != '#!':
@@ -424,7 +424,8 @@ def _make_script_executable(script_path, temp_copy=True):
             logging.warn('Making script [%s] executable.' % script_path)
             os.chmod(script_path, stat.S_IXUSR | cur_mode)
         if script_data[:2] != '#!':
-            logging.warn('Adding "#!/usr/bin/env python" to script [%s].  This will make line numbers off by one from the original.' % script_path)
+            python_bin = python_cmd if python_cmd[0] == '/' else '/usr/bin/env python'
+            logging.warn('Adding "#!%s" to script [%s].  This will make line numbers off by one from the original.' % (python_bin, script_path))
             with open(script_path, 'w') as fp:
-                fp.write('#!/usr/bin/env python\n' + script_data)
+                fp.write('#!%s\n%s' % (python_bin, script_data))
     return script_path
