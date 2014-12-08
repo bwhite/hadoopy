@@ -510,7 +510,7 @@ cdef _read_tb_code(void *fp):
     elif type_code < 0:
         raise StopIteration        
     else:
-        raise IndexError('Bad index %d ' % type_code)
+        raise IndexError('Bad type code %d ' % type_code)
 
 
 cdef __read_key_value_tb(void *fp):
