@@ -503,12 +503,14 @@ cdef _read_tb_code(void *fp):
         return _read_map(fp)
     elif type_code == 100:
         return _read_pickle(fp)
+    elif 50 <= type_code <= 200:
+        return _read_bytes(fp)
     elif type_code == 255:
         raise StopIteration
     elif type_code < 0:
         raise StopIteration        
     else:
-        raise IndexError('Bad index %d ' % type_code)
+        raise IndexError('Bad type code %d ' % type_code)
 
 
 cdef __read_key_value_tb(void *fp):

@@ -50,6 +50,8 @@ def _find_hstreaming():
         return HADOOP_STREAMING_PATH_CACHE
     try:
         search_root = os.environ['HADOOP_HOME']
+        if not search_root.endswith('/'):
+            search_root += '/'
     except KeyError:
         search_root = '/'
     cmd = 'find %s -name hadoop*streaming*.jar' % (search_root)
