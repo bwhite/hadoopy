@@ -4,3 +4,5 @@ play/*.tb
 hadoopy/thirdparty/pyinstaller/config.dat
 build/
 tests/frozen
+dist/
+hadoopy.egg-info/
