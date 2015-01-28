@@ -17,7 +17,7 @@ PIP installation ::
 
     sudo pip install -e git+https://github.com/bwhite/hadoopy#egg=hadoopy
 
-.. _github: http://github github.com/bwhite/hadoopy
+.. _github: http://github.com/bwhite/hadoopy
 
 This guide assumes you have a functional Hadoop cluster with a supported version of Hadoop.  If you need help with this see the :doc:`cluster guide</clustersetup>`
 
