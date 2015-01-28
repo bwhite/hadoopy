@@ -1,19 +1,30 @@
-Brandyn White <bwhite@dappervision.com>
-Andrew Miller <amiller@dappervision.com>
+=======
+hadoopy
+=======
 
-Source  https://github.com/bwhite/hadoopy/
-Issues  https://github.com/bwhite/hadoopy/issues
-Docs    http://bwhite.github.com/hadoopy/
+**Brandyn White** <bwhite@dappervision.com>
 
-IRC: #hadoopy @ freenode.net
+**Andrew Miller** <amiller@dappervision.com>  
+
+**Source**  https://github.com/bwhite/hadoopy/
+
+**Issues**  https://github.com/bwhite/hadoopy/issues
+
+**Docs**    http://bwhite.github.com/hadoopy/
+
+**IRC**: #hadoopy @ freenode.net
 
 Requirements
-python development headers (python-dev), build tools (build-essential)
+------------
+* python development headers (python-dev)
+* build tools (build-essential)
 
 Optional
-cython (>=.13) (without this it falls back to the pregenerated .c files)
+--------
+* cython (>=.13) (without this it falls back to the pregenerated .c files)
 
 Features
+--------
 - oozie support
 - Automated job parallelization 'auto-oozie' available in the hadoopy_flow project (maintained out of branch)
 - typedbytes support (very fast)
@@ -29,14 +40,28 @@ Features
 - Supports design patterns in the Lin/Dyer book (http://www.umiacs.umd.edu/~jimmylin/book.html)
 
 Limitations
+-----------
 - Hadoop Local currently unsupported due to a bug in Hadoop's handling of the distributed cache in this mode.  Use psuedo-distributed instead for now.  (https://github.com/bwhite/hadoopy/issues/40)
 
 Used in
+-------
 - A Case for Query by Image and Text Content: Searching Computer Help using Screenshots and Keywords (to appear in WWW'11)
 - Web-Scale Computer Vision using MapReduce for Multimedia Data Mining (at KDD'10)
 - Vitrieve: Visual Search engine
 - Picarus: Hadoop computer vision toolbox
 
 Ubuntu Install (others are similar)
-sudo apt-get install python-dev build-essential
-sudo python setup.py install
+-----------------------------------
+::
+
+  sudo apt-get install python-dev build-essential
+  sudo python setup.py install
+
+
+CentOS Install
+--------------
+::
+
+  sudo yum groupinstall 'Development Tools'
+  sudo yum install python-devel 
+  pip install -e git+https://github.com/bwhite/hadoopy#egg=hadoopy
