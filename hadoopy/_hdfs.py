@@ -226,6 +226,17 @@ def ls(path):
     return out
 
 
+def dus(path):
+    """Get the size of a folder on HDFS.
+
+    :param path: A string (potentially with wildcards).
+    :raises: IOError: An error occurred listing the directory (e.g., not available).
+    """
+    rcode, stdout, stderr = _checked_hadoop_fs_command('hdfs dfs -du -s %s' % path)
+    size = int(stdout.split()[0])
+    return size
+
+
 def writetb(path, kvs, java_mem_mb=256):
     """Write typedbytes sequence file to HDFS given an iterator of KeyValue pairs
 
