@@ -58,7 +58,7 @@ def exists(path):
     :param path: A string for the path.  This should not have any wildcards.
     :returns: True if the path exists, False otherwise.
     """
-    cmd = "hadoop fs -test -e %s"
+    cmd = "hdfs dfs -test -e %s"
     p = _hadoop_fs_command(cmd % (path))
     p.communicate()
     rcode = p.returncode
@@ -71,7 +71,7 @@ def isdir(path):
     :param path: A string for the path.  This should not have any wildcards.
     :returns: True if the path is a directory, False otherwise.
     """
-    cmd = "hadoop fs -test -d %s"
+    cmd = "hdfs dfs -test -d %s"
     p = _hadoop_fs_command(cmd % (path))
     p.communicate()
     rcode = p.returncode
@@ -84,7 +84,7 @@ def isempty(path):
     :param path: A string for the path.  This should not have any wildcards.
     :returns: True if the path has zero length, False otherwise.
     """
-    cmd = "hadoop fs -test -z %s"
+    cmd = "hdfs dfs -test -z %s"
     p = _hadoop_fs_command(cmd % (path))
     p.communicate()
     rcode = p.returncode
@@ -141,7 +141,7 @@ def rmr(path):
     :param path: A string (potentially with wildcards).
     :raises IOError: If unsuccessful
     """
-    cmd = "hadoop fs -rmr %s" % (path)
+    cmd = "hdfs dfs -rmr %s" % (path)
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
 
 
@@ -152,7 +152,7 @@ def cp(hdfs_src, hdfs_dst):
     :param hdfs_dst: Destination (str)
     :raises: IOError: If unsuccessful
     """
-    cmd = "hadoop fs -cp %s %s" % (hdfs_src, hdfs_dst)
+    cmd = "hdfs dfs -cp %s %s" % (hdfs_src, hdfs_dst)
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
 
 
@@ -164,7 +164,7 @@ def stat(path, format):
     :returns: Stat output
     :raises: IOError: If unsuccessful
     """
-    cmd = "hadoop fs -stat %s %s" % (format, path)
+    cmd = "hdfs dfs -stat %s %s" % (format, path)
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
     return stdout.rstrip()
 
@@ -175,7 +175,7 @@ def mkdir(path):
     :param path: A string (potentially with wildcards).
     :raises IOError: If unsuccessful
     """
-    cmd = "hadoop fs -mkdir %s" % (path)
+    cmd = "hdfs dfs -mkdir %s" % (path)
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
 
 
@@ -186,7 +186,7 @@ def mv(hdfs_src, hdfs_dst):
     :param hdfs_dst: Destination (str)
     :raises: IOError: If unsuccessful
     """
-    cmd = "hadoop fs -mv %s %s" % (hdfs_src, hdfs_dst)
+    cmd = "hdfs dfs -mv %s %s" % (hdfs_src, hdfs_dst)
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
 
 
@@ -197,7 +197,7 @@ def put(local_path, hdfs_path):
     :param hdfs_path: Destination (str)
     :raises: IOError: If unsuccessful
     """
-    cmd = "hadoop fs -put %s %s" % (local_path, hdfs_path)
+    cmd = "hdfs dfs -put %s %s" % (local_path, hdfs_path)
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
 
 
@@ -208,7 +208,7 @@ def get(hdfs_path, local_path):
     :param local_path: Source (str)
     :raises: IOError: If unsuccessful
     """
-    cmd = "hadoop fs -get %s %s" % (hdfs_path, local_path)
+    cmd = "hdfs dfs -get %s %s" % (hdfs_path, local_path)
     rcode, stdout, stderr = _checked_hadoop_fs_command(cmd)
 
 
@@ -219,11 +219,22 @@ def ls(path):
     :rtype: A list of strings representing HDFS paths.
     :raises: IOError: An error occurred listing the directory (e.g., not available).
     """
-    rcode, stdout, stderr = _checked_hadoop_fs_command('hadoop fs -ls %s' % path)
+    rcode, stdout, stderr = _checked_hadoop_fs_command('hdfs dfs -ls %s' % path)
     found_line = lambda x: re.search('Found [0-9]+ items$', x)
     out = [x.split(' ')[-1] for x in stdout.split('\n')
            if x and not found_line(x)]
     return out
+
+
+def dus(path):
+    """Get the size of a folder on HDFS.
+
+    :param path: A string (potentially with wildcards).
+    :raises: IOError: An error occurred listing the directory (e.g., not available).
+    """
+    rcode, stdout, stderr = _checked_hadoop_fs_command('hdfs dfs -du -s %s' % path)
+    size = int(stdout.split()[0])
+    return size
 
 
 def writetb(path, kvs, java_mem_mb=256):
